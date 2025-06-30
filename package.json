@@ -1,0 +1,78 @@
+{
+  "name": "mirror",
+  "main": "expo-router/entry",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "EXPO_PUBLIC_ENVIRONMENT=development EXPO_PUBLIC_FIREBASE_PROJECT_ID=mirrorbase-dev EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyDIipV_qbulUWPlEjMevklgpE-UH7vFmN0 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=mirrorbase-dev.firebaseapp.com EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=mirrorbase-dev.firebasestorage.app EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=199534487437 EXPO_PUBLIC_FIREBASE_APP_ID=1:199534487437:web:e28c002315b1730c87ffc4 EXPO_PUBLIC_FIREBASE_DATABASE_URL=https://mirrorbase-dev-default-rtdb.firebaseio.com npx expo start -c",
+    "prod": "EXPO_PUBLIC_ENVIRONMENT=production EXPO_PUBLIC_FIREBASE_PROJECT_ID=mirrorbase-376bc EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyDkTKP8R-dJnIf0QscGss4Fjg_qhd3LiJE EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=mirrorbase-376bc.firebaseapp.com EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=mirrorbase-376bc.firebasestorage.app EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=671535609379 EXPO_PUBLIC_FIREBASE_APP_ID=1:671535609379:web:d33d33b717c780e859e396 EXPO_PUBLIC_FIREBASE_DATABASE_URL=https://mirrorbase-376bc-default-rtdb.firebaseio.com npx expo start -c",
+    "reset-project": "node ./scripts/reset-project.js",
+    "android": "npx expo start --android",
+    "ios": "npx expo start --ios",
+    "web": "npx expo start --web",
+    "test": "jest --watchAll",
+    "create-eas-secrets": "node ./scripts/create-eas-secrets.js"
+  },
+  "jest": {
+    "preset": "jest-expo"
+  },
+  "dependencies": {
+    "@expo/metro-config": "^0.20.14",
+    "@expo/vector-icons": "^14.0.2",
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-community/datetimepicker": "^8.3.0",
+    "@react-navigation/bottom-tabs": "^7.2.0",
+    "@react-navigation/native": "^7.0.14",
+    "@xmldom/xmldom": "^0.8.10",
+    "ajv": "^8.17.1",
+    "ajv-keywords": "^5.1.0",
+    "expo": "^53.0.9",
+    "expo-blur": "~14.1.4",
+    "expo-camera": "~16.1.6",
+    "expo-constants": "~17.1.6",
+    "expo-dev-client": "~5.1.8",
+    "expo-font": "~13.3.1",
+    "expo-haptics": "~14.1.4",
+    "expo-image": "~2.1.7",
+    "expo-image-picker": "~16.1.4",
+    "expo-linking": "~7.1.5",
+    "expo-modules-core": "~2.3.13",
+    "expo-router": "~5.0.7",
+    "expo-splash-screen": "~0.30.8",
+    "expo-status-bar": "~2.2.3",
+    "expo-symbols": "~0.4.4",
+    "expo-system-ui": "~5.0.7",
+    "expo-updates": "~0.28.13",
+    "expo-web-browser": "~14.1.6",
+    "firebase": "^11.9.1",
+    "jest-expo": "~53.0.5",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-native": "0.79.2",
+    "react-native-dotenv": "^3.4.11",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-linear-gradient": "^2.8.3",
+    "react-native-modal": "^14.0.0-rc.1",
+    "react-native-modal-datetime-picker": "^18.0.0",
+    "react-native-reanimated": "~3.17.4",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.10.0",
+    "react-native-svg": "15.11.2",
+    "react-native-toast-message": "^2.2.1",
+    "react-native-web": "^0.20.0",
+    "react-native-webview": "13.13.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "jest": "^29.2.1",
+    "jest-expo": "^53.0.0",
+    "react-test-renderer": "19.0.0"
+  },
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "Magic Mirror",
+    "slug": "mirror",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/splash-icon-pmm.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#74696F"
+    },
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.mirrorbase.mirror",
+      "icon": "./assets/images/icon.png",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow access your camera to take photos.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon-pmm.png",
+        "backgroundColor": "#74696F"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.mirrorbase.mirror"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Magic Mirror to access your camera to take photos."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon-pmm.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#74696F"
+        }
+      ],
+      "expo-font",
+      "expo-router",
+      "expo-web-browser"
+    ],
+    "newArchEnabled": true,
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "4b079171-23f5-4328-ac18-7c1d9ef3429d"
+      }
+    },
+    "owner": "mirrorbase",
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/4b079171-23f5-4328-ac18-7c1d9ef3429d"
+    }
+  }
+}

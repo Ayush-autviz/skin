@@ -1,0 +1,1694 @@
+{
+  "llm-notes": {
+    "purpose": "Skin concern definitions and score-based feedback system for metric detail screens",
+    "data-source": "Official Haut.AI API algorithm documentation (Face Metrics 2.0 + deprecated algorithms)",
+    "architecture": {
+      "dual-system": "Two parallel data structures for different metric types",
+      "skinConcerns": "Scored metrics (0-100) with scoreLevels for improvement feedback",
+      "skinProfiles": "Descriptive metrics (categories, ages) with scoreLevels for contextual explanations"
+    },
+    "score-system": {
+      "range": "[0,100] where higher scores = better skin condition",
+      "levels": "6-level classification: excellent(90-100), great(80-90), good(70-80), average(50-70), poor(30-50), bad(0-30)",
+      "implementation": "scoreLevels object with min/max ranges and contextual text for each level"
+    },
+    "profile-system": {
+      "purpose": "Non-scored descriptive metrics like skin type, age estimates, and tone categories",
+      "implementation": "skinProfiles object with scoreLevels for contextual feedback (categorical or age-range based)",
+      "templates": "Uses vertical layout (value on top, description below) vs horizontal layout for scores"
+    },
+    "algorithms-used": [
+      "acne, pores, uniformness, pigmentation, redness, hydration, lines (active)",
+      "eye-area-condition: dark circles, eye bags, eye lines/lacrimal grooves (active)", 
+      "translucency, sagging (deprecated but still displayed)",
+      "skin-type, perceived-age, eye-age, skin-tone (profile metrics - descriptive only)"
+    ],
+    "documentation-sources": "https://docs.saas.haut.ai/haut.ai/developers/saas-api-overview/api-for-algorithm-applications/face-application/",
+    "usage": {
+      "score-metrics": "metricHelpers.getScoreLevelForValue(scoreLevels, numericValue) returns appropriate level object with text",
+      "profile-metrics": "Direct lookup for categories (skinProfiles[metricKey].scoreLevels[categoryValue]) or range lookup for ages"
+    },
+    "notes": "Text written to be helpful, professional, non-exclamatory. Deprecated algorithms included for current compatibility."
+  },
+  "skinTypes": [
+    {
+      "key": "Normal",
+      "displayName": "Normal",
+      "description": "Well-balanced skin, neither too oily nor too dry. It typically has a regular texture, no or few imperfections, and a clean, soft appearance.",
+      "characteristics": "Few blemishes, small pores, even tone, not overly sensitive."
+    },
+    {
+      "key": "Dry",
+      "displayName": "Dry",
+      "description": "Skin that produces less sebum than normal skin. As a result, dry skin lacks the lipids that it needs to retain moisture and build a protective shield against external influences.",
+      "characteristics": "May feel tight, rough, or flaky. Can be prone to dullness, irritation, and premature aging."
+    },
+    {
+      "key": "Oily",
+      "displayName": "Oily",
+      "description": "Characterized by an overproduction of sebum, leading to a shiny or greasy appearance.",
+      "characteristics": "Enlarged pores, prone to blackheads, whiteheads, and acne breakouts."
+    },
+    {
+      "key": "Combination",
+      "displayName": "Combination",
+      "description": "Features a mix of skin types, typically oily in some areas (commonly the T-zone: forehead, nose, and chin) and dry or normal in others (like the cheeks).",
+      "characteristics": "Requires a balanced approach to address differing needs across facial zones."
+    }
+  ],
+  "skinProfiles": {
+    "skinType": {
+      "keyForLookup": "skinType",
+      "displayName": "Skin Type",
+      "metricType": "category",
+      "overview": "Your skin type is determined by how much oil your sebaceous glands produce. Understanding your skin type is fundamental to choosing the right skincare products and routines that will work best for your skin's natural characteristics.",
+      "contextText": "This analysis looks at oil production patterns, pore size, and texture to classify your skin type. Skin type can change over time due to factors like age, hormones, climate, and skincare habits.",
+      "scoreLevels": {
+        "Normal": {
+          "text": "Your skin produces a balanced amount of oil, resulting in healthy, well-maintained skin with minimal imperfections. This balanced type typically responds well to a wide range of products and requires consistent but not intensive care."
+        },
+        "Dry": {
+          "text": "Your skin produces less oil than average, which can result in a tighter feeling and more visible texture. This type benefits from rich moisturizers and gentle, hydrating ingredients to support the skin barrier."
+        },
+        "Oily": {
+          "text": "Your skin produces more oil than average, typically resulting in a shinier appearance, especially in the T-zone. This resilient type can handle stronger ingredients but needs balanced hydration to avoid over-drying."
+        },
+        "Combination": {
+          "text": "Your skin shows characteristics of multiple types, typically oily in the T-zone and normal to dry on the cheeks. This type requires a targeted approach with different products for different facial areas."
+        },
+        "Combinational": {
+          "text": "Your skin shows characteristics of multiple types, typically oily in the T-zone and normal to dry on the cheeks. This type requires a targeted approach with different products for different facial areas."
+        }
+      },
+      "typeDescriptions": {
+        "Normal": {
+          "description": "Your skin produces a balanced amount of oil, resulting in a healthy, well-maintained appearance with minimal imperfections.",
+          "characteristics": "Small pores, smooth texture, good elasticity, not overly sensitive",
+          "careApproach": "Focus on maintaining balance with gentle, consistent care"
+        },
+        "Dry": {
+          "description": "Your skin produces less oil than average, which can lead to a tighter feeling and more visible texture.",
+          "characteristics": "May feel tight, appear flaky, fine pores, can be sensitive to weather changes",
+          "careApproach": "Emphasize hydration and barrier repair with richer moisturizers"
+        },
+        "Oily": {
+          "description": "Your skin produces more oil than average, typically resulting in a shinier appearance, especially in the T-zone.",
+          "characteristics": "Larger pores, shiny appearance, more resilient to environmental factors",
+          "careApproach": "Balance oil production without over-drying, use lightweight hydration"
+        },
+        "Combination": {
+          "description": "Your skin shows characteristics of multiple types, typically oily in the T-zone and normal to dry on the cheeks.",
+          "characteristics": "Varied pore sizes across face, different needs in different areas",
+          "careApproach": "Use targeted treatments for different facial zones"
+        }
+      },
+      "relatedTopics": [
+        {
+          "title": "Choosing Products for Your Type",
+          "description": "Different skin types benefit from different ingredient focuses and product textures."
+        },
+        {
+          "title": "Seasonal Adjustments",
+          "description": "Your skin's needs may change with weather, requiring routine adjustments."
+        },
+        {
+          "title": "Age-Related Changes",
+          "description": "Skin type can evolve over time, especially during hormonal changes."
+        }
+      ]
+    },
+    "perceivedAge": {
+      "keyForLookup": "perceivedAge",
+      "displayName": "Perceived Age",
+      "metricType": "age",
+      "overview": "Perceived age represents how old your skin appears based on visible aging signs like fine lines, skin texture, elasticity, and pigmentation. This may differ from your chronological age depending on genetics, lifestyle, and skincare habits.",
+      "contextText": "This analysis examines multiple aging indicators including line formation, skin smoothness, elasticity, and overall skin quality to estimate the apparent age of your skin.",
+      "scoreLevels": {
+        "youthful": {
+          "max": 25,
+          "min": 18,
+          "text": "Your skin shows youthful characteristics with minimal visible aging signs. This suggests excellent skin health with effective protection against environmental damage."
+        },
+        "young": {
+          "max": 35,
+          "min": 26,
+          "text": "Your skin displays young adult characteristics with well-maintained texture and elasticity. Minor aging signs may be present but overall skin condition is excellent."
+        },
+        "mature": {
+          "max": 45,
+          "min": 36,
+          "text": "Your skin shows mature adult characteristics with moderate aging signs becoming visible. This is a normal progression that can be managed with targeted skincare."
+        },
+        "advanced": {
+          "max": 55,
+          "min": 46,
+          "text": "Your skin displays advanced maturity with noticeable aging signs including lines, texture changes, and possible elasticity loss. Comprehensive anti-aging care can help address these concerns."
+        },
+        "significantly_mature": {
+          "max": 100,
+          "min": 56,
+          "text": "Your skin shows significant maturity with pronounced aging signs. While this represents advanced aging, consistent skincare routines and professional treatments can still provide meaningful improvements."
+        }
+      },
+      "ageGuidance": {
+        "youngerThanActual": "Your skin appears younger than your chronological age, indicating good skin health and effective protection against aging factors.",
+        "matchesActual": "Your skin's apparent age aligns with your chronological age, showing typical aging progression for your age group.",
+        "olderThanActual": "Your skin appears older than your chronological age, which may indicate accelerated aging from factors like sun exposure, lifestyle, or genetics."
+      },
+      "factorsInfluencing": [
+        "Sun exposure and UV protection habits",
+        "Genetics and family history",
+        "Skincare routine consistency",
+        "Lifestyle factors (smoking, sleep, stress)",
+        "Environmental exposure",
+        "Hydration and nutrition"
+      ],
+      "relatedTopics": [
+        {
+          "title": "Understanding Skin Aging",
+          "description": "Learn about the biological processes that contribute to visible aging signs."
+        },
+        {
+          "title": "Prevention Strategies",
+          "description": "Daily habits that can help slow the aging process and maintain youthful skin."
+        },
+        {
+          "title": "Treatment Options",
+          "description": "Both topical and professional treatments that can address aging concerns."
+        }
+      ]
+    },
+    "eyeAge": {
+      "keyForLookup": "eyeAge",
+      "displayName": "Eye Age",
+      "metricType": "age",
+      "overview": "Eye age specifically analyzes the apparent age of your eye area, which often shows aging signs earlier than other facial areas due to thinner skin, constant muscle movement, and increased vulnerability to environmental factors.",
+      "contextText": "The delicate eye area is typically the first to show aging signs. This analysis focuses on fine lines, under-eye texture, elasticity, and overall eye area condition to estimate apparent age.",
+      "scoreLevels": {
+        "youthful_eyes": {
+          "max": 25,
+          "min": 18,
+          "text": "Your eye area shows youthful characteristics with minimal fine lines and excellent skin elasticity. This indicates effective protection and care of this delicate area."
+        },
+        "young_eyes": {
+          "max": 35,
+          "min": 26,
+          "text": "Your eye area displays young adult characteristics with well-maintained texture. Minor expression lines may be present but overall eye condition is excellent for your age range."
+        },
+        "mature_eyes": {
+          "max": 45,
+          "min": 36,
+          "text": "Your eye area shows mature characteristics with some visible aging signs. This is common as the eye area ages faster than other facial areas due to its delicate nature."
+        },
+        "advanced_eyes": {
+          "max": 55,
+          "min": 46,
+          "text": "Your eye area displays advanced aging characteristics with noticeable lines and texture changes. Targeted eye care can help address these specific concerns in this sensitive area."
+        },
+        "significantly_mature_eyes": {
+          "max": 100,
+          "min": 56,
+          "text": "Your eye area shows significant aging characteristics with pronounced lines and texture changes. While this represents advanced aging, specialized eye treatments can still provide meaningful improvements."
+        }
+      },
+      "eyeSpecificFactors": [
+        "Thinner skin around eyes (10x thinner than face)",
+        "Constant muscle movement from expressions",
+        "Frequent rubbing or touching",
+        "Reduced oil gland activity in eye area",
+        "Greater vulnerability to UV damage",
+        "Poor circulation showing as dark circles"
+      ],
+      "ageConsiderations": {
+        "earlierAging": "Eye areas commonly show aging signs 5-10 years before other facial areas due to structural differences.",
+        "expressionLines": "Lines around eyes often relate to facial expressions and muscle movement patterns.",
+        "prevention": "Eye-specific care and protection can significantly slow aging in this delicate area."
+      },
+      "relatedTopics": [
+        {
+          "title": "Eye Area Anatomy",
+          "description": "Understanding why the eye area ages differently than the rest of your face."
+        },
+        {
+          "title": "Targeted Eye Care",
+          "description": "Specific ingredients and techniques for maintaining youthful-looking eyes."
+        },
+        {
+          "title": "Professional Treatments",
+          "description": "Advanced options for addressing eye area aging concerns."
+        }
+      ]
+    },
+    "skinTone": {
+      "keyForLookup": "skinTone",
+      "displayName": "Skin Tone",
+      "metricType": "category",
+      "overview": "Skin tone classification helps determine your skin's melanin content and phototype, which influences how your skin responds to sun exposure, certain treatments, and product formulations.",
+      "contextText": "This analysis examines your skin's pigmentation levels to classify your phototype. Understanding your skin tone is important for sun protection, treatment selection, and product compatibility.",
+      "scoreLevels": {
+        "Light": {
+          "text": "Your light skin tone indicates lower melanin content with higher sensitivity to UV radiation. This phototype requires diligent sun protection and may be more sensitive to certain skincare ingredients, but often responds well to most treatments."
+        },
+        "Intermediate": {
+          "text": "Your intermediate skin tone indicates moderate melanin content with balanced UV sensitivity. This phototype has good tolerance for most treatments while still needing consistent sun protection against UV damage."
+        },
+        "Dark": {
+          "text": "Your dark skin tone indicates higher melanin content providing natural UV protection. This phototype has lower risk of UV damage but higher risk of post-inflammatory hyperpigmentation, requiring careful product selection and treatment approaches."
+        }
+      },
+      "toneDescriptions": {
+        "Light": {
+          "description": "Lower melanin content with higher sensitivity to UV radiation and some skincare ingredients.",
+          "characteristics": "Burns easily, tans minimally, often has freckles or light hair",
+          "considerations": "Requires higher SPF protection, may be more sensitive to acids and retinoids"
+        },
+        "Intermediate": {
+          "description": "Moderate melanin content with balanced UV sensitivity and treatment tolerance.",
+          "characteristics": "Burns moderately, tans gradually, varied hair and eye colors",
+          "considerations": "Good tolerance for most treatments, still needs consistent sun protection"
+        },
+        "Dark": {
+          "description": "Higher melanin content providing natural UV protection but increased risk for certain pigmentation concerns.",
+          "characteristics": "Burns rarely, tans easily, naturally darker hair and eyes",
+          "considerations": "Lower risk of UV damage but higher risk of post-inflammatory hyperpigmentation"
+        }
+      },
+      "importantConsiderations": [
+        "Sun protection needs vary by skin tone",
+        "Treatment sensitivity can differ between phototypes",
+        "Post-inflammatory hyperpigmentation risk varies",
+        "Product formulations may work differently",
+        "Professional treatment protocols should be adjusted"
+      ],
+      "relatedTopics": [
+        {
+          "title": "Phototype and Sun Protection",
+          "description": "How your skin tone affects your sun protection needs and UV vulnerability."
+        },
+        {
+          "title": "Treatment Considerations",
+          "description": "How skin tone influences the selection and application of skincare treatments."
+        },
+        {
+          "title": "Pigmentation Management",
+          "description": "Understanding how different skin tones respond to pigmentation concerns and treatments."
+        }
+      ]
+    }
+  },
+  "skinConcerns": {
+    "acneScore": {
+      "keyForLookup": "acneScore",
+      "displayName": "Acne",
+      "associatedMetric": "Acne score <90",
+      "overview": "Breakouts occur when pores get clogged by oil and dead skin cells, allowing bacteria to thrive and cause inflammation. This complex issue is influenced by hormones, genetics, diet, and stress, requiring a multi-faceted approach to manage effectively.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your skin shows minimal to no detectable acne spots. This indicates very clear skin with little active breakout activity."
+        },
+        "good": {
+          "max": 89,
+          "min": 70,
+          "text": "Your skin shows only minor acne activity with few detectable spots. Keep up your current routine to maintain this clarity."
+        },
+        "fair": {
+          "max": 69,
+          "min": 40,
+          "text": "Your skin shows moderate acne activity with some detectable spots and regions. Targeted treatments can help improve this condition."
+        },
+        "bad": {
+          "max": 39,
+          "min": 0,
+          "text": "Your skin shows significant acne activity with multiple detectable spots across facial areas. A comprehensive treatment approach will be most effective."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Benzoyl Peroxide: Kills acne-causing bacteria and helps unclog pores.",
+          "icon": "list",
+          "initialChatMessage": "Benzoyl Peroxide is a powerful ingredient against acne-causing bacteria. Have you tried it, or would you like to explore if it's right for your skin?"
+        },
+        {
+          "type": "product",
+          "text": "Salicylic Acid: Penetrates pores to dissolve debris and reduce inflammation.",
+          "icon": "list",
+          "initialChatMessage": "Salicylic Acid is fantastic for deeply cleansing pores. Are you familiar with how it works, or what kind of products contain it?"
+        },
+        {
+          "type": "product",
+          "text": "Retinoids: Normalize cell turnover to prevent clogged pores and reduce inflammation.",
+          "icon": "list",
+          "initialChatMessage": "Retinoids are a go-to for preventing clogged pores and reducing inflammation. Are you curious about adding retinoids to your routine, or have you used them before?"
+        },
+        {
+          "type": "product",
+          "text": "Niacinamide: Regulates sebum production and has anti-inflammatory properties.",
+          "icon": "list",
+          "initialChatMessage": "Niacinamide is known for regulating oil production and its anti-inflammatory benefits. Would you like to learn more about how it can help with breakouts?"
+        },
+        {
+          "type": "activity",
+          "text": "Develop a consistent cleansing routine without over-washing.",
+          "icon": "check-circle",
+          "initialChatMessage": "A consistent, gentle cleansing routine is foundational for managing breakouts. What does your current routine involve, and are you finding it effective?"
+        },
+        {
+          "type": "activity",
+          "text": "Introduce acne-fighting ingredients gradually to prevent irritation.",
+          "icon": "alert-triangle",
+          "initialChatMessage": "It's important to introduce new acne-fighting ingredients slowly to avoid irritation. Would you like some tips on how to do that effectively?"
+        },
+        {
+          "type": "nutrition",
+          "text": "Consider diet factors like dairy consumption.",
+          "icon": "coffee",
+          "initialChatMessage": "Some people find that certain foods, like dairy, can influence their breakouts. Is this something you've noticed or would you like to discuss?"
+        },
+        {
+          "type": "activity",
+          "text": "Manage stress levels.",
+          "icon": "smile",
+          "initialChatMessage": "Stress can sometimes play a role in skin health and breakouts. Have you explored any stress management techniques, or would you like to know more about the connection?"
+        },
+        {
+          "type": "activity",
+          "text": "Maintain pillowcase hygiene.",
+          "icon": "shield",
+          "initialChatMessage": "Clean pillowcases can make a surprising difference in managing breakouts! How often do you typically change yours, or would you like some best-practice tips?"
+        },
+        {
+          "type": "activity",
+          "text": "Monitor patterns with imaging to identify triggers and treatment efficacy.",
+          "icon": "eye",
+          "initialChatMessage": "Tracking your skin with images can be really helpful to see what triggers breakouts and how treatments are working. Is this a method you're currently using?"
+        },
+        {
+          "type": "activity",
+          "text": "Remember that improvement isn't always linear - patience and consistency matter.",
+          "icon": "award",
+          "initialChatMessage": "It's true that improving acne takes time and consistency, and progress isn't always a straight line. Would you like to talk about setting realistic expectations or staying motivated?"
+        }
+      ]
+    },
+    "pigmentationScore": {
+      "keyForLookup": "pigmentationScore",
+      "displayName": "Pigmentation",
+      "associatedMetric": "Pigmentation quality <90",
+      "overview": "Pigmented spots, or hyperpigmentation, result from excess melanin production, often triggered by sun exposure, hormonal shifts, or skin inflammation. These can manifest as sun spots, age spots, or melasma, affecting the skin's evenness.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your skin shows minimal pigmentation irregularities with even tone throughout. This indicates optimal pigmentation control with very few dark spots or discoloration detected."
+        },
+        "great": {
+          "max": 89,
+          "min": 80,
+          "text": "Your skin displays well-controlled pigmentation with mostly even tone. Minor pigmentation variations are present but overall skin tone is balanced."
+        },
+        "good": {
+          "max": 79,
+          "min": 70,
+          "text": "Your skin shows moderate pigmentation control with generally even tone. Some areas of pigmentation are noticeable but not significantly pronounced."
+        },
+        "average": {
+          "max": 69,
+          "min": 50,
+          "text": "Average pigmentation condition with moderate discoloration. Several areas of uneven pigmentation are detected, which is common and can be improved with targeted treatments."
+        },
+        "poor": {
+          "max": 49,
+          "min": 30,
+          "text": "Poor pigmentation control with noticeable dark spots and uneven tone. Multiple pigmentation concerns are affecting overall skin appearance."
+        },
+        "bad": {
+          "max": 29,
+          "min": 0,
+          "text": "Significant pigmentation concerns with extensive dark spots and uneven tone detected. This indicates substantial pigmentation issues that would benefit from comprehensive treatment approaches."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Hydroquinone: Potent tyrosinase inhibitor (use with caution and medical advice).",
+          "icon": "list",
+          "initialChatMessage": "Hydroquinone is a potent ingredient for addressing pigmentation, but it's important to use it carefully. Would you like to learn more about its use and when to seek medical advice?"
+        },
+        {
+          "type": "product",
+          "text": "Vitamin C (Ascorbic Acid): Antioxidant that inhibits tyrosinase and lightens existing pigmentation.",
+          "icon": "list",
+          "initialChatMessage": "Vitamin C is a fantastic antioxidant that can help with pigmentation and brighten your skin. Are you currently using a Vitamin C serum, or are you interested in how it works?"
+        },
+        {
+          "type": "product",
+          "text": "Niacinamide: Inhibits melanosome transfer from melanocytes to keratinocytes.",
+          "icon": "list",
+          "initialChatMessage": "Niacinamide is a versatile ingredient that can help with pigmentation by preventing the transfer of pigment within your skin. Would you like to discuss how it might fit into your routine for brighter skin?"
+        },
+        {
+          "type": "product",
+          "text": "Alpha Arbutin: A derivative of hydroquinone, inhibits tyrosinase.",
+          "icon": "list",
+          "initialChatMessage": "Alpha Arbutin is a gentler alternative for targeting pigmentation by inhibiting melanin production. Are you curious about how it compares to other brightening ingredients?"
+        },
+        {
+          "type": "product",
+          "text": "Tranexamic Acid: Addresses hormonally-induced pigmentation and redness.",
+          "icon": "list",
+          "initialChatMessage": "Tranexamic Acid is gaining attention for its effectiveness against stubborn pigmentation, especially melasma. Is this an ingredient you've heard about or would like to explore?"
+        },
+        {
+          "type": "activity",
+          "text": "Maintain consistent, year-round sun protection (SPF 30+).",
+          "icon": "sun",
+          "initialChatMessage": "Consistent, year-round sun protection is the most crucial step in managing and preventing pigmented spots. What's your current approach to daily SPF application?"
+        },
+        {
+          "type": "activity",
+          "text": "Use tyrosinase inhibitors and exfoliants as recommended.",
+          "icon": "check-circle",
+          "initialChatMessage": "Combining tyrosinase inhibitors (which reduce pigment production) and exfoliants can be very effective for pigmentation. Would you like to understand this combination better?"
+        },
+        {
+          "type": "activity",
+          "text": "Consider professional treatments like chemical peels or laser therapy for persistent spots.",
+          "icon": "award",
+          "initialChatMessage": "For persistent pigmented spots, professional treatments like chemical peels or laser therapy can offer significant improvement. Is this something you're considering or want to know more about?"
+        },
+        {
+          "type": "activity",
+          "text": "Be patient, as fading pigmentation can take several months.",
+          "icon": "award",
+          "initialChatMessage": "Fading pigmentation truly tests our patience, as it can take several months to see changes. Would it be helpful to discuss how to track progress and stay consistent with your routine?"
+        }
+      ]
+    },
+    "uniformnessScore": {
+      "keyForLookup": "uniformnessScore",
+      "displayName": "Uniformness",
+      "associatedMetric": "Skin uniformness <90",
+      "overview": "Skin uniformness refers to the evenness of skin texture, tone, and overall appearance. Factors like sun damage, aging, acne scarring, and uneven pigmentation can affect skin uniformness, making targeted treatments beneficial.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your skin displays remarkable uniformness with smooth, even texture and tone. This indicates optimal skin condition with minimal irregularities."
+        },
+        "great": {
+          "max": 89,
+          "min": 80,
+          "text": "Your skin shows good uniformness with mostly even texture and tone. Minor variations are present but overall skin appearance is well-balanced."
+        },
+        "good": {
+          "max": 79,
+          "min": 70,
+          "text": "Your skin demonstrates moderate uniformness with generally even texture. Some areas of unevenness are detected but overall condition is healthy."
+        },
+        "average": {
+          "max": 69,
+          "min": 50,
+          "text": "Average skin uniformness with noticeable texture variations. Several areas of uneven tone or texture are detected, which is common and can be improved."
+        },
+        "poor": {
+          "max": 49,
+          "min": 30,
+          "text": "Poor skin uniformness with significant texture and tone irregularities. Multiple areas of unevenness are affecting overall skin appearance."
+        },
+        "bad": {
+          "max": 29,
+          "min": 0,
+          "text": "Significant uniformness concerns with extensive texture and tone irregularities detected. This indicates substantial skin unevenness that would benefit from comprehensive treatment approaches."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Niacinamide: Inhibits melanin transfer and has anti-inflammatory properties.",
+          "icon": "list",
+          "initialChatMessage": "Niacinamide is a real multitasker for achieving a more uniform skin tone, known for its ability to inhibit pigment transfer and reduce inflammation. Are you interested in exploring how it could specifically benefit your skin?"
+        },
+        {
+          "type": "product",
+          "text": "Vitamin C: Interferes with tyrosinase activity and provides antioxidant protection.",
+          "icon": "list",
+          "initialChatMessage": "Vitamin C is a key player for a brighter, more even skin tone due to its antioxidant and pigment-inhibiting properties. Are you curious about the best ways to incorporate Vitamin C for these benefits?"
+        },
+        {
+          "type": "product",
+          "text": "Tranexamic Acid: Blocks interaction between keratinocytes and melanocytes.",
+          "icon": "list",
+          "initialChatMessage": "Tranexamic Acid can be very effective for an even skin tone, particularly if you're dealing with redness or stubborn patches. Would you like to explore if this could be a good option for you?"
+        },
+        {
+          "type": "product",
+          "text": "Alpha Arbutin: Stable form of hydroquinone, inhibits tyrosinase.",
+          "icon": "list",
+          "initialChatMessage": "Alpha Arbutin offers a gentler approach to evening out skin tone by targeting excess pigment. Is this an ingredient you're interested in learning more about?"
+        },
+        {
+          "type": "activity",
+          "text": "Use broad-spectrum SPF daily to prevent further damage.",
+          "icon": "sun",
+          "initialChatMessage": "Daily broad-spectrum SPF is your best defense against developing an uneven skin tone. What are your go-to sunscreens, or are you looking for recommendations?"
+        },
+        {
+          "type": "activity",
+          "text": "Apply brightening ingredients in the morning and cell-renewal ingredients at night.",
+          "icon": "check-circle",
+          "initialChatMessage": "Strategically using brightening ingredients in the AM and cell-renewal ones in the PM can significantly improve skin tone. Would you like to discuss how to set up such a routine?"
+        },
+        {
+          "type": "activity",
+          "text": "Consider tranexamic acid for stubborn melasma.",
+          "icon": "award",
+          "initialChatMessage": "If you're dealing with stubborn melasma, tranexamic acid is an ingredient worth discussing. Would you like more information on how it works specifically for this concern?"
+        },
+        {
+          "type": "activity",
+          "text": "Track changes with standardized imaging for monitoring.",
+          "icon": "eye",
+          "initialChatMessage": "Using consistent photos is a great way to objectively track improvements in your skin tone. Do you have a method for this, or would you like some tips?"
+        },
+        {
+          "type": "activity",
+          "text": "Consistency is crucial for addressing tone concerns.",
+          "icon": "award",
+          "initialChatMessage": "Achieving a more even skin tone really comes down to consistency with your routine and sun protection. What are the biggest challenges you face in staying consistent?"
+        }
+      ]
+    },
+    "rednessScore": {
+      "keyForLookup": "rednessScore",
+      "displayName": "Redness",
+      "associatedMetric": "Redness score <80",
+      "overview": "Skin redness often signals a compromised barrier, leading to sensitivity and irritation from external factors; it can also indicate conditions like rosacea. Maintaining a healthy skin microbiome and using calming ingredients are key to managing redness.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your skin shows minimal redness with excellent overall tone. This indicates optimal skin condition with very little irritation or inflammation detected."
+        },
+        "great": {
+          "max": 89,
+          "min": 80,
+          "text": "Your skin displays well-controlled redness levels with mostly even tone. Only minor areas of redness are present, indicating good skin health."
+        },
+        "good": {
+          "max": 79,
+          "min": 70,
+          "text": "Your skin shows moderate redness control with generally healthy appearance. Some areas of mild redness are detected but overall condition is stable."
+        },
+        "average": {
+          "max": 69,
+          "min": 50,
+          "text": "Average redness levels with moderate areas of irritation. Several regions of redness are detected, which is common and can be improved with gentle, targeted care."
+        },
+        "poor": {
+          "max": 49,
+          "min": 30,
+          "text": "Poor redness control with noticeable areas of irritation and inflammation. Multiple regions show redness that may benefit from calming treatments and barrier repair."
+        },
+        "bad": {
+          "max": 29,
+          "min": 0,
+          "text": "Significant redness concerns with extensive areas of irritation detected. This indicates substantial inflammation that would benefit from gentle, anti-inflammatory skincare approaches and possibly professional guidance."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Centella Asiatica: Calms inflammation and supports healing.",
+          "icon": "list",
+          "initialChatMessage": "Centella Asiatica, also known as Cica, is a popular botanical ingredient famed for its ability to calm inflammation and support skin healing, making it excellent for reducing redness. Are you interested in trying products with Centella Asiatica?"
+        },
+        {
+          "type": "product",
+          "text": "Azelaic Acid: Reduces redness through anti-inflammatory and antimicrobial actions.",
+          "icon": "list",
+          "initialChatMessage": "Azelaic Acid is a multi-tasking ingredient that effectively reduces redness through its anti-inflammatory and antimicrobial actions, often recommended for concerns like rosacea. Would you like to learn more about how Azelaic Acid can help your skin?"
+        },
+        {
+          "type": "product",
+          "text": "Ceramides: Restore barrier function to protect and retain moisture.",
+          "icon": "list",
+          "initialChatMessage": "Ceramides are essential for managing redness because they restore your skin's barrier function, which helps to protect it from irritants and retain crucial moisture. Are you interested in exploring ceramide-rich moisturizers?"
+        },
+        {
+          "type": "product",
+          "text": "Green Tea Extract: Potent antioxidant with anti-inflammatory properties.",
+          "icon": "list",
+          "initialChatMessage": "Green Tea Extract is a potent antioxidant with well-known anti-inflammatory properties, making it a soothing ingredient for calming skin redness. Would you like to know about skincare products that feature Green Tea Extract?"
+        },
+        {
+          "type": "activity",
+          "text": "Simplify your routine during flare-ups.",
+          "icon": "check-circle",
+          "initialChatMessage": "Simplifying your skincare routine during redness flare-ups is a key action to avoid further irritation and allow your skin to calm down. Would you like tips on creating a minimal, soothing routine?"
+        },
+        {
+          "type": "product",
+          "text": "Look for products with minimal ingredients; avoid fragrance and alcohol.",
+          "icon": "shopping-bag",
+          "initialChatMessage": "When dealing with redness, it's wise to look for products with minimal ingredients and specifically avoid potential irritants like fragrance and alcohol. Are you interested in learning how to check ingredient lists for these?"
+        },
+        {
+          "type": "activity",
+          "text": "Use lukewarm (never hot) water when cleansing.",
+          "icon": "droplet",
+          "initialChatMessage": "Using lukewarm water, never hot, when cleansing is an important habit for managing redness, as hot water can exacerbate irritation and strip the skin. Is this a change you could easily make?"
+        },
+        {
+          "type": "activity",
+          "text": "Consider environmental factors like humidity, heating/cooling systems.",
+          "icon": "wind",
+          "initialChatMessage": "Environmental factors such as low humidity from heating or cooling systems can often worsen skin redness. Have you considered how your environment might be affecting your skin?"
+        },
+        {
+          "type": "activity",
+          "text": "Track flare patterns to identify triggers and treatment response.",
+          "icon": "eye",
+          "initialChatMessage": "Tracking your redness flare patterns can be very insightful for identifying potential triggers and seeing how your skin responds to different products or lifestyle changes. Would you like to discuss methods for tracking this?"
+        }
+      ]
+    },
+    "linesScore": {
+      "keyForLookup": "linesScore",
+      "displayName": "Lines",
+      "associatedMetric": "Lines score <75",
+      "overview": "Wrinkles are visible lines or creases that form due to aging, sun damage, and repeated facial expressions, resulting from the loss of collagen and elastin. Addressing wrinkles involves protecting the skin and using ingredients that support skin structure and renewal.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your skin shows minimal visible lines with smooth, youthful texture. This indicates optimal skin condition with very few detectable lines or wrinkles."
+        },
+        "great": {
+          "max": 89,
+          "min": 80,
+          "text": "Your skin displays well-controlled line formation with mostly smooth texture. Only minor lines are present, indicating good skin health and structure."
+        },
+        "good": {
+          "max": 79,
+          "min": 70,
+          "text": "Your skin shows moderate line visibility with generally healthy appearance. Some lines are noticeable but not significantly pronounced."
+        },
+        "average": {
+          "max": 69,
+          "min": 50,
+          "text": "Average line condition with moderate visibility. Several lines and wrinkles are detected, which is common with aging and can be improved with targeted treatments."
+        },
+        "poor": {
+          "max": 49,
+          "min": 30,
+          "text": "Poor line control with noticeable wrinkles affecting skin appearance. Multiple lines are detected that would benefit from anti-aging treatments and prevention strategies."
+        },
+        "bad": {
+          "max": 29,
+          "min": 0,
+          "text": "Significant line concerns with extensive wrinkles detected. This indicates pronounced aging signs that would benefit from comprehensive anti-aging approaches and possibly professional treatments."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Retinoids (Retinol, Tretinoin): Stimulate collagen and accelerate cell turnover.",
+          "icon": "list",
+          "initialChatMessage": "Retinoids like Retinol or Tretinoin are gold-standard ingredients for wrinkles, as they significantly boost collagen production and accelerate cell turnover, leading to smoother skin. Are you interested in adding retinoids to your anti-wrinkle strategy?"
+        },
+        {
+          "type": "product",
+          "text": "Peptides (e.g., Matrixyl, Argireline): Support collagen or modulate muscle contraction.",
+          "icon": "list",
+          "initialChatMessage": "Peptides such as Matrixyl or Argireline are smart ingredients that can help with wrinkles by either supporting collagen production or gently modulating muscle contractions that lead to expression lines. Would you like to learn about different peptides for wrinkles?"
+        },
+        {
+          "type": "product",
+          "text": "Vitamin C: Antioxidant that protects and supports collagen synthesis.",
+          "icon": "list",
+          "initialChatMessage": "Vitamin C is a crucial antioxidant for tackling wrinkles; it protects your skin from damage that breaks down collagen and also actively supports new collagen synthesis for firmer skin. Are you curious about the best Vitamin C products for wrinkle prevention?"
+        },
+        {
+          "type": "product",
+          "text": "Alpha Hydroxy Acids (AHAs): Exfoliate, improving texture and fine lines.",
+          "icon": "list",
+          "initialChatMessage": "Alpha Hydroxy Acids (AHAs) help improve the appearance of wrinkles and fine lines by exfoliating the skin's surface, revealing smoother texture and promoting cell renewal. Would you like to discuss which AHAs are best for your skin type?"
+        },
+        {
+          "type": "activity",
+          "text": "Prioritize sun protection for prevention.",
+          "icon": "sun",
+          "initialChatMessage": "Prioritizing daily sun protection is the most impactful action you can take to prevent wrinkles, as UV exposure is a primary cause of premature aging and collagen breakdown. Do you have a go-to sunscreen, or are you looking for options?"
+        },
+        {
+          "type": "activity",
+          "text": "Use topical retinoids consistently.",
+          "icon": "check-circle",
+          "initialChatMessage": "Consistent use of topical retinoids is key to seeing significant improvement in wrinkles, as their benefits accumulate over time with regular application. Would you like tips on maintaining a consistent retinoid routine?"
+        },
+        {
+          "type": "activity",
+          "text": "Incorporate peptides and antioxidants into your routine.",
+          "icon": "check-circle",
+          "initialChatMessage": "Incorporating both peptides and antioxidants into your daily skincare routine provides a comprehensive approach to managing wrinkles by both repairing and protecting your skin. Are you interested in how to layer these ingredients effectively?"
+        },
+        {
+          "type": "activity",
+          "text": "Maintain skin hydration.",
+          "icon": "droplet",
+          "initialChatMessage": "Maintaining good skin hydration is essential when addressing wrinkles, as hydrated skin appears plumper and fine lines are less visible. Would you like to discuss the best hydrating ingredients to pair with your anti-wrinkle treatments?"
+        },
+        {
+          "type": "activity",
+          "text": "Consider professional treatments (peels, microneedling, injectables) for significant results.",
+          "icon": "award",
+          "initialChatMessage": "For more significant or faster results in reducing wrinkles, professional treatments like chemical peels, microneedling, or injectables can be very effective. Is this something you're considering or would like to learn more about?"
+        }
+      ]
+    },
+    "saggingScore": {
+      "keyForLookup": "saggingScore",
+      "displayName": "Sagging",
+      "associatedMetric": "Sagging score (submetric of lines score) < 70",
+      "overview": "Skin sagging occurs from the loss of collagen, elastin, and underlying facial volume, influenced by gravity and aging. While topical treatments can improve appearance, managing sagging involves supporting skin structure and realistic expectations.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your skin shows excellent firmness with minimal sagging detected. This indicates optimal skin structure and support with very little gravitational effect visible."
+        },
+        "great": {
+          "max": 89,
+          "min": 80,
+          "text": "Your skin displays good firmness with mostly maintained structure. Only minor areas of sagging are present, indicating well-supported skin architecture."
+        },
+        "good": {
+          "max": 79,
+          "min": 70,
+          "text": "Your skin shows moderate firmness with generally healthy structure. Some areas of mild sagging are noticeable but overall skin support is maintained."
+        },
+        "average": {
+          "max": 69,
+          "min": 50,
+          "text": "Average skin firmness with moderate sagging detected. Several areas show gravitational effects which is common with aging and can be addressed with supportive treatments."
+        },
+        "poor": {
+          "max": 49,
+          "min": 30,
+          "text": "Poor skin firmness with noticeable sagging affecting facial contours. Multiple areas show structural loss that would benefit from firming treatments and support strategies."
+        },
+        "bad": {
+          "max": 29,
+          "min": 0,
+          "text": "Significant sagging concerns with pronounced structural loss detected. This indicates substantial gravitational effects that would benefit from comprehensive firming approaches and possibly professional treatments."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Peptides (e.g., Matrixyl): Signal peptides that support collagen and elastin production.",
+          "icon": "list",
+          "initialChatMessage": "Signal peptides, like Matrixyl, are known for their ability to support your skin's own collagen and elastin production, which is crucial for addressing sagging. Are you interested in learning more about how these types of peptides work?"
+        },
+        {
+          "type": "product",
+          "text": "Retinoids: Stimulate cellular turnover and collagen synthesis.",
+          "icon": "list",
+          "initialChatMessage": "Retinoids are powerful ingredients for sagging skin as they stimulate cellular turnover and boost collagen synthesis, helping to improve firmness and structure over time. Would you like to discuss incorporating retinoids for skin firmness?"
+        },
+        {
+          "type": "product",
+          "text": "Growth Factors: Promote tissue regeneration and support structural integrity.",
+          "icon": "list",
+          "initialChatMessage": "Growth factors are advanced ingredients that can help with skin sagging by promoting tissue regeneration and supporting the skin's structural integrity. Are you curious about how growth factors are used in skincare?"
+        },
+        {
+          "type": "product",
+          "text": "Antioxidants: Protect existing collagen from environmental damage.",
+          "icon": "list",
+          "initialChatMessage": "Antioxidants play a vital role in managing skin sagging by protecting your existing collagen from environmental damage, which can accelerate the loss of firmness. Would you like to explore the best antioxidant ingredients for this purpose?"
+        },
+        {
+          "type": "activity",
+          "text": "Approach sagging with realistic expectations; topicals improve appearance but don't match surgery.",
+          "icon": "award",
+          "initialChatMessage": "It's a key pro-tip to approach skin sagging with realistic expectations: while topical treatments can improve appearance and firmness, they don't offer the same results as surgical procedures. Would you like to discuss what skincare can realistically achieve for sagging?"
+        },
+        {
+          "type": "activity",
+          "text": "Combine skincare with facial massage techniques for circulation.",
+          "icon": "check-circle",
+          "initialChatMessage": "Combining your skincare routine with facial massage techniques can be beneficial for sagging skin by promoting circulation and potentially improving muscle tone. Are you interested in learning some simple facial massage techniques?"
+        },
+        {
+          "type": "activity",
+          "text": "Consider professional treatments like radiofrequency or ultrasound for deeper remodeling.",
+          "icon": "award",
+          "initialChatMessage": "For more significant improvements in skin sagging, professional treatments like radiofrequency or ultrasound therapy can offer deeper tissue remodeling and tightening. Is this an avenue you'd like to explore further?"
+        },
+        {
+          "type": "activity",
+          "text": "Track changes with consistent imaging angles for accurate assessment.",
+          "icon": "eye",
+          "initialChatMessage": "Tracking changes in skin sagging with consistent imaging angles is important for accurately assessing the effectiveness of your routine or treatments. Would you like tips on how to take useful photos for monitoring sagging?"
+        }
+      ]
+    },
+    "eyeLinesScore": {
+      "keyForLookup": "eyeLinesScore",
+      "displayName": "Under Eye Lines",
+      "associatedMetric": "Left eye lines score or right eye lines score <80",
+      "overview": "The delicate under-eye skin is prone to fine lines due to aging, sun exposure, and muscle movements like squinting. Dehydration can further accentuate these lines, making targeted care and hydration important for this area.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your under-eye area shows minimal visible lines with smooth, youthful appearance. This indicates optimal condition with very few detectable lines or grooves."
+        },
+        "great": {
+          "max": 89,
+          "min": 80,
+          "text": "Your under-eye area displays well-controlled line formation with mostly smooth texture. Only minor lines are present, indicating good eye area health."
+        },
+        "good": {
+          "max": 79,
+          "min": 70,
+          "text": "Your under-eye area shows moderate line visibility with generally healthy appearance. Some lines are noticeable but not significantly pronounced."
+        },
+        "average": {
+          "max": 69,
+          "min": 50,
+          "text": "Average under-eye line condition with moderate visibility. Several lines and grooves are detected, which is common with aging and can be improved with targeted eye care."
+        },
+        "poor": {
+          "max": 49,
+          "min": 30,
+          "text": "Poor under-eye line control with noticeable lines affecting eye area appearance. Multiple lines are detected that would benefit from specialized eye treatments."
+        },
+        "bad": {
+          "max": 29,
+          "min": 0,
+          "text": "Significant under-eye line concerns with prominent lines and grooves detected. This indicates pronounced aging signs that would benefit from comprehensive eye care approaches and possibly professional treatments."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Retinoids (gentle formulations for eye area): Promote collagen and cell turnover.",
+          "icon": "list",
+          "initialChatMessage": "Retinoids, especially gentle formulations designed for the eye area, are very effective for under-eye lines as they promote collagen and speed up cell turnover. Would you like to discuss how to choose and use eye-specific retinoids?"
+        },
+        {
+          "type": "product",
+          "text": "Peptides: Support collagen and elasticity.",
+          "icon": "list",
+          "initialChatMessage": "Peptides are beneficial for under-eye lines because they support the skin's natural collagen and elastin, which are key for maintaining firmness and smoothness in this delicate area. Are you interested in learning about different peptides for eye care?"
+        },
+        {
+          "type": "product",
+          "text": "Hyaluronic Acid: Provides hydration to plump fine lines.",
+          "icon": "list",
+          "initialChatMessage": "Hyaluronic Acid is excellent for temporarily plumping up under-eye lines by providing intense hydration to the skin, making lines appear less noticeable. Would you like to know more about the best way to use Hyaluronic Acid around the eyes?"
+        },
+        {
+          "type": "product",
+          "text": "Vitamin C: Antioxidant protection and collagen support.",
+          "icon": "list",
+          "initialChatMessage": "Vitamin C offers antioxidant protection and supports collagen production, both of which are important for preventing and treating under-eye lines. Are you curious about incorporating a Vitamin C product into your eye care routine?"
+        },
+        {
+          "type": "product",
+          "text": "Use a dedicated eye cream with active ingredients.",
+          "icon": "shopping-bag",
+          "initialChatMessage": "Using a dedicated eye cream formulated with active ingredients is a targeted approach to address under-eye lines, as these products are specifically designed for the delicate eye skin. Would you like to discuss what to look for in an effective eye cream?"
+        },
+        {
+          "type": "activity",
+          "text": "Be gentle when applying products to the eye area.",
+          "icon": "check-circle",
+          "initialChatMessage": "Being gentle when applying products to the eye area is crucial, as rubbing or pulling can contribute to lines over time. Using your ring finger for a light touch is a common tip. Would you like more application technique suggestions?"
+        },
+        {
+          "type": "activity",
+          "text": "Wear sunglasses to prevent squinting.",
+          "icon": "sun",
+          "initialChatMessage": "Wearing sunglasses regularly is a simple yet effective lifestyle habit to prevent under-eye lines, as it reduces squinting caused by bright light. Do you usually wear sunglasses outdoors?"
+        },
+        {
+          "type": "activity",
+          "text": "Ensure adequate hydration.",
+          "icon": "droplet",
+          "initialChatMessage": "Ensuring your skin and body are adequately hydrated can help minimize the appearance of under-eye lines, as dehydration can make them look more pronounced. Are you interested in tips for boosting overall hydration?"
+        }
+      ]
+    },
+    "darkCirclesScore": {
+      "keyForLookup": "darkCirclesScore",
+      "displayName": "Dark Circles",
+      "associatedMetric": "Dark circles score < 70",
+      "overview": "Dark circles can stem from genetics, thin skin revealing blood vessels, hyperpigmentation, or shadows from volume loss. Lifestyle factors like lack of sleep or allergies can also contribute to their appearance under the eyes.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your under-eye area shows minimal dark circles with excellent overall appearance. This indicates optimal condition with very little discoloration detected."
+        },
+        "great": {
+          "max": 89,
+          "min": 80,
+          "text": "Your under-eye area displays well-controlled dark circles with mostly even tone. Only minor discoloration is present, indicating good eye area health."
+        },
+        "good": {
+          "max": 79,
+          "min": 70,
+          "text": "Your under-eye area shows moderate dark circle control with generally healthy appearance. Some discoloration is noticeable but not significantly pronounced."
+        },
+        "average": {
+          "max": 69,
+          "min": 50,
+          "text": "Average dark circle condition with moderate discoloration. Several areas of darkness are detected under the eyes, which is common and can be improved with targeted treatments."
+        },
+        "poor": {
+          "max": 49,
+          "min": 30,
+          "text": "Poor dark circle control with noticeable discoloration affecting under-eye appearance. Multiple areas of darkness are detected that would benefit from specialized eye care treatments."
+        },
+        "bad": {
+          "max": 29,
+          "min": 0,
+          "text": "Significant dark circle concerns with prominent discoloration detected. This indicates substantial under-eye darkness that would benefit from comprehensive eye care approaches and possibly professional treatments."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Caffeine: Constricts blood vessels and temporarily firms the area.",
+          "icon": "list",
+          "initialChatMessage": "Caffeine is a go-to for dark circles as it helps constrict blood vessels, which can reduce their appearance, and it also temporarily firms the skin. Would you like to know about eye creams that feature caffeine?"
+        },
+        {
+          "type": "product",
+          "text": "Vitamin C: Brightens pigmentation and strengthens capillary walls.",
+          "icon": "list",
+          "initialChatMessage": "Vitamin C can help with dark circles by brightening any pigmentation contributing to them and by strengthening capillary walls, making underlying blood vessels less visible. Are you interested in Vitamin C serums suitable for the eye area?"
+        },
+        {
+          "type": "product",
+          "text": "Retinoids: Can thicken the dermis, making vessels less visible.",
+          "icon": "list",
+          "initialChatMessage": "Retinoids may improve the appearance of dark circles over time by helping to thicken the dermis, which can make underlying blood vessels less noticeable. Would you like to discuss using retinoids around the eyes safely?"
+        },
+        {
+          "type": "product",
+          "text": "Niacinamide: Can help with pigmentation and improve skin barrier.",
+          "icon": "list",
+          "initialChatMessage": "Niacinamide can be beneficial for dark circles if pigmentation is a factor, and it also helps improve the overall health and barrier function of the delicate eye skin. Are you curious about how Niacinamide targets dark circles?"
+        },
+        {
+          "type": "product",
+          "text": "Vitamin K: Believed to help with vascular issues contributing to dark circles.",
+          "icon": "list",
+          "initialChatMessage": "Vitamin K is an ingredient sometimes used for dark circles, as it's believed to help with vascular issues like blood clotting and capillary strength that can contribute to their appearance. Would you like to learn more about the science behind Vitamin K for eyes?"
+        },
+        {
+          "type": "activity",
+          "text": "Identify the primary cause of your dark circles if possible.",
+          "icon": "search",
+          "initialChatMessage": "Identifying the primary cause of your dark circles—whether it's genetics, pigmentation, thin skin, or lifestyle factors—is key to choosing the most effective treatments. Would you like to discuss potential causes?"
+        },
+        {
+          "type": "activity",
+          "text": "Get adequate sleep.",
+          "icon": "moon",
+          "initialChatMessage": "Getting adequate sleep is a well-known lifestyle factor that can significantly impact the appearance of dark circles, as fatigue often makes them more pronounced. Are you interested in tips for improving sleep hygiene?"
+        },
+        {
+          "type": "activity",
+          "text": "Manage allergies effectively.",
+          "icon": "shield",
+          "initialChatMessage": "Effectively managing allergies can make a difference for dark circles, as nasal congestion and inflammation from allergies can worsen their appearance. Is this a factor you think might be relevant for you?"
+        },
+        {
+          "type": "product",
+          "text": "Use eye creams with targeted ingredients.",
+          "icon": "shopping-bag",
+          "initialChatMessage": "Using eye creams formulated with ingredients specifically targeted for dark circles, like Vitamin C, caffeine, or retinoids, is a direct way to address this concern. Would you like to discuss what to look for in an effective eye cream?"
+        },
+        {
+          "type": "product",
+          "text": "Concealers can provide cosmetic improvement.",
+          "icon": "edit-3",
+          "initialChatMessage": "While skincare works on improving dark circles over time, concealers can offer immediate cosmetic improvement by color-correcting and brightening the under-eye area. Are you interested in tips for choosing and applying concealer for dark circles?"
+        }
+      ]
+    },
+    "eyeBagsScore": {
+      "keyForLookup": "eyeBagsScore",
+      "displayName": "Eye Bags",
+      "associatedMetric": "Eye bags score < 70",
+      "overview": "Under-eye puffiness often results from fluid retention due to factors like high salt intake, allergies, or lack of sleep. It can also be caused by age-related changes where fat pads become more prominent under the eyes.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your under-eye area shows minimal puffiness with excellent overall appearance. This indicates optimal condition with very little eye bag prominence detected."
+        },
+        "great": {
+          "max": 89,
+          "min": 80,
+          "text": "Your under-eye area displays well-controlled puffiness with mostly smooth appearance. Only minor eye bags are present, indicating good eye area health."
+        },
+        "good": {
+          "max": 79,
+          "min": 70,
+          "text": "Your under-eye area shows moderate puffiness control with generally healthy appearance. Some eye bags are noticeable but not significantly pronounced."
+        },
+        "average": {
+          "max": 69,
+          "min": 50,
+          "text": "Average eye bag condition with moderate puffiness. Several areas of under-eye prominence are detected, which is common and can be improved with targeted treatments."
+        },
+        "poor": {
+          "max": 49,
+          "min": 30,
+          "text": "Poor eye bag control with noticeable puffiness affecting under-eye appearance. Multiple areas of prominence are detected that would benefit from specialized eye care treatments."
+        },
+        "bad": {
+          "max": 29,
+          "min": 0,
+          "text": "Significant eye bag concerns with prominent puffiness detected. This indicates substantial under-eye prominence that would benefit from comprehensive eye care approaches and possibly professional treatments."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Caffeine: Helps constrict blood vessels and can have a diuretic effect.",
+          "icon": "list",
+          "initialChatMessage": "Caffeine is a popular ingredient for under-eye puffiness as it can help constrict blood vessels and has a mild diuretic effect, temporarily reducing swelling. Are you interested in eye products containing caffeine?"
+        },
+        {
+          "type": "product",
+          "text": "Peptides: Some may help improve lymphatic drainage or skin firmness.",
+          "icon": "list",
+          "initialChatMessage": "Certain peptides can be beneficial for under-eye puffiness by potentially improving lymphatic drainage and skin firmness around the delicate eye area. Would you like to learn more about specific peptides for eye concerns?"
+        },
+        {
+          "type": "product",
+          "text": "Green Tea Extract, Arnica: Anti-inflammatory properties.",
+          "icon": "list",
+          "initialChatMessage": "Ingredients like Green Tea Extract and Arnica are known for their anti-inflammatory properties, which can help calm and reduce under-eye puffiness. Are you curious about how these botanical extracts work?"
+        },
+        {
+          "type": "activity",
+          "text": "Sleep with your head slightly elevated.",
+          "icon": "trending-up",
+          "initialChatMessage": "Sleeping with your head slightly elevated is a simple lifestyle adjustment that can help reduce morning under-eye puffiness by preventing fluid from pooling in that area. Is this a tip you might find easy to try?"
+        },
+        {
+          "type": "activity",
+          "text": "Apply cool compresses to the area.",
+          "icon": "thermometer",
+          "initialChatMessage": "Applying cool compresses to the under-eye area is a well-known remedy for reducing puffiness quickly by constricting blood vessels and soothing the skin. Have you found this technique helpful?"
+        },
+        {
+          "type": "activity",
+          "text": "Gently massage the area to promote drainage.",
+          "icon": "check-circle",
+          "initialChatMessage": "Gently massaging the under-eye area can help promote lymphatic drainage, which may reduce puffiness caused by fluid retention. Would you like to learn some simple massage techniques?"
+        },
+        {
+          "type": "nutrition",
+          "text": "Reduce salt intake.",
+          "icon": "slash",
+          "initialChatMessage": "Reducing your salt intake can sometimes help with under-eye puffiness, as excess sodium can cause your body to retain water, which can show up around the eyes. Is dietary salt something you've considered in relation to puffiness?"
+        },
+        {
+          "type": "activity",
+          "text": "Manage allergies.",
+          "icon": "shield",
+          "initialChatMessage": "Effectively managing allergies can be key to reducing under-eye puffiness, as allergic reactions often cause inflammation and fluid buildup in this area. Are allergies a concern for you?"
+        }
+      ]
+    },
+    "poresScore": {
+      "keyForLookup": "poresScore",
+      "displayName": "Pores",
+      "associatedMetric": "Pores quality <90",
+      "overview": "Visible pores are a natural part of skin texture, but enlarged or prominent pores can be influenced by genetics, oil production, aging, and sun damage. Understanding your pore condition helps guide appropriate treatments and skincare routines.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your skin shows minimal visible pores with refined skin texture. This indicates optimal pore condition with very few enlarged or prominent pores detected."
+        },
+        "great": {
+          "max": 89,
+          "min": 80,
+          "text": "Your skin displays well-controlled pore visibility with mostly refined texture. Only minor pore visibility is detected, indicating good skin condition."
+        },
+        "good": {
+          "max": 79,
+          "min": 70,
+          "text": "Your skin shows moderate pore visibility with generally healthy texture. Some pores are noticeable but not significantly enlarged."
+        },
+        "average": {
+          "max": 69,
+          "min": 50,
+          "text": "Average pore condition with moderate visibility. Several enlarged pores are detected, which is common and can be improved with consistent skincare."
+        },
+        "poor": {
+          "max": 49,
+          "min": 30,
+          "text": "Poor pore condition with noticeable enlarged pores affecting skin texture. This suggests increased pore visibility that would benefit from targeted treatments."
+        },
+        "bad": {
+          "max": 29,
+          "min": 0,
+          "text": "Significant pore visibility with many enlarged pores detected. This indicates prominent pore concerns that may require comprehensive skincare approaches and possibly professional treatments."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Salicylic Acid: Exfoliates inside the pore lining to clear buildup.",
+          "icon": "list",
+          "initialChatMessage": "Salicylic Acid is highly effective for minimizing the appearance of pores because it exfoliates deep inside the pore lining, helping to clear out oil and debris. Are you interested in learning how to use Salicylic Acid correctly for your skin?"
+        },
+        {
+          "type": "product",
+          "text": "Niacinamide: Regulates sebum and improves cell turnover around pores.",
+          "icon": "list",
+          "initialChatMessage": "Niacinamide is a fantastic ingredient for pores as it helps regulate oil production and improves cell turnover around the pore opening, leading to a more refined appearance. Would you like to explore Niacinamide products?"
+        },
+        {
+          "type": "product",
+          "text": "Retinoids: Normalize cell turnover and strengthen structures around pores.",
+          "icon": "list",
+          "initialChatMessage": "Retinoids can help improve the look of pores by normalizing cell turnover and strengthening the skin structures that support pores, making them appear tighter. Are you curious about how retinoids work for pore refinement?"
+        },
+        {
+          "type": "product",
+          "text": "Clay minerals: Temporarily absorb excess oil and refine pore appearance.",
+          "icon": "list",
+          "initialChatMessage": "Clay minerals, often found in masks, are excellent for temporarily minimizing pore appearance by absorbing excess oil and drawing out impurities from within the pores. Have you tried clay masks before, or would you like recommendations?"
+        },
+        {
+          "type": "activity",
+          "text": "Maintain consistent cleansing without stripping the skin.",
+          "icon": "check-circle",
+          "initialChatMessage": "Maintaining a consistent cleansing routine is key for managing pore appearance, as it removes daily buildup without stripping your skin of essential moisture. Would you like to discuss your current cleansing habits and if they're optimal for your pores?"
+        },
+        {
+          "type": "activity",
+          "text": "Use gentle exfoliation 2-3 times weekly.",
+          "icon": "check-circle",
+          "initialChatMessage": "Using gentle exfoliation 2-3 times a week helps keep pores clear by removing dead skin cells that can contribute to clogging and make pores look larger. Are you interested in finding the right exfoliation method for your skin?"
+        },
+        {
+          "type": "activity",
+          "text": "The 'fifty percent rule': pore appearance can often be improved by about half.",
+          "icon": "award",
+          "initialChatMessage": "A helpful pro-tip for pores is the 'fifty percent rule' – while you can't change your genetic pore size, consistent care can often improve their appearance by about half. Would you like to discuss realistic expectations for managing pores?"
+        },
+        {
+          "type": "activity",
+          "text": "Track changes with standardized imaging and consistent lighting.",
+          "icon": "eye",
+          "initialChatMessage": "Tracking changes in your pore appearance with standardized imaging and consistent lighting is a great way to see if your routine is effective. Are you interested in tips on how to best capture these images?"
+        }
+      ]
+    },
+    "aging": {
+      "keyForLookup": "aging",
+      "displayName": "Aging",
+      "associatedMetric": "Perceived age >45 and one of the following conditions: Lines score <70 or Pigmentation score <80",
+      "overview": "Skin aging is a natural process influenced by genetics and environmental factors like UV exposure, leading to reduced collagen, slower cell turnover, and visible signs like wrinkles and loss of firmness. A comprehensive approach targeting these changes can help manage the appearance of aging skin.",
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Retinoids: Increase collagen, accelerate cell turnover, improve skin structure.",
+          "icon": "list",
+          "initialChatMessage": "Retinoids are a cornerstone of anti-aging skincare, renowned for their ability to boost collagen, speed up cell renewal, and improve overall skin structure. Are you interested in learning how to incorporate retinoids into your routine effectively?"
+        },
+        {
+          "type": "product",
+          "text": "Peptides: Support collagen synthesis and skin repair.",
+          "icon": "list",
+          "initialChatMessage": "Peptides are smart ingredients that support your skin's natural collagen production and repair processes, playing a key role in an effective anti-aging strategy. Would you like to explore the different types of peptides and their benefits for aging skin?"
+        },
+        {
+          "type": "product",
+          "text": "Vitamin C (Ascorbic Acid): Brightens, protects, supports collagen.",
+          "icon": "list",
+          "initialChatMessage": "Vitamin C is a powerhouse antioxidant for aging skin, helping to brighten, protect against environmental damage, and support crucial collagen production. Are you curious about the best ways to use Vitamin C for anti-aging benefits?"
+        },
+        {
+          "type": "product",
+          "text": "Niacinamide: Strengthens barrier, improves elasticity, reduces discoloration.",
+          "icon": "list",
+          "initialChatMessage": "Niacinamide is a versatile anti-aging ingredient known for strengthening the skin barrier, improving elasticity, and reducing age-related discoloration. Would you like to discuss how Niacinamide can address multiple signs of aging?"
+        },
+        {
+          "type": "activity",
+          "text": "Use sunscreen daily to prevent further damage.",
+          "icon": "sun",
+          "initialChatMessage": "Daily sunscreen is the most critical step in any anti-aging routine, as it prevents further UV damage which is a primary accelerator of skin aging. Do you have a favorite daily SPF, or are you looking for tips on choosing one?"
+        },
+        {
+          "type": "activity",
+          "text": "Apply retinoids gradually (2-3 times weekly initially) to build tolerance.",
+          "icon": "alert-triangle",
+          "initialChatMessage": "When starting retinoids for anti-aging, it's very important to apply them gradually, perhaps 2-3 times a week at first, to allow your skin to build tolerance and minimize irritation. Would you like more detailed advice on this gradual introduction?"
+        },
+        {
+          "type": "activity",
+          "text": "Layer antioxidants in the morning and repair ingredients at night.",
+          "icon": "check-circle",
+          "initialChatMessage": "A strategic approach to anti-aging involves layering antioxidant products in the morning to protect your skin, and repair-focused ingredients like retinoids or peptides at night. Are you interested in creating a day and night routine based on this principle?"
+        },
+        {
+          "type": "activity",
+          "text": "Consider professional treatments (microneedling, lasers) for faster collagen stimulation.",
+          "icon": "award",
+          "initialChatMessage": "For those seeking faster or more significant collagen stimulation for anti-aging, professional treatments like microneedling or laser therapy can be very effective options. Is this something you've considered or would like to know more about?"
+        },
+        {
+          "type": "activity",
+          "text": "Track changes with consistent imaging to measure progress objectively.",
+          "icon": "eye",
+          "initialChatMessage": "Tracking changes in your skin with consistent, standardized imaging is a great way to objectively measure the progress of your anti-aging routine. Are you interested in tips for taking useful before-and-after photos?"
+        }
+      ]
+    },
+    "postAcneMarks": {
+      "keyForLookup": "postAcneMarks",
+      "displayName": "Post-Acne Marks",
+      "associatedMetric": "No direct metric; often related to pigmentation or redness metrics",
+      "overview": "Post-acne marks, appearing as dark spots (PIH) or red marks (PIE), result from inflammation during breakouts. Early intervention during active acne and targeted treatments can help minimize their severity and duration.",
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Azelaic Acid: Reduces inflammation and inhibits tyrosinase.",
+          "icon": "list",
+          "initialChatMessage": "Azelaic Acid is a versatile ingredient that helps with post-acne marks by reducing inflammation and inhibiting pigment production, making it great for both red and brown marks. Are you interested in how Azelaic Acid could fit into your skincare routine?"
+        },
+        {
+          "type": "product",
+          "text": "Niacinamide: Inhibits melanin transfer and strengthens skin barrier.",
+          "icon": "list",
+          "initialChatMessage": "Niacinamide is a popular choice for fading post-acne marks as it helps prevent pigment from transferring to skin cells and also strengthens your skin barrier. Would you like to explore products containing Niacinamide?"
+        },
+        {
+          "type": "product",
+          "text": "Alpha Hydroxy Acids: Accelerate cell turnover.",
+          "icon": "list",
+          "initialChatMessage": "Alpha Hydroxy Acids (AHAs) like glycolic or lactic acid can speed up cell turnover, helping to shed pigmented skin cells and fade post-acne marks more quickly. Are you curious about using AHAs for your skin?"
+        },
+        {
+          "type": "product",
+          "text": "Vitamin C: Brightens discoloration and supports collagen production.",
+          "icon": "list",
+          "initialChatMessage": "Vitamin C is a powerful antioxidant that not only brightens existing post-acne marks but also supports collagen production, which can help with skin texture. Would you like to discuss the best forms of Vitamin C for this purpose?"
+        },
+        {
+          "type": "activity",
+          "text": "Protect marks from sun exposure to prevent darkening.",
+          "icon": "sun",
+          "initialChatMessage": "Protecting post-acne marks from sun exposure by diligently using SPF is crucial, as UV rays can make them darker and more persistent. Do you have questions about choosing the right sunscreen to protect these marks?"
+        },
+        {
+          "type": "activity",
+          "text": "Focus on reducing inflammation in active breakouts to minimize future marking.",
+          "icon": "check-circle",
+          "initialChatMessage": "A key strategy for minimizing post-acne marks is to focus on reducing inflammation during active breakouts, as less inflammation often means less severe marking. Would you like tips on gently managing active blemishes?"
+        },
+        {
+          "type": "activity",
+          "text": "Be patient - PIH typically fades over 3-6 months, PIE may take longer.",
+          "icon": "award",
+          "initialChatMessage": "It's a helpful pro-tip to remember that fading post-acne marks takes patience – dark marks (PIH) often take 3-6 months, while red marks (PIE) can sometimes last longer. Would you like to discuss strategies for staying consistent with your routine during this time?"
+        },
+        {
+          "type": "activity",
+          "text": "Track healing progress with standardized imaging.",
+          "icon": "eye",
+          "initialChatMessage": "Tracking the healing progress of post-acne marks with consistent, standardized imaging can be very motivating and help you see what's working. Is this a method you're currently using or interested in trying?"
+        }
+      ]
+    },
+    "fineLines": {
+      "keyForLookup": "fineLines",
+      "displayName": "Fine Lines",
+      "associatedMetric": "No direct metric; often related to the 'Lines score' for Wrinkles",
+      "overview": "Fine lines are superficial creases on the skin, often an early sign of aging due to dehydration, sun exposure, or facial movements. While less deep than wrinkles, addressing them early can prevent progression and maintain smoother skin.",
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Hyaluronic Acid: Temporarily plumps skin by boosting hydration.",
+          "icon": "list",
+          "initialChatMessage": "Hyaluronic Acid is well-loved for its ability to temporarily plump fine lines by drawing significant moisture into the skin, giving a smoother appearance. Are you interested in how different molecular weights of Hyaluronic Acid work?"
+        },
+        {
+          "type": "product",
+          "text": "Retinoids (lower strength/frequency): Stimulates collagen and cell turnover.",
+          "icon": "list",
+          "initialChatMessage": "Retinoids, even at lower strengths or frequencies, are effective against fine lines by stimulating collagen production and speeding up cell turnover. This is a gold-standard approach for smoother skin. Would you like to discuss how to introduce retinoids gently for fine lines?"
+        },
+        {
+          "type": "product",
+          "text": "Antioxidants (Vitamin C, E, Ferulic Acid): Protect against environmental damage.",
+          "icon": "list",
+          "initialChatMessage": "Antioxidants like Vitamin C, Vitamin E, and Ferulic Acid play a crucial role in preventing fine lines by protecting your skin from environmental damage that degrades collagen. Are you curious about how to layer these antioxidants in your routine?"
+        },
+        {
+          "type": "product",
+          "text": "Peptides: Can help support skin structure and hydration.",
+          "icon": "list",
+          "initialChatMessage": "Peptides are versatile ingredients that can help reduce the appearance of fine lines by supporting your skin's natural structure and boosting hydration. Would you like to explore the different types of peptides and their benefits?"
+        },
+        {
+          "type": "activity",
+          "text": "Ensure skin is well-hydrated.",
+          "icon": "droplet",
+          "initialChatMessage": "Ensuring your skin is consistently well-hydrated is a fundamental step in minimizing fine lines, as hydrated skin appears plumper and smoother. Are you looking for tips on maximizing your skin's hydration levels?"
+        },
+        {
+          "type": "activity",
+          "text": "Use sunscreen daily.",
+          "icon": "sun",
+          "initialChatMessage": "Daily sunscreen use is the most critical action for preventing the formation and worsening of fine lines, as sun damage is a primary cause. Do you have a favorite daily SPF, or are you looking for recommendations?"
+        },
+        {
+          "type": "activity",
+          "text": "Gentle exfoliation can help.",
+          "icon": "check-circle",
+          "initialChatMessage": "Gentle exfoliation can help improve the appearance of fine lines by removing dead skin cells and promoting a smoother skin surface. Would you like to discuss suitable exfoliation methods for your skin type?"
+        },
+        {
+          "type": "product",
+          "text": "Topical treatments with antioxidants and low-concentration retinoids can be beneficial.",
+          "icon": "shopping-bag",
+          "initialChatMessage": "Using topical treatments that combine antioxidants with low-concentration retinoids can be very beneficial for addressing fine lines effectively and with minimal irritation. Are you interested in learning how to combine these ingredients?"
+        }
+      ]
+    },
+    "translucencyScore": {
+      "keyForLookup": "translucencyScore",
+      "displayName": "Translucency",
+      "associatedMetric": "Translucency score <70",
+      "overview": "Skin translucency refers to its clarity and ability to reflect light, contributing to a radiant appearance. Reduced translucency can make skin appear dull or sallow, often due to factors like poor exfoliation or dehydration.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your skin shows excellent translucency with optimal light reflection and luminosity. This indicates healthy skin with excellent clarity and radiance."
+        },
+        "great": {
+          "max": 89,
+          "min": 80,
+          "text": "Your skin displays good translucency with mostly even light reflection. Minor areas of dullness may be present but overall luminosity is well-maintained."
+        },
+        "good": {
+          "max": 79,
+          "min": 70,
+          "text": "Your skin shows moderate translucency with generally healthy light reflection. Some areas may benefit from improved clarity and radiance."
+        },
+        "average": {
+          "max": 69,
+          "min": 50,
+          "text": "Average translucency levels with noticeable areas of reduced luminosity. Several regions show diminished light reflection which can be improved with targeted treatments."
+        },
+        "poor": {
+          "max": 49,
+          "min": 30,
+          "text": "Poor translucency with significant areas of dullness detected. Multiple regions show reduced light reflection that would benefit from clarifying treatments."
+        },
+        "bad": {
+          "max": 29,
+          "min": 0,
+          "text": "Significant translucency concerns with extensive dullness detected. This indicates substantial reduction in skin luminosity that would benefit from comprehensive clarifying approaches."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "activity",
+          "text": "Exfoliation can help improve surface dullness, enhancing translucency.",
+          "icon": "award",
+          "initialChatMessage": "Regular exfoliation is a great pro tip for enhancing skin translucency by removing dull surface cells and revealing a brighter complexion underneath. Are you interested in different exfoliation methods?"
+        },
+        {
+          "type": "product",
+          "text": "Ingredients like AHAs (e.g., Glycolic Acid, Lactic Acid) or Niacinamide can promote radiance.",
+          "icon": "list",
+          "initialChatMessage": "Ingredients like AHAs (such as Glycolic or Lactic Acid) and Niacinamide are well-known for promoting radiance and improving skin clarity, contributing to better translucency. Would you like to learn more about how these ingredients work?"
+        },
+        {
+          "type": "activity",
+          "text": "Ensure your skin is well-hydrated, as hydrated skin reflects light better.",
+          "icon": "droplet",
+          "initialChatMessage": "Ensuring your skin is well-hydrated is key for better translucency, as hydrated skin reflects light more effectively, giving it a luminous glow. Are you curious about the best ways to boost your skin's hydration?"
+        },
+        {
+          "type": "activity",
+          "text": "Protect skin from environmental stressors that can contribute to dullness.",
+          "icon": "shield",
+          "initialChatMessage": "Protecting your skin from environmental stressors like pollution is an important pro tip to prevent dullness and maintain its natural translucency. Would you like to discuss protective skincare strategies?"
+        }
+      ]
+    },
+    "hydrationScore": {
+      "keyForLookup": "hydrationScore",
+      "displayName": "Hydration",
+      "associatedMetric": "Hydration score <70",
+      "overview": "Hydration refers to the skin's ability to retain and balance moisture, which is essential for maintaining a healthy, resilient barrier. Well-hydrated skin appears plump, smooth, and radiant, while dehydration can lead to dullness, rough texture, increased sensitivity, and the appearance of fine lines. Factors such as climate, skincare habits, diet, and age can all impact your skin's hydration levels.",
+      "scoreLevels": {
+        "excellent": {
+          "max": 100,
+          "min": 90,
+          "text": "Your skin shows optimal hydration levels with excellent moisture retention. This indicates healthy barrier function with well-balanced hydration throughout."
+        },
+        "great": {
+          "max": 89,
+          "min": 80,
+          "text": "Your skin displays good hydration with mostly adequate moisture levels. Minor areas of dryness may be present but overall hydration is well-maintained."
+        },
+        "good": {
+          "max": 79,
+          "min": 70,
+          "text": "Your skin shows moderate hydration levels with generally healthy moisture balance. Some areas may benefit from additional hydration support."
+        },
+        "average": {
+          "max": 69,
+          "min": 50,
+          "text": "Average hydration levels with noticeable areas of dryness. Several regions show mild dehydration which can be improved with targeted moisturizing approaches."
+        },
+        "poor": {
+          "max": 49,
+          "min": 30,
+          "text": "Poor hydration with significant areas of dryness detected. Multiple regions show moderate dehydration that would benefit from intensive moisturizing treatments."
+        },
+        "bad": {
+          "max": 29,
+          "min": 0,
+          "text": "Severe dehydration concerns with extensive dry areas detected. This indicates significant moisture loss that requires comprehensive hydration therapy and barrier repair."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Hyaluronic Acid: Attracts and retains water in the skin, providing deep hydration.",
+          "icon": "droplet",
+          "initialChatMessage": "Hyaluronic Acid is a star ingredient for hydration, famous for its ability to draw and hold moisture in the skin, leading to a plumper, more supple feel. Are you interested in learning how to best incorporate it into your routine?"
+        },
+        {
+          "type": "product",
+          "text": "Glycerin: A powerful humectant that draws moisture into the skin and helps maintain softness.",
+          "icon": "droplet",
+          "initialChatMessage": "Glycerin is a classic and highly effective humectant that pulls moisture into your skin, helping to keep it soft and hydrated. Would you like to know more about products that feature glycerin?"
+        },
+        {
+          "type": "activity",
+          "text": "Apply moisturizer immediately after cleansing to lock in moisture.",
+          "icon": "check-circle",
+          "initialChatMessage": "Applying moisturizer right after cleansing is a simple yet crucial step to lock in moisture while your skin is still damp, significantly boosting hydration. Is this a part of your current routine?"
+        },
+        {
+          "type": "activity",
+          "text": "Drink adequate water throughout the day to support skin hydration from within.",
+          "icon": "coffee",
+          "initialChatMessage": "Staying hydrated by drinking enough water throughout the day is a foundational lifestyle choice that supports overall skin health and hydration from the inside out. Are you curious about how much water is generally recommended for skin benefits?"
+        },
+        {
+          "type": "activity",
+          "text": "Use a humidifier in dry environments to prevent moisture loss.",
+          "icon": "wind",
+          "initialChatMessage": "Using a humidifier, especially in dry climates or heated/air-conditioned rooms, can make a big difference by adding moisture back into the air, helping to prevent your skin from drying out. Is this something you've considered for your environment?"
+        },
+        {
+          "type": "activity",
+          "text": "Avoid over-cleansing or using harsh soaps, which can strip the skin's natural moisture.",
+          "icon": "alert-triangle",
+          "initialChatMessage": "It's important to avoid over-cleansing or using harsh soaps, as these can strip your skin of its natural oils, leading to dehydration and irritation. Would you like tips on choosing gentle cleansers?"
+        },
+        {
+          "type": "product",
+          "text": "Look for ceramides and fatty acids in moisturizers to strengthen the skin barrier.",
+          "icon": "shield",
+          "initialChatMessage": "Ceramides and fatty acids are vital ingredients for a strong skin barrier, helping to lock in moisture and protect against irritants. They are key for maintaining healthy, hydrated skin. Would you like to explore products that contain these barrier-supporting ingredients?"
+        },
+        {
+          "type": "activity",
+          "text": "Layer hydrating serums under your moisturizer for an extra boost, especially in dry weather.",
+          "icon": "award",
+          "initialChatMessage": "Layering a hydrating serum under your moisturizer is a pro tip for boosting skin hydration, especially effective when your skin feels extra dry or during harsh weather. Are you interested in how to choose and layer serums effectively?"
+        }
+      ]
+    },
+    "eyeAreaCondition": {
+      "keyForLookup": "eyeAreaCondition",
+      "displayName": "Eye Area Condition",
+      "overview": "Your eye area condition score reflects the overall health of the skin around your eyes, including lines, puffiness, and dark circles. This metric provides a holistic view of the eye area's skin quality, which is often the first to show signs of aging and fatigue.",
+      "scoreLevels": {
+        "excellent": { "max": 100, "min": 90, "text": "Your eye area is in excellent condition with minimal visible concerns such as lines, puffiness, or dark circles." },
+        "great": { "max": 89, "min": 80, "text": "Your eye area is healthy with only minor visible concerns. Maintain your current care routine for best results." },
+        "good": { "max": 79, "min": 70, "text": "Your eye area is in good condition with some mild concerns. Gentle care and hydration can help maintain this." },
+        "average": { "max": 69, "min": 50, "text": "Your eye area shows average condition with some visible issues such as mild puffiness or fine lines." },
+        "poor": { "max": 49, "min": 30, "text": "Your eye area has noticeable concerns, including visible lines, puffiness, or dark circles. Targeted care may help improve this area." },
+        "bad": { "max": 29, "min": 0, "text": "Your eye area shows significant concerns. Consider specialized treatments and consult a professional for best results." }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "activity",
+          "text": "Use gentle eye creams and daily sun protection.",
+          "icon": "check-circle",
+          "initialChatMessage": "Gentle eye creams and daily sun protection are key for maintaining healthy skin around the eyes. Would you like recommendations?"
+        },
+        {
+          "type": "activity",
+          "text": "Prioritize adequate sleep and hydration.",
+          "icon": "moon",
+          "initialChatMessage": "Adequate sleep and hydration can significantly improve the appearance of your eye area. Would you like tips on sleep or hydration?"
+        },
+        {
+          "type": "product",
+          "text": "Look for ingredients like peptides, hyaluronic acid, and caffeine in eye products.",
+          "icon": "list",
+          "initialChatMessage": "Peptides, hyaluronic acid, and caffeine are effective ingredients for the eye area. Would you like to learn more about these ingredients?"
+        },
+        {
+          "type": "activity",
+          "text": "Be gentle when cleansing and avoid rubbing the eyes.",
+          "icon": "alert-triangle",
+          "initialChatMessage": "Being gentle when cleansing and avoiding rubbing the eyes helps prevent irritation and fine lines. Need more tips on gentle cleansing?"
+        }
+      ]
+    },
+    "Oily": {
+      "keyForLookup": "Oily",
+      "displayName": "Oily Skin",
+      "associatedMetric": "Consistent oily skin type from analysis",
+      "overview": "Oily skin is characterized by an overproduction of sebum, leading to a shiny or greasy appearance. While this type can be more resilient to environmental factors, it often requires balanced care to manage oil production without over-drying.",
+      "scoreLevels": {
+        "detected": {
+          "text": "Your skin consistently shows oily characteristics with increased sebum production, typically resulting in a shinier appearance, especially in the T-zone. This resilient skin type can handle stronger ingredients but needs balanced hydration to avoid over-drying."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Salicylic Acid: Oil-soluble BHA that penetrates pores and helps control excess oil.",
+          "icon": "droplet",
+          "initialChatMessage": "Salicylic Acid is excellent for oily skin because it's oil-soluble, meaning it can penetrate through the sebum to clean out pores and help control excess oil production. Would you like to learn how to incorporate it into your routine?"
+        },
+        {
+          "type": "product",
+          "text": "Niacinamide: Regulates sebum production and minimizes pore appearance.",
+          "icon": "circle",
+          "initialChatMessage": "Niacinamide is fantastic for oily skin as it helps regulate sebum production, which can reduce shine, and it also helps minimize the appearance of pores. Are you interested in learning more about niacinamide products?"
+        },
+        {
+          "type": "product",
+          "text": "Clay masks: Absorb excess oil and temporarily refine pore appearance.",
+          "icon": "layers",
+          "initialChatMessage": "Clay masks are great for oily skin because they absorb excess oil and can temporarily make pores appear smaller and skin feel less greasy. Would you like recommendations for clay masks or tips on how often to use them?"
+        },
+        {
+          "type": "product",
+          "text": "Lightweight, oil-free moisturizers: Provide hydration without adding excess oil.",
+          "icon": "droplet",
+          "initialChatMessage": "Even oily skin needs moisture! Lightweight, oil-free moisturizers provide essential hydration without adding excess oil or feeling heavy on your skin. Would you like help finding the right type of moisturizer for oily skin?"
+        },
+        {
+          "type": "activity",
+          "text": "Use gentle cleansing to avoid over-stripping, which can trigger more oil production.",
+          "icon": "check-circle",
+          "initialChatMessage": "It might seem counterintuitive, but over-cleansing oily skin can actually trigger even more oil production as your skin tries to compensate. Gentle cleansing is key. Would you like tips on finding the right cleansing balance?"
+        },
+        {
+          "type": "activity",
+          "text": "Avoid over-mattifying products that can lead to rebound oil production.",
+          "icon": "alert-triangle",
+          "initialChatMessage": "While it's tempting to use strong mattifying products on oily skin, overdoing it can sometimes lead to rebound oil production. Balance is key. Are you interested in learning about the right level of oil control?"
+        }
+      ]
+    },
+    "Dry": {
+      "keyForLookup": "Dry",
+      "displayName": "Dry Skin",
+      "associatedMetric": "Consistent dry skin type from analysis",
+      "overview": "Dry skin produces less sebum than normal skin and lacks the lipids needed to retain moisture and build a protective barrier. This can result in tightness, roughness, and increased sensitivity to environmental factors.",
+      "scoreLevels": {
+        "detected": {
+          "text": "Your skin consistently shows dry characteristics with reduced sebum production, which can result in a tighter feeling and more visible texture. This type benefits from rich moisturizers and gentle, hydrating ingredients to support the skin barrier."
+        }
+      },
+      "whatYouCanDo": [
+        {
+          "type": "product",
+          "text": "Hyaluronic Acid: Draws moisture into the skin and helps maintain hydration.",
+          "icon": "droplet",
+          "initialChatMessage": "Hyaluronic Acid is perfect for dry skin because it can hold up to 1000 times its weight in water, drawing moisture into your skin and helping to keep it hydrated throughout the day. Would you like to know how to use it effectively?"
+        },
+        {
+          "type": "product",
+          "text": "Ceramides: Help restore and strengthen the skin barrier to prevent moisture loss.",
+          "icon": "shield",
+          "initialChatMessage": "Ceramides are essential for dry skin because they help restore and strengthen your skin's natural barrier, preventing moisture from escaping and keeping your skin better hydrated. Are you interested in products that contain ceramides?"
+        },
+        {
+          "type": "product",
+          "text": "Rich moisturizers with occlusives: Create a protective layer to lock in moisture.",
+          "icon": "layers",
+          "initialChatMessage": "Rich moisturizers with occlusive ingredients create a protective layer on your skin that helps lock in moisture, which is especially important for dry skin. Would you like recommendations for effective moisturizers?"
+        },
+        {
+          "type": "product",
+          "text": "Gentle, cream-based cleansers: Clean without stripping natural oils.",
+          "icon": "droplet",
+          "initialChatMessage": "Cream-based cleansers are ideal for dry skin because they clean effectively while preserving your skin's natural oils, unlike harsh foaming cleansers that can strip away needed moisture. Would you like help choosing a gentle cleanser?"
+        },
+        {
+          "type": "activity",
+          "text": "Apply moisturizer immediately after cleansing while skin is still damp.",
+          "icon": "check-circle",
+          "initialChatMessage": "Applying moisturizer to slightly damp skin is a great technique for dry skin because it helps trap extra water in your skin, boosting the hydration benefits. Is this part of your current routine?"
+        },
+        {
+          "type": "activity",
+          "text": "Use a humidifier in dry environments to prevent moisture loss.",
+          "icon": "wind",
+          "initialChatMessage": "Using a humidifier can make a big difference for dry skin, especially in heated or air-conditioned environments, by adding moisture back into the air to prevent your skin from drying out further. Have you considered this for your environment?"
+        },
+        {
+          "type": "activity",
+          "text": "Avoid hot water and harsh soaps that can worsen dryness.",
+          "icon": "alert-triangle",
+          "initialChatMessage": "Hot water and harsh soaps can be particularly damaging to dry skin, stripping away natural oils and worsening dryness. Lukewarm water and gentle products are much better choices. Would you like tips on adjusting your routine?"
+        }
+      ]
+    }
+  }
+}

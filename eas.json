@@ -1,0 +1,42 @@
+{
+  "cli": {
+    "version": ">= 15.0.10",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_ENVIRONMENT": "development"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_ENVIRONMENT": "preview"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_ENVIRONMENT": "production"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "demetrie@projectmagicmirror.com",
+        "ascAppId": "6745925030",
+        "appleTeamId": "47UC6P55VM",
+        "ascApiKeyId": "MQQD6VF5Z8",
+        "ascApiKeyIssuerId": "f3b6c7d6-8933-48a4-93ab-88ce0838d532",
+        "ascApiKeyPath": "./keys/app-store-key.p8"
+      }
+    }
+  }
+}
