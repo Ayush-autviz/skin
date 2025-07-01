@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
-import { useUser } from '../../src/hooks/useUser';
+import { useUser } from '../../src/contexts/UserContext';
 import { colors, spacing, typography, forms, borderRadius } from '../../src/styles';
 import { doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../src/config/firebase';

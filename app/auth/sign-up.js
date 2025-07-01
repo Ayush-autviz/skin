@@ -4,6 +4,7 @@
 /* ------------------------------------------------------
 WHAT IT DOES
 - Handles user registration with email/password
+- Calls external API to create user subject
 - Provides navigation to sign in
 - Displays form validation and error messages
 
@@ -30,12 +31,13 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../src/config/firebase';
 import { colors, spacing, typography, forms } from '../../src/styles';
 import { createProfile } from '../../src/services/FirebaseUserService';
+import { createUserSubject, updateUserWithSubjectId } from '../../src/services/apiService';
 import { getAuthErrorMessage } from '../../src/utils/errorMessages';
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState(''); // NEW
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -55,11 +57,40 @@ export default function SignUp() {
     try {
       setLoading(true);
       setError('');
+      
+      // Step 1: Create Firebase user
+      console.log('🔵 Creating Firebase user...');
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await createProfile(userCredential.user.uid, email);
-      // go to onboarding
+      const userId = userCredential.user.uid;
+
+      console.log(userId,'userid')
+      
+      // Step 2: Create Firebase profile
+      console.log('🔵 Creating Firebase profile...');
+      await createProfile(userId, email);
+      
+      // Step 3: Create user subject in external API
+      console.log('🔵 Creating user subject in external API... ');
+      const { subjectId } = await createUserSubject(userId, email);
+      
+      // Step 4: Update Firebase profile with subject ID
+      // console.log('🔵 Updating profile with subject ID...');
+      // await updateUserWithSubjectId(userId, subjectId);
+      
+      console.log('✅ Registration completed successfully');
+      // User will be automatically redirected to onboarding by auth state change
+      
     } catch (err) {
-      setError(getAuthErrorMessage(err));
+      console.error('🔴 Registration error:', err);
+      
+      // Handle different types of errors
+      if (err.code && err.code.startsWith('auth/')) {
+        // Firebase auth error
+        setError(getAuthErrorMessage(err));
+      } else {
+        // API or other error
+        setError(err.message || 'Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -144,7 +175,7 @@ export default function SignUp() {
               disabled={loading}
             >
               <Text style={forms.button.primary.text}>
-                {loading ? 'Creating Account...' : 'Create Account'}
+                {loading ? 'Setting up your account...' : 'Create Account'}
               </Text>
             </TouchableOpacity>
           </View>

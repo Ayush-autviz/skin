@@ -4,11 +4,17 @@
 /* ------------------------------------------------------
 WHAT IT DOES
 - Displays full-size photo
-- Shows analysis results
+- Shows analysis results from Haut.ai API
 - Allows sharing or deletion
 - Displays metadata and timestamps
 - Creates AI thread if one doesn't exist for completed analysis
 - Passes threadId to child components for AI message display
+
+NAVIGATION FLOWS
+- From Camera: Full Haut.ai processing flow (processImageWithHaut → startPollingForResults)
+- From PhotoGrid: Skip processing, go directly to polling (photos already processed by API)
+  * Uses fromPhotoGrid='true' param and existing imageId to skip processImageWithHaut()
+  * Goes directly to startPollingForResults() with the provided imageId
 
 STATE MANAGEMENT
 - viewState: Controls the current UI mode
@@ -70,6 +76,7 @@ import { useThreadContext } from '../../src/contexts/ThreadContext'; // Import T
 import { Image as ExpoImage } from 'expo-image'; // <-- Import ExpoImage
 import { ImageBackground } from 'react-native'; // Added for blurred background
 import { BlurView } from 'expo-blur'; // Added for blur effect
+import { processHautImage, getHautAnalysisResults, getHautMaskResults, getHautMaskImages, transformHautResults } from '../../src/services/apiService';
 
 // Configuration
 const ANALYSIS_TIMEOUT_SECONDS = 40; // Timeout window for analysis to complete
@@ -311,21 +318,33 @@ const SnapshotLoading = ({ microcopy, onClose, backgroundImageUri }) => {
 
 export default function SnapshotScreen() {
   const router = useRouter();
-  const { photoId: paramPhotoId, localUri: paramLocalUri, thumbnailUrl: paramThumbnailUrl } = useLocalSearchParams();
-  const { selectedSnapshot, setSelectedSnapshot } = usePhotoContext();
+  const params = useLocalSearchParams();
+  const { photoId, localUri, userId, timestamp, fromPhotoGrid, imageId: passedImageId } = params;
+  
+  // Contexts
   const { createThread } = useThreadContext();
+  const { selectedSnapshot, setSelectedSnapshot } = usePhotoContext();
   
-  // Local state for this screen
-  const [currentPhotoId, setCurrentPhotoId] = useState(null); // Store the ID locally
+  // State management
+  const [viewState, setViewState] = useState('default');
+  const [uiState, setUiState] = useState('loading');
+  const [loadingMicrocopy, setLoadingMicrocopy] = useState('Loading...');
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [photoData, setPhotoData] = useState(null);
-  const photoDataRef = useRef(photoData); // Ref to access latest photoData in timeouts
-  const [isImageLoaded, setIsImageLoaded] = useState(false); // Tracks loading of final image URL
-  const [uiState, setUiState] = useState('loading'); // Initial state is loading
-  const [viewState, setViewState] = useState('default'); // Changed from 'normal' to 'default' - this is the home state
-  const [loadingMicrocopy, setLoadingMicrocopy] = useState(' '); // State for microcopy
-  const [isMaskVisible, setIsMaskVisible] = useState(false); // <-- State for mask visibility
-  const uploadTimeoutRef = useRef(null); // Ref for the upload timeout
   
+  // Haut.ai API state
+  const [imageId, setImageId] = useState(null);
+  const [hautBatchId, setHautBatchId] = useState(null);
+  const [analysisResults, setAnalysisResults] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [pollingInterval, setPollingInterval] = useState(null);
+  
+  // Refs
+  const uploadTimeoutRef = useRef(null);
+  const pollingTimeoutRef = useRef(null);
+  // Flag to ensure initialization logic runs only once
+  const hasInitializedRef = useRef(false);
+
   // Create refs for child components
   const snapshotPhotoRef = useRef(null);
   const metricsSheetRef = useRef(null);
@@ -356,181 +375,185 @@ export default function SnapshotScreen() {
     setViewState(newState);
   };
 
-
-
-  // Determine the URI to use for the loading background
-  const loadingBackgroundUri = paramLocalUri || paramThumbnailUrl;
-
-  // Initialize: Get ID from params, set context, start listener
-  useEffect(() => {
-    console.log('📷 Snapshot screen loaded');
-
-    // *** Use local state `currentPhotoId` to track if we've initialized ***
-    if (!currentPhotoId && paramPhotoId) {
-      setCurrentPhotoId(paramPhotoId); 
-    } else if (!currentPhotoId) {
-      return; // Exit effect
-    } 
-    
-    // --- Proceed using the latched ID (`currentPhotoId` or `paramPhotoId` on first run) ---
-    const idToUse = currentPhotoId || paramPhotoId;
-
-    // 1. Set this photo as the 'selectedSnapshot' in the context immediately
-    // Check if context already matches the ID we are working with
-    if (selectedSnapshot?.id !== idToUse) {
-       // Pass paramLocalUri only if setting context for the first time (param might be gone later)
-       // Pass thumbnailUrl if localUri is not available during init
-       const initialUri = paramLocalUri || paramThumbnailUrl;
-       setSelectedSnapshot({ id: idToUse, localUri: initialUri }); 
-    }
-      
-    // 2. Start the Firestore listener using the consistent ID (`idToUse`)
-    const userId = auth.currentUser?.uid;
-    if (!userId) {
-      console.error('🔴 SNAPSHOT: Missing userId. Cannot load.');
-      setUiState('no_results');
-      setLoadingMicrocopy('Authentication error.');
+  // Haut.ai API processing
+  const processImageWithHaut = async () => {
+    if (!localUri || !userId) {
+      console.error('🔴 Missing required data for Haut.ai processing');
       return;
     }
 
-    const db = getFirestore();
-    const photoRef = doc(db, 'users', userId, 'photos', idToUse);
-    const unsubscribe = onSnapshot(photoRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setPhotoData(data); // Update local state
-          
-        // Update context with the full data once available
-        // Check using idToUse
-        if (selectedSnapshot?.id === idToUse && 
-            (selectedSnapshot?.storageUrl !== data.storageUrl || selectedSnapshot?.threadId !== data.threadId) ) {
-           setSelectedSnapshot(prev => ({ ...prev, ...data })); // Merge new data
-        }
-          
-        // Update loading microcopy and check UI state
-        checkAndUpdateUiState(data); 
-      }
-    }, (error) => {
-       console.log(`🔴 SNAPSHOT: Firestore listener error for ${idToUse}:`, error);
-       setUiState('no_results');
-       setLoadingMicrocopy('Error loading snapshot.');
-       setPhotoData(null);
-    });
-
-    // Clear any previous upload timeout before setting a new one
-    if (uploadTimeoutRef.current) {
-        clearTimeout(uploadTimeoutRef.current);
+    try {
+      setIsProcessing(true);
+      setLoadingMicrocopy('Processing image...');
+      
+      console.log('🔵 Starting Haut.ai image processing');
+      const { hautBatchId: batchId, imageId: imgId } = await processHautImage(userId, localUri, 'front_image');
+      
+      setHautBatchId(batchId);
+      setImageId(imgId);
+      
+      console.log('✅ Image processed, starting polling for results');
+      setLoadingMicrocopy('Analyzing image...');
+      
+      // Start polling for results
+      startPollingForResults(imgId);
+      
+    } catch (error) {
+      console.error('🔴 Haut.ai processing error:', error);
+      setLoadingMicrocopy('Processing failed');
+      setUiState('no_results');
+    } finally {
+      setIsProcessing(false);
     }
-
-    // Start a 15-second timeout for the upload (checking storageUrl)
-    uploadTimeoutRef.current = setTimeout(() => {
-      console.log('⏱️ Upload Timeout Check Fired');
-      // Access latest photoData via ref
-      if (!photoDataRef.current?.storageUrl) {
-        console.error('🔴 Upload Timeout: storageUrl not found after 15 seconds.');
-        setUiState('no_results');
-        setLoadingMicrocopy('Upload failed or timed out.');
-      } else {
-        console.log('✅ Upload Timeout: storageUrl found.');
-      }
-      uploadTimeoutRef.current = null; // Clear ref after check
-    }, 15000); // 15 seconds
-
-    return () => {
-        unsubscribe();
-        // Clear upload timeout on unmount
-        if (uploadTimeoutRef.current) {
-            clearTimeout(uploadTimeoutRef.current);
-            uploadTimeoutRef.current = null;
-        }
-    };
-
-  // Depend on paramPhotoId (to trigger latching) and currentPhotoId (state)
-  }, [paramPhotoId, currentPhotoId]); 
-
-  // Updated UI state function
-  const checkAndUpdateUiState = (data) => {
-    // console.log('🔍 Checking UI state based on data:', {
-    //   status: data?.status?.state,
-    //   hasMetrics: !!data?.metrics && Object.keys(data.metrics).length > 0,
-    //   imageQuality: data?.metrics?.imageQuality?.overall,
-    //   timestamp: data?.timestamp
-    // });
-
-    if (!data) {
-      setLoadingMicrocopy(prev => prev || 'Loading data...'); // Keep existing or set default
-      return; 
-    }
-    
-    // --- Update Microcopy based on progress ---
-    if (!data.storageUrl) {
-        setLoadingMicrocopy('Scanning image...');
-    } else {
-        // <<< Clear Upload Timeout on Success >>>
-        if (uploadTimeoutRef.current) {
-            // console.log('✅ Upload Success: Clearing upload timeout.');
-            clearTimeout(uploadTimeoutRef.current);
-            uploadTimeoutRef.current = null;
-        }
-        // Set microcopy based on next steps
-        if (data.status?.state === 'pending' || data.status?.state === 'analyzing') {
-            setLoadingMicrocopy('Analyzing image...');
-        } else if (data.metrics && !data.threadId) { // Has metrics but no thread yet
-            setLoadingMicrocopy('Generating insights...');
-        } // Add more steps if needed
-    }
-
-    // --- Determine final UI State ---
-    if (data.metrics?.imageQuality?.overall !== undefined) {
-      const qualityScore = data.metrics.imageQuality.overall;
-      if (qualityScore < QUALITY_THRESHOLD_MIN) {
-        setLoadingMicrocopy('Image quality too low.'); // Update microcopy for error state
-        return setUiState('low_quality');
-      }
-    }
-    
-    // More robust check for valid metrics
-    const hasValidMetrics = data.metrics && 
-                           (data.metrics.imageQuality?.overall !== undefined ||
-                            data.metrics.hydration !== null ||
-                            data.metrics.pores !== null ||
-                            data.metrics.wrinkles !== null);
-    
-    // --- Restore transition to 'complete' state --- 
-    // If we have valid metrics, show complete state
-    // TEMPORARILY REMOVED && data.threadId for debugging
-    if (hasValidMetrics && data.storageUrl /* && data.threadId */) { 
-      // <<< ADD TEMPORARY DELAY >>>
-      const timer = setTimeout(() => {
-        setUiState('complete');
-      }, 1000); // Delay for 1 second (1000 ms)
-      return () => clearTimeout(timer); // Cleanup timer if component unmounts
-    }
-    
-    // Check if analysis failed or timed out
-    const timestamp = data.timestamp?.toDate?.() 
-      ? data.timestamp.toDate() 
-      : null; // Use null if timestamp is invalid
-    
-    const timeElapsed = timestamp ? (new Date().getTime() - timestamp.getTime()) : 0;
-    const isActiveStatus = data.status?.state === 'analyzing' || data.status?.state === 'pending' || data.analyzing === true;
-
-    // If we've waited long enough AND it's not actively processing AND we don't have metrics
-    if (timeElapsed > ANALYSIS_TIMEOUT_MS && !isActiveStatus && !hasValidMetrics) {
-      setLoadingMicrocopy('Analysis timed out.'); // Update microcopy for error state
-      return setUiState('no_results');
-    }
-    
-    // Error states
-    if (data.status?.state === 'error') {
-      setLoadingMicrocopy(data.status?.message || 'Analysis failed.'); // Update microcopy
-      return setUiState('no_results');
-    }
-    
-    // Default: Still loading components
-    // Keep uiState as 'loading', microcopy is updated above
-    return setUiState('loading');
   };
+
+  const startPollingForResults = (imgId) => {
+    console.log('🔵 Starting polling for results:', imgId);
+    
+    const poll = async () => {
+      try {
+        const results = await getHautAnalysisResults(imgId);
+        
+        if (results && results.length > 0) {
+          console.log('✅ Analysis results received');
+          
+          // Transform results to match app structure
+          const transformedMetrics = transformHautResults(results);
+          
+          // Get mask results after analysis is complete
+          let maskResults = null;
+          let maskImages = null;
+          try {
+            console.log('🔵 Fetching mask results after analysis completion');
+            maskResults = await getHautMaskResults(imgId);
+            console.log('✅ Mask results retrieved successfully');
+            
+            // Get mask images with S3 URLs for each skin condition
+            try {
+              console.log('🔵 Fetching mask images with S3 URLs');
+              maskImages = await getHautMaskImages(imgId);
+              console.log('✅ Mask images retrieved successfully');
+            } catch (maskImageError) {
+              console.log('⚠️ Mask images not ready yet or error occurred:', maskImageError.message);
+              // Continue without mask images - they're not critical for the main flow
+            }
+          } catch (error) {
+            console.log('⚠️ Mask results not ready yet or error occurred:', error.message);
+            // Continue without mask results - they're not critical for the main flow
+          }
+          
+          // Create photo data structure
+          const photoDataObj = {
+            id: photoId,
+            storageUrl: localUri,
+            timestamp: timestamp ? new Date(timestamp) : new Date(),
+            metrics: transformedMetrics,
+            maskResults: maskResults, // Add mask results to photo data
+            maskImages: maskImages, // Add mask images with S3 URLs for each condition
+            status: { state: 'complete' }
+          };
+          
+          setPhotoData(photoDataObj);
+          setAnalysisResults(results);
+          setLoadingMicrocopy('Analysis complete');
+          setUiState('complete');
+          
+          // Stop polling
+          stopPolling();
+          
+        } else {
+          console.log('⏳ Results not ready yet, continuing to poll...');
+          // Continue polling
+          pollingTimeoutRef.current = setTimeout(poll, 3000); // Poll every 3 seconds
+        }
+        
+      } catch (error) {
+        if (error.message.includes('not ready yet')) {
+          console.log('⏳ Results not ready yet, continuing to poll...');
+          // Continue polling
+          pollingTimeoutRef.current = setTimeout(poll, 3000);
+        } else {
+          console.error('🔴 Polling error:', error);
+          setLoadingMicrocopy('Analysis failed');
+          setUiState('no_results');
+          stopPolling();
+        }
+      }
+    };
+    
+    // Start first poll
+    poll();
+  };
+
+  const stopPolling = () => {
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current);
+      pollingTimeoutRef.current = null;
+    }
+  };
+
+  // Initialize photo data and start processing (runs only once)
+  useEffect(() => {
+    if (hasInitializedRef.current) return; // Prevent multiple initializations
+
+    // ---- Case 1: Navigated from PhotoGrid ----
+    if (fromPhotoGrid === 'true' && passedImageId) {
+      console.log('🔵 Initializing snapshot from PhotoGrid - skipping processing');
+
+      const photoFromContext = selectedSnapshot;
+      if (photoFromContext) {
+        const initialPhotoData = {
+          id: photoId,
+          storageUrl: photoFromContext.storageUrl,
+          timestamp: photoFromContext.apiData?.created_at ? new Date(photoFromContext.apiData.created_at) : new Date(),
+          status: { state: 'analyzing' }
+        };
+
+        setPhotoData(initialPhotoData);
+        setImageId(passedImageId);
+        setLoadingMicrocopy('Loading analysis results...');
+        setUiState('analyzing');
+
+        console.log('🔵 Starting polling for existing image:', passedImageId);
+        startPollingForResults(passedImageId);
+      }
+
+      hasInitializedRef.current = true;
+      return; // Skip further processing
+    }
+
+    // ---- Case 2: New image from Camera ----
+    if (localUri && userId) {
+      console.log('🔵 Initializing snapshot with Haut.ai flow');
+
+      const initialPhotoData = {
+        id: photoId,
+        storageUrl: localUri,
+        timestamp: timestamp ? new Date(timestamp) : new Date(),
+        status: { state: 'pending' }
+      };
+
+      setPhotoData(initialPhotoData);
+
+      setSelectedSnapshot({
+        id: photoId,
+        url: localUri,
+        storageUrl: localUri,
+        threadId: null
+      });
+
+      setLoadingMicrocopy('Processing image...');
+      processImageWithHaut();
+      hasInitializedRef.current = true;
+    }
+  }, [fromPhotoGrid, passedImageId, photoId, localUri, userId, timestamp]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      stopPolling();
+    };
+  }, []);
 
   // Handle image load events
   const handleImageLoadStart = () => {
@@ -561,35 +584,31 @@ export default function SnapshotScreen() {
 
   // Handle deletion of photo and navigation
   const handleDelete = async () => {
-    const snapshotIdToDelete = selectedSnapshot?.id; // Use optional chaining
-    if (!snapshotIdToDelete) {
-        console.error('🔴 Delete failed: No selected snapshot ID found in context.');
-        Alert.alert("Error", "Cannot delete snapshot, data missing.");
-        return;
-    }
     try {
-        const userId = auth.currentUser?.uid;
-        if (!userId) { /* ... */ return; }
-        router.replace('/(authenticated)/');
-        setSelectedSnapshot(null); // Clear context
-        await deletePhoto(userId, snapshotIdToDelete);
-    } catch (error) { /* ... */ }
+      console.log('🗑️ Deleting photo:', photoId);
+      router.replace('/(authenticated)/');
+      setSelectedSnapshot(null); // Clear context
+      
+      // For Haut.ai flow, we don't need to delete from Firebase
+      // The photo is only stored locally and in memory
+      console.log('✅ Photo deleted (Haut.ai flow)');
+    } catch (error) {
+      console.error('🔴 Delete failed:', error);
+      Alert.alert("Error", "Cannot delete snapshot, data missing.");
+    }
   };
 
   // Handle deletion of photo without navigation (for auto-delete)
   const handleDeleteSilently = async () => {
-     const snapshotIdToDelete = selectedSnapshot?.id; // Use optional chaining
-     if (!snapshotIdToDelete) {
-        console.error('🔴 Silent delete failed: No selected snapshot ID found in context.');
-        return;
-     }
-    // ... rest of silent delete logic using snapshotIdToDelete ...
     try {
-        const userId = auth.currentUser?.uid;
-        if (!userId) { /* ... */ return; }
-        console.log('🗑️ Silently deleting photo:', snapshotIdToDelete);
-        await deletePhoto(userId, snapshotIdToDelete);
-    } catch (error) { /* ... */ }
+      console.log('🗑️ Silently deleting photo:', photoId);
+      
+      // For Haut.ai flow, we don't need to delete from Firebase
+      // The photo is only stored locally and in memory
+      console.log('✅ Photo silently deleted (Haut.ai flow)');
+    } catch (error) {
+      console.error('🔴 Silent delete failed:', error);
+    }
   };
 
   // Get formatted date for header
@@ -611,6 +630,60 @@ export default function SnapshotScreen() {
   const handleExitZoom = () => {
     console.log('📱 Snapshot: Exit zoom from header');
     changeViewState('default'); // Return to default state
+  };
+
+  // Create AI thread when analysis is complete
+  const ensureThreadExists = async () => {
+    if (!photoData?.metrics || !photoData?.id) {
+      console.log('🔵 No metrics or photo ID available for thread creation');
+      return;
+    }
+
+    try {
+      console.log('🔵 Creating AI thread for photo:', photoData.id);
+      
+      // Create a real thread using ThreadContext
+      const threadId = await createThread({
+        type: 'snapshot_analysis',
+        photoId: photoData.id,
+        initialMessageContent: "I've analyzed your skin snapshot. What would you like to know about your results?"
+      });
+      
+      if (threadId) {
+        // Update photo data with the real thread ID
+        setPhotoData(prev => ({
+          ...prev,
+          threadId: threadId
+        }));
+        
+        // Update PhotoContext's selectedSnapshot with the threadId
+        setSelectedSnapshot(prev => ({
+          ...prev,
+          id: photoData.id,
+          url: photoData.storageUrl,
+          storageUrl: photoData.storageUrl,
+          threadId: threadId
+        }));
+        
+        console.log('✅ AI thread created:', threadId);
+      } else {
+        console.error('🔴 Failed to create thread - no ID returned');
+      }
+    } catch (error) {
+      console.error('🔴 Error creating thread:', error);
+    }
+  };
+
+  // Call ensureThreadExists when analysis is complete
+  useEffect(() => {
+    if (uiState === 'complete' && photoData?.metrics && !photoData?.threadId) {
+      ensureThreadExists();
+    }
+  }, [uiState, photoData?.metrics, photoData?.threadId]);
+
+  const handleClose = () => {
+    console.log('📱 Snapshot: Close button pressed');
+    router.push('/(authenticated)/');
   };
 
   // Add this useEffect to handle auto-deletion of problematic images
@@ -650,43 +723,13 @@ export default function SnapshotScreen() {
     }
   }, [photoData, uiState]);
 
-  // Thread creation effect - remove photoData dependency if possible, rely on selectedSnapshot?
-  useEffect(() => {
-    const ensureThreadExists = async () => {
-      const currentSnapshotId = selectedSnapshot?.id;
-      // Use selectedSnapshot?.threadId to check if thread exists in context data
-      const threadIdExistsInContext = !!selectedSnapshot?.threadId;
-
-      // console.log('🧵 Checking thread status:', { uiState, photoId: currentSnapshotId, threadIdInContext: threadIdExistsInContext });
-
-      // Trigger thread creation if state is complete, ID exists, but context has no threadId
-      if (uiState === 'complete' && currentSnapshotId && !threadIdExistsInContext) {
-        try {
-          const newThreadId = await createThread({
-            type: 'snapshot_feedback',
-            photoId: currentSnapshotId
-          });
-          // Context should update automatically via listener now
-        } catch (error) {
-          console.error(`🔴 SNAPSHOT: Failed to create thread for ${currentSnapshotId}:`, error);
-        }
-      }
-    };
-    ensureThreadExists();
-    // Depend on uiState, photoId, and threadId from photoData
-  }, [uiState, photoData?.id, photoData?.threadId, createThread]); 
-
-  const handleClose = () => {
-    // Navigate to home instead of going back
-    router.push('/');
-  };
-
   // --- Render Logic --- 
 
-  console.log(currentPhotoId,'current photo id')
+  console.log(photoId,'current photo id', fromPhotoGrid ? '(from PhotoGrid)' : '(from camera)')
+  console.log('🔵 Snapshot params:', { photoId, fromPhotoGrid, passedImageId, hasSelectedSnapshot: !!selectedSnapshot })
 
   // Ensure currentPhotoId (from state) is available before attempting to render anything specific
-  if (!currentPhotoId) {
+  if (!photoId) {
      // Render a minimal loading state or null while waiting for params/state
      return <SnapshotLoading microcopy="Initializing..." onClose={handleClose} />;
   }
@@ -695,7 +738,7 @@ export default function SnapshotScreen() {
   // POC: Prioritize Haut.ai direct URL for better mask alignment
   const hautAiSquareImageUrl = photoData?.urls?.['500x500']; // Try the square image
   const hautAiPortraitImageUrl = photoData?.urls?.['800x1200'];
-  const imageUri = hautAiSquareImageUrl || hautAiPortraitImageUrl || photoData?.storageUrl || paramLocalUri; 
+  const imageUri = hautAiSquareImageUrl || hautAiPortraitImageUrl || photoData?.storageUrl || localUri; 
   const maskContentLines = photoData?.masks?.lines;
   const peekSheetHeightAbs = SCREEN_HEIGHT * (BOTTOM_SHEET_COLLAPSED_PERCENTAGE / 100);
   const minimizedSheetHeightAbs = SCREEN_HEIGHT * (SNAP_POINTS.MINIMIZED / 100); // Calculate minimized sheet height
@@ -706,16 +749,16 @@ export default function SnapshotScreen() {
 
   if (showSkeletonScreen) {
     // Determine if we should use the blurred background:
-    // This is true if paramLocalUri is present (new photo upload)
+    // This is true if localUri is present (new photo upload)
     // AND the uiState is still 'loading' or 'analyzing'
-    const useEffectiveLoadingBackground = paramLocalUri && (uiState === 'loading' || uiState === 'analyzing');
+    const useEffectiveLoadingBackground = localUri && (uiState === 'loading' || uiState === 'analyzing');
     
 
     
     return <SnapshotLoading 
               microcopy={loadingMicrocopy}
               onClose={handleClose}
-              backgroundImageUri={useEffectiveLoadingBackground ? paramLocalUri : null} // Pass local URI if applicable
+              backgroundImageUri={useEffectiveLoadingBackground ? localUri : null} // Pass local URI if applicable
             />;
   }
 
@@ -753,7 +796,7 @@ export default function SnapshotScreen() {
             viewState={viewState}
             photoData={photoData}
             maskContent={maskContentLines}
-            isMaskVisible={isMaskVisible}
+            isMaskVisible={false}
             showRegistrationMarks={true}
             headerHeight={HEADER_HEIGHT}
             peekSheetHeight={peekSheetHeightAbs}
@@ -853,6 +896,7 @@ export default function SnapshotScreen() {
           uiState={uiState}
           viewState={viewState}
           metrics={photoData?.metrics} // Pass metrics prop
+          photoData={photoData} // Pass full photoData including maskImages
           onDelete={handleDelete}
           onViewStateChange={changeViewState}
           onTryAgain={() => router.replace('/(authenticated)/camera')}

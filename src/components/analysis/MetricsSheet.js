@@ -48,6 +48,7 @@ const SNAP_POINTS = {
 
 const MetricsSheet = forwardRef(({
   metrics,
+  photoData,
   uiState,
   viewState,
   onDelete,
@@ -74,7 +75,11 @@ const MetricsSheet = forwardRef(({
   // Log important state changes
   useEffect(() => {
     // Track internal state changes
-  }, [currentSnapPoint, viewState]);
+    console.log('🔵 MetricsSheet - photoData contains maskImages:', !!photoData?.maskImages);
+    if (photoData?.maskImages) {
+      console.log('🔵 MetricsSheet - Available mask conditions:', Object.keys(photoData.maskImages));
+    }
+  }, [currentSnapPoint, viewState, photoData]);
   
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -291,7 +296,7 @@ const MetricsSheet = forwardRef(({
                                     params: {
                                       metricKey: key,
                                       metricValue: value,
-                                      photoData: JSON.stringify(metrics)
+                                      photoData: JSON.stringify(photoData || metrics)
                                     }
                                   });
                                 }
@@ -340,7 +345,7 @@ const MetricsSheet = forwardRef(({
                                      params: {
                                        metricKey: key,
                                        metricValue: value,
-                                       photoData: JSON.stringify(metrics)
+                                       photoData: JSON.stringify(photoData || metrics)
                                      }
                                    });
                                  }

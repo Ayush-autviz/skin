@@ -27,7 +27,8 @@ import {
   ScrollView, 
   TouchableOpacity, 
   SafeAreaView,
-  StatusBar
+  StatusBar,
+  Image
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -39,6 +40,23 @@ import { colors } from '../../src/styles';
 // Import the JSON data
 import concernsData from '../../data/concerns.json';
 import MetricsSeries_simple from '../../src/components/analysis/MetricsSeries_simple';
+
+// Helper function to map metric keys to condition names for mask images
+const getConditionNameForMetric = (metricKey) => {
+  const mapping = {
+    'rednessScore': 'redness',
+    'hydrationScore': 'hydration', 
+    'eyeAge': 'eye_bags',
+    'poresScore': 'pores',
+    'acneScore': 'acne',
+    'linesScore': 'lines',
+    'translucencyScore': 'translucency',
+    'pigmentationScore': 'pigmentation',
+    'uniformnessScore': 'uniformness'
+  };
+  
+  return mapping[metricKey] || null;
+};
 
 // Helper functions for processing metrics data
 const metricHelpers = {
@@ -464,6 +482,8 @@ export default function MetricDetailScreen() {
   
   // Parse the photoData if it's a string
   const parsedPhotoData = typeof photoData === 'string' ? JSON.parse(photoData) : photoData;
+
+  console.log(parsedPhotoData,'parsed photo data');
   
   // State for whether the current concern is being tracked by the user
   const [isConcernTracked, setIsConcernTracked] = useState(false);
@@ -782,7 +802,7 @@ export default function MetricDetailScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{formatMetricName(metricKey)}</Text>
         </View>
-        <TouchableOpacity 
+        {/* <TouchableOpacity 
           style={styles.trackButton}
           onPress={() => setIsConcernTracked(!isConcernTracked)}
         >
@@ -791,13 +811,13 @@ export default function MetricDetailScreen() {
             size={24} 
             color={isConcernTracked ? "#4CAF50" : "#BDBDBD"}
           />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
       
       {/* Content */}
       <ScrollView style={styles.scrollContainer}>
         {/* Main metric card */}
-        <View style={{ marginHorizontal: 16, marginTop: 24 }}>
+        <View style={{ marginHorizontal: 16 }}>
           <Text style={styles.sectionTitle}>{getLatestPhotoDateString()}</Text>
           <View style={styles.metricCard}>
             {/* Profile Metric Template (for skinType, perceivedAge, eyeAge, skinTone) */}
@@ -921,6 +941,42 @@ export default function MetricDetailScreen() {
             )}
           </View>
         </View>
+        
+        {/* Mask Image Section */}
+        {(() => {
+          const conditionName = getConditionNameForMetric(metricKey);
+          const maskImageData = parsedPhotoData?.maskImages?.[conditionName];
+          
+          if (conditionName && maskImageData?.maskImageUrl) {
+            return (
+              <View style={{ marginHorizontal: 16 }}>
+                <Text style={styles.sectionTitle}>Analysis Visualization</Text>
+                <View style={styles.metricCard}>
+                  <Text style={styles.maskImageDescription}>
+                    This visualization shows the analyzed areas for {formatMetricName(metricKey).toLowerCase()} on your face.
+                  </Text>
+                  <View style={styles.maskImageContainer}>
+                    <Image 
+                      source={{ uri: maskImageData.maskImageUrl }}
+                      style={styles.maskImage}
+                      resizeMode="contain"
+                      onError={(error) => {
+                        console.log('🔴 Error loading mask image:', error.nativeEvent.error);
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Mask image loaded successfully for:', conditionName);
+                      }}
+                    />
+                  </View>
+                  <Text style={styles.maskImageNote}>
+                    Highlighted areas indicate regions where {formatMetricName(metricKey).toLowerCase()} was detected and analyzed.
+                  </Text>
+                </View>
+              </View>
+            );
+          }
+          return null;
+        })()}
         
         {/* Trend/History Card */}
         <View style={{ marginHorizontal: 16 }}>
@@ -1495,5 +1551,28 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#555',
     textAlign: 'center',
+  },
+  // Mask image styles
+  maskImageContainer: {
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  maskImage: {
+    width: '100%',
+    height: 300,
+    borderRadius: 12,
+  },
+  maskImageDescription: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  maskImageNote: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 8,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

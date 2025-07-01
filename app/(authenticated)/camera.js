@@ -1,17 +1,14 @@
-import { useState, useEffect, useMemo, useContext } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Button, ActivityIndicator, Alert, Linking, Image, Dimensions } from 'react-native';
 import { Camera, CameraType, useCameraPermissions } from 'expo-camera';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { CameraView } from 'expo-camera';
-import { uploadPhoto } from '../../src/utils/storageUtils';
-import { auth } from '../../src/config/firebase';
-import { usePhotoContext } from '../../src/contexts/PhotoContext';
-import { createPhotoDocument } from '../../src/services/FirebasePhotosService';
-import { storage } from '../../src/config/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
-import { useUser } from '../../src/contexts/UserContext';
+import { useUser } from '../../src/hooks/useUser';
 import Svg, { Path, Defs, Mask, Rect } from 'react-native-svg';
+import { processHautImage, createUserSubject } from '../../src/services/apiService';
+import { colors, spacing, typography } from '../../src/styles';
+import { auth } from '../../src/config/firebase';
 
 /* ------------------------------------------------------
 WHAT IT DOES
@@ -20,41 +17,38 @@ WHAT IT DOES
 - Allows camera flipping (front/back)
 - Captures photos
 - Integrates with expo-camera
-- Uploads captured photos to Firebase Storage
-- Shows loading state during upload
-- Navigates to snapshot view on success
+- Processes images through Haut.ai API (NEW FLOW)
+- Shows loading state during processing
+- Navigates to snapshot view with analysis results
 
 DATA USED
 - facing: CameraType ('front' | 'back')
 - permission: CameraPermissionResponse object
 - photo: Captured photo data
 - userId: Current user's ID from Firebase Auth
-- selectedSnapshot: Latest captured photo in UserContext
+- Haut.ai API integration for image analysis
 
 IMPORTANT IMPLEMENTATION NOTES
 1. Photo Capture Settings:
    - quality: 0.7 (balanced size/quality)
-   - base64: true (required for proper Firebase upload)
+   - base64: true (required for API upload)
    - exif: false (CRITICAL: prevents image rotation issues with Haut AI API)
 
-2. Upload Flow:
+2. NEW API Flow:
    - Capture photo with expo-camera
-   - Upload to Firebase Storage
-   - Get download URL
-   - Create Firestore document
-   - Set snapshot in UserContext
-   - Navigate to snapshot view
+   - Process through Haut.ai API using processHautImage()
+   - Navigate to snapshot view immediately
+   - Snapshot view handles polling for analysis results
 
 3. Critical Dependencies:
    - expo-camera: Image capture
-   - Firebase Storage: Photo storage
-   - Firestore: Photo metadata
-   - UserContext: Snapshot state management
+   - Haut.ai API: Image analysis processing
+   - UserContext: Local snapshot state management
 
 TROUBLESHOOTING
-- If images fail to upload: Check base64 setting
+- If images fail to process: Check API connection and user registration
 - If images fail to analyze: Check EXIF and orientation settings
-- If context is lost: Check UserContext integration
+- If analysis takes too long: Handled by polling timeout in snapshot view
 
 EXIF DATA & ORIENTATION ISSUES
 - EXIF (Exchangeable Image File Format) contains image metadata including orientation
@@ -66,6 +60,13 @@ EXIF DATA & ORIENTATION ISSUES
 - Analysis API: Our backend analysis service expects faces in portrait orientation and may fail if it receives sideways faces
 
 ------------------------------------------------------*/
+
+// Comment out Firebase-related imports as we're now using Haut.ai API
+// import { firebaseService } from '../../src/services/FirebasePhotosService';
+// import { storage } from '../../src/config/firebase';
+// import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+// import { collection, addDoc } from 'firebase/firestore';
+// import { db } from '../../src/config/firebase';
 
 /* ------------------------------------------------------
 FACE OVERLAY CONFIGURATION
@@ -93,18 +94,8 @@ const FACE_OVERLAY = {
   
 };
 
-// Add detailed debug logging
-// console.log('🔵 CAMERA: Imports loaded');
-// console.log('🔵 CAMERA: FirebaseService:', firebaseService);
-// console.log('🔵 CAMERA: FirebaseService methods:', firebaseService ? Object.keys(firebaseService) : 'undefined');
-
-// const ANALYSIS_STATES = {
-//   NO_METRICS: 'no_metrics',
-//   PENDING: 'pending',
-//   ANALYZING: 'analyzing',
-//   COMPLETE: 'complete',
-//   ERROR: 'error'
-// };
+// Debug logging for Haut.ai API integration
+console.log('🔵 CAMERA: Camera screen with Haut.ai API integration loaded');
 
 // Add this component after the FACE_OVERLAY constants
 const FaceOverlay = () => {
@@ -162,16 +153,11 @@ const FaceOverlay = () => {
 
 export default function CameraScreen() {
   // Only the hooks we actually use
-  const router = useRouter();
-  const { setSelectedSnapshot } = usePhotoContext();
   const { user } = useUser();
   const [hasPermission, setHasPermission] = useState(null);
   const [camera, setCamera] = useState(null);
   const [isCameraActive, setIsCameraActive] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
   const [facing, setFacing] = useState('front');
-  const [uploadedPhoto, setUploadedPhoto] = useState(null);
-  const [uploadingPhotoUri, setUploadingPhotoUri] = useState(null);
 
   useEffect(() => {
     console.log('📸 Camera screen loaded');
@@ -181,22 +167,45 @@ export default function CameraScreen() {
     })();
   }, []);
 
+  // Monitor authentication state
   useEffect(() => {
-    if (uploadedPhoto) {
-      console.log('🔵 NAVIGATION: Starting navigation to snapshot screen');
-      
-      // Store the photo in context before navigation
-      // setSelectedSnapshot(uploadedPhoto); // REMOVE THIS - Snapshot screen will handle loading
-      console.log('🔵 NAVIGATION: Stored photo in context:', uploadedPhoto);
-      
-      router.push('/snapshot');
-      console.log('🔵 NAVIGATION: Navigation attempted');
-      
-      setUploadedPhoto(null);
-      // setUploadingPhotoUri(null); // REMOVE THIS
-      // setIsUploading(false); // REMOVE THIS
+    const currentUser = auth.currentUser;
+    console.log('🔵 AUTH: Current user state:', {
+      isAuthenticated: !!currentUser,
+      uid: currentUser?.uid,
+      email: currentUser?.email
+    });
+    
+    // Test API connection if user is authenticated
+    if (currentUser?.uid) {
+      testUserRegistration(currentUser.uid, currentUser.email);
     }
-  }, [uploadedPhoto]);
+  }, []);
+
+  // Test if user is properly registered in external API
+  const testUserRegistration = async (userId, userEmail) => {
+    try {
+      console.log('🔵 TEST: Testing user registration in external API');
+      
+              // Try to create user subject (this will fail if user already exists, which is fine)
+        // const { subjectId } = await createUserSubject(userId, userEmail);
+        console.log('✅ TEST: User registration check skipped (already registered)');
+      
+    } catch (error) {
+      if (error.message.includes('already exists') || error.message.includes('duplicate')) {
+        console.log('✅ TEST: User already exists in external API (this is expected)');
+      } else {
+        console.error('🔴 TEST: User registration test failed:', error);
+        Alert.alert(
+          'API Connection Issue', 
+          'Unable to connect to analysis service. Please check your internet connection and try again.',
+          [
+            { text: 'OK', onPress: () => console.log('User acknowledged API issue') }
+          ]
+        );
+      }
+    }
+  };
 
   // Add cleanup effect
   useEffect(() => {
@@ -246,6 +255,34 @@ export default function CameraScreen() {
     );
   }
 
+  // Check if user is authenticated
+  const currentUser = auth.currentUser;
+  if (!currentUser?.uid) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.message}>Authentication Required</Text>
+        <Text style={styles.debugText}>
+          Please sign in to use the camera
+        </Text>
+        <View style={styles.permissionButtonContainer}>
+          <TouchableOpacity 
+            style={styles.button}
+            onPress={() => router.replace('/auth/sign-in')}
+          >
+            <Text style={styles.buttonText}>Sign In</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.button}
+            onPress={() => router.replace('/')}
+          >
+            <Text style={styles.buttonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   const shutdownCamera = async () => {
     setIsCameraActive(false);
     if (camera) {
@@ -258,75 +295,43 @@ export default function CameraScreen() {
     }
   };
 
-  const handleSuccess = async (photoId) => {
-    try {
-      await shutdownCamera();
-      setIsUploading(false);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      router.replace(`/snapshot/${photoId}`);
-    } catch (error) {
-      console.error('🔴 CAMERA: Error during shutdown:', error);
-      setIsCameraActive(false);
-      router.replace(`/snapshot/${photoId}`);
-    }
-  };
-
-  // Shared function for processing photos
+  // Shared function for processing photos with Haut.ai API
   const processPhoto = async (photo) => {
-    // No need to set isUploading or isCameraActive here anymore
-    //setIsCameraActive(false); 
-    //setIsUploading(true);
-    //setUploadingPhotoUri(photo.uri);
-
     try {
-      if (!user?.uid) {
+      // Get user ID directly from Firebase Auth
+      const currentUser = auth.currentUser;
+      if (!currentUser?.uid) {
         console.error('🔴 PROCESS: No user ID available');
-        Alert.alert('Error', 'User not authenticated');
+        console.log('🔴 PROCESS: Current user:', currentUser);
+        Alert.alert('Error', 'User not authenticated. Please sign in again.');
         return;
       }
 
-      const userId = user.uid;
+      const userId = currentUser.uid;
+      console.log('🔵 PROCESS: User ID found:', userId);
+      
       const photoId = `${Date.now()}`;
       
       await shutdownCamera();
       await new Promise(resolve => setTimeout(resolve, 200)); 
       
+      // Navigate to snapshot screen immediately with photo data
+      // The snapshot screen will handle Haut.ai API processing and polling for results
       router.push({ 
         pathname: '/(authenticated)/snapshot', 
-        params: { photoId, localUri: photo.uri } 
+        params: { 
+          photoId, 
+          localUri: photo.uri,
+          userId: userId,
+          timestamp: new Date().toISOString()
+        } 
       });
 
-              // --- Perform upload and Firestore creation in the background ---
-        
-        const response = await fetch(photo.uri);
-        const blob = await response.blob();
-        const storageRef = ref(storage, `users/${userId}/photos/${photoId}`);
-        await uploadBytes(storageRef, blob);
-        
-        const storageUrl = await getDownloadURL(storageRef);
-        
-        const createSuccess = await createPhotoDocument(userId, photoId, storageUrl);
-        if (!createSuccess) {
-            console.error("🔴 PROCESS (BG) ERROR: Failed to create photo document in Firestore.");
-            return;
-        }
-
-      // 5. NO LONGER NEEDED HERE: Set the snapshot in context 
-      // const snapshotData = { ... };
-      // setSelectedSnapshot(snapshotData);
-
-      // 6. NO LONGER NEEDED HERE: Navigate 
-      // router.push('/(authenticated)/snapshot'); 
+      console.log('✅ PROCESS: Navigated to snapshot screen for Haut.ai processing');
       
     } catch (error) {
-      console.error('🔴 PROCESS ERROR (BG):', error);
-      // Log error, but don't block UI 
-      // Optionally update Firestore doc with error state for snapshot screen
-      // Alert.alert('Error', `Failed to process photo: ${error.message}`); // Avoid Alert here
-      // Resetting state here is not necessary as the screen is gone
-      // setIsCameraActive(true); 
-      // setUploadingPhotoUri(null);
-      // setIsUploading(false);
+      console.error('🔴 PROCESS ERROR (General):', error);
+      Alert.alert('Error', `Failed to process photo: ${error.message}`);
     }
   };
 
@@ -350,8 +355,7 @@ export default function CameraScreen() {
       console.error('🔴 CAMERA ERROR:', error.message);
       console.error('🔴 CAMERA ERROR Stack:', error.stack);
       Alert.alert('Error', 'Failed to capture photo. Please try again.');
-      // Ensure states are reset if processPhoto wasn't called or failed early
-      // setIsUploading(false); 
+      // Ensure camera is reactivated if processPhoto failed early
       setIsCameraActive(true); 
     }
   };
@@ -435,7 +439,6 @@ export default function CameraScreen() {
             <TouchableOpacity 
               style={styles.captureButton}
               onPress={handleCapture}
-              // disabled={isUploading} // Optionally disable while processing starts, though navigation is fast
             >
               <View style={styles.captureButtonInner} />
             </TouchableOpacity>
@@ -539,44 +542,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontFamily: 'monospace',
   },
-  spinnerContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  uploadingText: {
-    color: '#ffffff',
-    fontSize: 16,
-    marginTop: 10,
-    fontWeight: '600',
-  },
-  uploadingImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  uploadingOverlay: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [
-      { translateX: -50 },
-      { translateY: -50 }
-    ],
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 10,
-  },
+  // Removed legacy Firebase uploading styles
+  // spinnerContainer, uploadingText, uploadingImage, uploadingOverlay
+  // These are no longer needed with the new Haut.ai API flow
 }); 

@@ -10,13 +10,15 @@ WHAT IT DOES
 - Supports pull-to-refresh for manual updates
 - Displays last updated timestamp
 
-DATA USED
-- photos[]: Array of photo objects from Firebase Storage
+DATA USED - UPDATED TO USE NEW API
+- photos[]: Array of photo objects from new API endpoint (not Firebase)
   {
-    id: String,
-    url: String,
+    id: String (image_id from API),
+    storageUrl: String (front_image from API),
+    timestamp: Date,
     analyzed: Boolean,
-    analyzing: Boolean
+    analyzing: Boolean,
+    apiData: Object (original API response)
   }
 - onRefresh: Function to trigger photo refresh
 - lastUpdated: Timestamp of last photo update
@@ -24,9 +26,8 @@ DATA USED
 IMPORTANT:
 - the desired behavior is to have the grid display the photos in  chronological order (NEWEST AT BOTTOM - AUTO SCROLL TO BOTTOM)
 - theis is continually being broken and refixed
-- NOTE WHAT'S TOING ON HERE:
-...
-
+- NOW USING NEW API ENDPOINT: /api/v1/haut_process/?user_id={userId}
+- API data is transformed in apiService.getUserPhotos() to match expected format
 
 ------------------------------------------------------*/
 
@@ -115,28 +116,32 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
   // };
 
   const handlePhotoPress = (photo) => {
-    const photoId = photo.id.replace('.jpg', ''); // Extract ID
+    // For API photos, use the image_id directly (no .jpg removal needed)
+    const photoId = photo.id; 
     
     // Store the photo in context with all required fields
     setSelectedSnapshot({
-      id: photoId, // Use extracted ID
+      id: photoId,
       url: photo.storageUrl,
       storageUrl: photo.storageUrl,
-      threadId: photo.threadId
+      threadId: photo.threadId || null, // threadId might not exist in API data
+      // Add API data for reference
+      apiData: photo.apiData
     });
 
     // Navigate WITH the required photoId param AND the thumbnailUrl
-    // We don't have localUri here, so loading background will be gray
+    // Add fromPhotoGrid flag to skip processing and go directly to polling
     router.push({ 
         pathname: '/snapshot', 
-        params: { photoId, thumbnailUrl: photo.storageUrl } // Pass photoId and thumbnailUrl
+        params: { 
+          photoId, 
+          thumbnailUrl: photo.storageUrl,
+          localUri: photo.storageUrl, // Provide URI for immediate render
+          timestamp: photo.apiData?.created_at || null, // Pass creation date if available
+          fromPhotoGrid: 'true', // Flag to indicate we're coming from PhotoGrid
+          imageId: photo.hautUploadData?.imageId || photo.id // Pass the imageId for polling
+        }
     });
-
-    /* // Old navigation method - removed
-    router.push('/snapshot', {
-      presentation: 'modal'
-    });
-    */
   };
 
   const formatLastUpdated = (timestamp) => {

@@ -11,7 +11,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { router } from 'expo-router';
-import { useUser } from '../../src/hooks/useUser';
+import { useUser } from '../../src/contexts/UserContext';
 import { colors, spacing, typography, forms, shadows, borderRadius } from '../../src/styles';
 import { doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../src/config/firebase';

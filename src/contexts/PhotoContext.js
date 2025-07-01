@@ -25,7 +25,9 @@ DEV PRINCIPLES
 
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { onPhotosUpdate } from '../services/FirebasePhotosService';
+// COMMENTED OUT - Using new API instead of Firebase
+// import { onPhotosUpdate } from '../services/FirebasePhotosService';
+import { getUserPhotos } from '../services/apiService';
 import { auth } from '../config/firebase';
 
 const CACHE_KEY = 'PHOTO_CACHE';
@@ -37,7 +39,8 @@ export function PhotoProvider({ children }) {
   const [photos, setPhotos] = useState([]);
   const [isLoading, setIsLoading] = useState(true); // Loading state for the *list*
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [unsubscribePhotosListener, setUnsubscribePhotosListener] = useState(null);
+  // COMMENTED OUT - No longer using Firebase listener
+  // const [unsubscribePhotosListener, setUnsubscribePhotosListener] = useState(null);
 
   const [selectedSnapshot, setSelectedSnapshot] = useState(null);
 
@@ -79,33 +82,40 @@ export function PhotoProvider({ children }) {
      logSnapshot("useEffect[selectedSnapshot]", selectedSnapshot);
   }, [selectedSnapshot]);
 
-  // Auth state listener
+  // Auth state listener - Updated to use API instead of Firebase listener
   useEffect(() => {
     let previousUserId = auth.currentUser?.uid;
     const authUnsubscribe = auth.onAuthStateChanged(async (user) => {
       const currentUserId = user?.uid;
-      if (previousUserId !== currentUserId) {
-        await clearCache();
-        setPhotos([]);
-        setSelectedSnapshotWithLogging(null); // Use logging setter
-        setIsLoading(true);
-        previousUserId = currentUserId;
+      console.log('🔵 currentUserId:', currentUserId);
+      if (currentUserId) {
+        fetchPhotosFromAPI(currentUserId);
+     }
+      // if (previousUserId !== currentUserId) {
+      //   await clearCache();
+      //   setPhotos([]);
+      //   setSelectedSnapshotWithLogging(null); // Use logging setter
+      //   setIsLoading(true);
+      //   previousUserId = currentUserId;
+
+      //   console.log('🔵 PHOTO_CONTEXT: Auth state changed to:', currentUserId);
+        
+        // COMMENTED OUT - No more Firebase listener cleanup needed
         // Cleanup listener FIRST if user logged out or changed
-        if (unsubscribePhotosListener) {
-           unsubscribePhotosListener();
-           setUnsubscribePhotosListener(null);
-        }
-        // Trigger listener setup if new user logged in
-        if (currentUserId) {
-           setupPhotosListener(currentUserId);
-        }
-      }
+        // if (unsubscribePhotosListener) {
+        //    unsubscribePhotosListener();
+        //    setUnsubscribePhotosListener(null);
+        // }
+        
+        // Fetch photos from API if new user logged in
+
+    //  }
     });
     return () => {
        authUnsubscribe();
     };
-    // Add dependencies
-  }, [unsubscribePhotosListener, setSelectedSnapshotWithLogging, setupPhotosListener, clearCache]);
+    // Updated dependencies
+  }, [setSelectedSnapshotWithLogging, fetchPhotosFromAPI, clearCache]);
 
   // Load cached photos on initial mount
   useEffect(() => {
@@ -115,7 +125,8 @@ export function PhotoProvider({ children }) {
     }
   }, [photos.length]); // Depend on photos.length
 
-  // Set up Firebase listener when auth state indicates a logged-in user
+  // COMMENTED OUT - Set up Firebase listener when auth state indicates a logged-in user
+  /*
   useEffect(() => {
     const user = auth.currentUser;
     // Only setup listener if user exists AND listener is not already set
@@ -134,6 +145,16 @@ export function PhotoProvider({ children }) {
     };
   // Depend on auth.currentUser directly if possible, or a state derived from it
   }, [auth.currentUser, unsubscribePhotosListener]); // Depend on user and listener state
+  */
+
+  // NEW - Fetch photos from API when user is logged in
+  useEffect(() => {
+    const user = auth.currentUser;
+    // Only fetch if user exists and photos haven't been loaded yet
+    if (user && photos.length === 0 && !isLoading) {
+      fetchPhotosFromAPI(user.uid);
+    }
+  }, [auth.currentUser, photos.length, isLoading, fetchPhotosFromAPI]);
 
   const loadCachedPhotos = useCallback(async () => {
     // Avoid loading cache if already loading or photos exist
@@ -174,6 +195,8 @@ export function PhotoProvider({ children }) {
     }
   }, []); // No dependencies needed
 
+  // COMMENTED OUT - Using new API instead of Firebase listener
+  /*
   const setupPhotosListener = useCallback((userId) => {
     // Prevent setting up multiple listeners
     if (unsubscribePhotosListener) {
@@ -306,24 +329,52 @@ export function PhotoProvider({ children }) {
       setIsLoading(false); // Set loading false on error
     }
   }, [cachePhotos, unsubscribePhotosListener]); // Include dependencies
+  */
+
+  // NEW - Fetch photos from API
+  const fetchPhotosFromAPI = useCallback(async (userId) => {
+    try {
+      setIsLoading(true);
+      console.log('🔵 PHOTO_CONTEXT: Fetching photos from API for user:', userId);
+      
+      const apiPhotos = await getUserPhotos(userId);
+      
+      // Sort the photos by timestamp (Oldest to Newest) 
+      const sortedPhotos = [...apiPhotos].sort((a, b) => {
+        const dateA = new Date(a.timestamp);
+        const dateB = new Date(b.timestamp);
+        return dateA.getTime() - dateB.getTime(); // Ascending sort (oldest first)
+      });
+      
+      setPhotos(sortedPhotos);
+      cachePhotos(sortedPhotos); // Cache the sorted photos
+      setIsLoading(false);
+      
+      console.log('✅ PHOTO_CONTEXT: Photos fetched and sorted successfully:', sortedPhotos.length);
+    } catch (error) {
+      console.error('🔴 PHOTO_CONTEXT: Error fetching photos from API:', error);
+      setIsLoading(false);
+      // Don't throw error, just log and set loading to false
+    }
+  }, [cachePhotos]);
 
   const refreshPhotos = useCallback(() => {
-        const user = auth.currentUser;
+    const user = auth.currentUser;
     if (!user) {
       setIsLoading(false);
       return;
     }
-    setIsLoading(true); // Set loading true for refresh
-
+    
+    // COMMENTED OUT - No more Firebase listener cleanup needed
     // Clean up existing listener first
-    if (unsubscribePhotosListener) {
-      unsubscribePhotosListener();
-      setUnsubscribePhotosListener(null); // Clear the stored unsubscribe function
-    }
+    // if (unsubscribePhotosListener) {
+    //   unsubscribePhotosListener();
+    //   setUnsubscribePhotosListener(null); // Clear the stored unsubscribe function
+    // }
 
-    // Set up a new listener
-    setupPhotosListener(user.uid);
-  }, [unsubscribePhotosListener, setupPhotosListener]); // Include dependencies
+    // Fetch photos from API
+    fetchPhotosFromAPI(user.uid);
+  }, [fetchPhotosFromAPI]); // Updated dependencies
 
   const clearCache = useCallback(async () => {
     try {
