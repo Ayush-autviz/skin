@@ -35,6 +35,7 @@
     "expo-haptics": "~14.1.4",
     "expo-image": "~2.1.7",
     "expo-image-picker": "~16.1.4",
+    "expo-linear-gradient": "~14.1.5",
     "expo-linking": "~7.1.5",
     "expo-modules-core": "~2.3.13",
     "expo-router": "~5.0.7",
@@ -46,6 +47,7 @@
     "expo-web-browser": "~14.1.6",
     "firebase": "^11.9.1",
     "jest-expo": "~53.0.5",
+    "lucide-react-native": "^0.525.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.2",
@@ -60,8 +62,7 @@
     "react-native-toast-message": "^2.2.1",
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
-    "zustand": "^5.0.6",
-    "expo-linear-gradient": "~14.1.5"
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

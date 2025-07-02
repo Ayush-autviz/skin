@@ -2,7 +2,19 @@
 // First onboarding screen - collect name and birth date
 
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+  StatusBar,
+  Image,
+  SafeAreaView,
+} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useUser } from '../../src/contexts/UserContext';
@@ -16,11 +28,12 @@ export default function NameScreen() {
   const [birthDate, setBirthDate] = useState(null);
   const [error, setError] = useState('');
   const { updateProfile, updateState } = useUser();
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handleDateChange = (event, selectedDate) => {
-    if (selectedDate) {
-      setBirthDate(selectedDate);
-    }
+    setShowDatePicker(false);
+    if (event.type === 'dismissed') return;
+    if (selectedDate) setBirthDate(selectedDate);
   };
 
   const handleNext = async () => {
@@ -56,140 +69,166 @@ export default function NameScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.keyboardView}
-    >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.container}>
-          <View style={styles.headerContainer}>
-            <Text style={styles.heading}>Welcome!</Text>
-          </View>
+    <View style={styles.container}>      
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
 
-          {error && <Text style={styles.error}>{error}</Text>}
+      {/* Illustration header */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={require('../../assets/images/auth.png')}
+          style={styles.headerImage}
+          resizeMode="cover"
+          accessibilityLabel="Onboarding illustration"
+        />
+      </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>First Name</Text>
-            <TextInput
-              style={[
-                styles.input,
-                error && forms.input.error
-              ]}
-              placeholder="Enter your first name"
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholderTextColor={forms.input.placeholder.color}
-              autoCapitalize="words"
-            />
-          </View>
+      <SafeAreaView style={styles.safeAreaBottom}>
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            <View style={styles.formContainer}>         
+              {/* Title */}
+              <View style={styles.formHeader}>
+                <Text style={styles.title}>Tell Us About You</Text>
+                <View style={styles.titleUnderline} />
+              </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Last Name</Text>
-            <TextInput
-              style={[
-                styles.input,
-                error && forms.input.error
-              ]}
-              placeholder="Enter your last name"
-              value={lastName}
-              onChangeText={setLastName}
-              placeholderTextColor={forms.input.placeholder.color}
-              autoCapitalize="words"
-            />
-          </View>
+              {error ? (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {error}
+                  </Text>
+                </View>
+              ) : null}
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Birth Date</Text>
-            <DateTimePicker
-              value={birthDate || new Date()}
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-              style={styles.datePicker}
-            />
-          </View>
+              {/* First Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>First Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your first name"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholderTextColor="#9CA3AF"
+                  autoCapitalize="words"
+                />
+              </View>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={forms.button.primary.container}
-              onPress={handleNext}
-            >
-              <Text style={forms.button.primary.text}>Continue</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+              {/* Last Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Last Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your last name"
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholderTextColor="#9CA3AF"
+                  autoCapitalize="words"
+                />
+              </View>
+
+              {/* Birth Date */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Birth Date</Text>
+                <TouchableOpacity
+                  style={styles.dateInputWrapper}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={[styles.dateText, !birthDate && { color: '#9CA3AF' }]}> 
+                    {birthDate ? birthDate.toDateString() : 'Select your birth date'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {showDatePicker && (
+                <DateTimePicker
+                  value={birthDate || new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handleDateChange}
+                  maximumDate={new Date()}
+                />
+              )}
+
+              {/* Continue button */}
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={handleNext}
+              >
+                <Text style={styles.primaryButtonText}>Continue</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardView: {
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  imageContainer: { width: '100%', height: 250 },
+  headerImage: { width: '100%', height: '100%' },
+  safeAreaBottom: { flex: 1, backgroundColor: '#FFFFFF' },
+  keyboardContainer: { flex: 1, backgroundColor: '#FFFFFF' },
+  scrollView: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
+  formContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 30,
+    paddingTop: 20,
+    paddingBottom: 50,
   },
-  scrollContent: {
-    paddingTop: 120,
-    flexGrow: 1,
-    paddingBottom: spacing.xxl, // Extra padding for keyboard
+  formHeader: { marginBottom: 40, alignItems: 'flex-start' },
+  title: { fontSize: 32, fontWeight: '600', color: '#1F2937', marginBottom: 8 },
+  titleUnderline: { width: 60, height: 3, backgroundColor: '#8B7355', borderRadius: 2 },
+  errorContainer: {
+    marginBottom: 20,
+    backgroundColor: '#FFE5E5',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FF6B6B',
   },
-  container: {
-    flex: 1,
-    padding: spacing.xl,
-    justifyContent: 'flex-start', // Changed from 'center'
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: spacing.xxl,
-  },
-  title: {
-    ...typography.h1,
-    color: colors.textPrimary,
-    marginBottom: spacing.xl,
-    textAlign: 'center',
-  },
-  heading: {
-    ...typography.h2,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-    textAlign: 'center',
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  error: {
-    color: colors.error,
-    marginBottom: spacing.lg,
-    textAlign: 'center',
-    ...typography.caption,
-  },
-  inputContainer: {
-    marginBottom: spacing.lg,
-  },
-  label: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-    marginLeft: spacing.xs,
-  },
+  errorText: { color: '#D73527', fontSize: 14, textAlign: 'center', fontWeight: '500' },
+  inputContainer: { marginBottom: 24 },
+  label: { fontSize: 16, fontWeight: '500', color: '#6B7280', marginBottom: 12 },
   input: {
-    ...forms.input.base,
+    borderBottomWidth: 1,
+    borderBottomColor: '#8B7355',
+    fontSize: 16,
+    color: '#1F2937',
+    paddingVertical: 4,
+    minHeight: 44,
   },
-  datePicker: {
-    margin: 0,
-    paddingTop: 0,
-    paddingBottom: 0,
-    paddingLeft: 0,
-    paddingRight: 0,
-    marginLeft: -12,
-    marginTop: 10,
+  dateInputWrapper: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#8B7355',
+    paddingVertical: 12,
   },
+  dateText: {
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  primaryButton: {
+    backgroundColor: '#8B7355',
+    borderRadius: 25,
+    paddingVertical: 16,
+    marginTop: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '600' },
   buttonContainer: {
     alignItems: 'center',
     marginTop: spacing.xl,

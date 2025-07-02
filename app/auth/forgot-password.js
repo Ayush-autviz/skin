@@ -5,27 +5,42 @@
 WHAT IT DOES
 - Handles password reset via email
 - Provides navigation back to sign in
-- Displays form validation and error messages
+- Displays form validation and success messages
 
 DEV PRINCIPLES
-- Uses vanilla JavaScript
+- Consistent design with Sign-In screen
+- Uses React Native best practices
 - Implements proper form validation
 - Provides clear user feedback
-- Uses global style system
+- Uses accessibility guidelines
 ------------------------------------------------------*/
 
 import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { Link } from 'expo-router';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+  StatusBar,
+  Image,
+  SafeAreaView,
+} from 'react-native';
+import { useRouter } from 'expo-router';
 import { sendPasswordResetEmail } from 'firebase/auth';
+import { Mail } from 'lucide-react-native';
 import { auth } from '../../src/config/firebase';
-import { colors, spacing, typography, forms } from '../../src/styles';
+import { getAuthErrorMessage } from '../../src/utils/errorMessages';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleResetPassword = async () => {
     if (!email) {
@@ -39,9 +54,10 @@ export default function ForgotPassword() {
       setSuccess('');
       await sendPasswordResetEmail(auth, email);
       setSuccess('Check your email for reset instructions');
-      setEmail(''); // Clear email after successful send
+      setEmail('');
     } catch (err) {
-      setError(err.message);
+      const msg = err.code ? getAuthErrorMessage(err) : err.message;
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -49,106 +65,274 @@ export default function ForgotPassword() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Reset Password</Text>
-      
-      <Text style={styles.subtitle}>
-        Enter your email address and we'll send you instructions to reset your password.
-      </Text>
-
-      {error && <Text style={styles.error}>{error}</Text>}
-      {success && <Text style={styles.success}>{success}</Text>}
-      
-      <TextInput
-        style={[
-          styles.input,
-          error && forms.input.error
-        ]}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        placeholderTextColor={forms.input.placeholder.color}
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="#FFFFFF"
+        translucent={false}
       />
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={[
-            forms.button.primary.container,
-            loading && forms.button.primary.disabled
-          ]}
-          onPress={handleResetPassword}
-          disabled={loading}
-        >
-          <Text style={forms.button.primary.text}>
-            {loading ? 'Sending...' : 'Send Reset Link'}
-          </Text>
-        </TouchableOpacity>
+      {/* Header illustration */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={require('../../assets/images/auth.png')}
+          style={styles.headerImage}
+          resizeMode="cover"
+          accessibilityLabel="Forgot password illustration"
+        />
       </View>
 
-      <View style={styles.createAccountContainer}>
-        <Text style={styles.createAccountText}>
-          Remember your password?{' '}
-          <Link href="/auth/sign-in" style={styles.link}>
-            Sign in
-          </Link>
-        </Text>
-      </View>
+      <SafeAreaView style={styles.safeAreaBottom}>
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            <View style={styles.formContainer}>
+              {/* Title */}
+              <View style={styles.formHeader}>
+                <Text style={styles.title}>Reset Password</Text>
+                <View style={styles.titleUnderline} />
+              </View>
+
+              <Text style={styles.subtitle}>
+                Enter your email address and we'll send you instructions to reset
+                your password.
+              </Text>
+
+              {error ? (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {error}
+                  </Text>
+                </View>
+              ) : null}
+
+              {success ? (
+                <View style={styles.successContainer}>
+                  <Text style={styles.successText} accessibilityRole="status">
+                    {success}
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* Email */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Email</Text>
+                <View style={styles.inputWrapper}>
+                  <Mail size={20} color="#9CA3AF" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="demo@email.com"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    placeholderTextColor="#9CA3AF"
+                    returnKeyType="done"
+                    onSubmitEditing={handleResetPassword}
+                    accessibilityLabel="Email input"
+                    accessibilityHint="Enter your email address"
+                    autoComplete="email"
+                    textContentType="emailAddress"
+                  />
+                </View>
+              </View>
+
+              {/* Send link */}
+              <TouchableOpacity
+                style={[styles.signInButton, loading && styles.signInButtonDisabled]}
+                onPress={handleResetPassword}
+                disabled={loading}
+                accessibilityLabel={loading ? 'Sending email' : 'Send reset link'}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: loading }}
+              >
+                <Text style={styles.signInButtonText}>
+                  {loading ? 'Sending...' : 'Send Reset Link'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Back to sign in */}
+              <View style={styles.signUpContainer}>
+                <Text style={styles.signUpText}>Remember your password? </Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/auth/sign-in')}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.signUpLink}>Sign in</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </View>
   );
 }
 
+// Design tokens (matching Sign-In screen)
+const PRIMARY_COLOR = '#8B7355';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.xl,
-    justifyContent: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
+  },
+  imageContainer: {
+    width: '100%',
+    height: 250,
+    backgroundColor: '#FFFFFF',
+  },
+  headerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  safeAreaBottom: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  keyboardContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  formContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 30,
+    paddingTop: 40,
+    paddingBottom: 50,
+  },
+  formHeader: {
+    marginBottom: 24,
+    alignItems: 'flex-start',
   },
   title: {
-    ...typography.h1,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-    textAlign: 'center',
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  titleUnderline: {
+    width: 60,
+    height: 3,
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 2,
   },
   subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.xxl,
-    textAlign: 'center',
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 32,
+    lineHeight: 22,
   },
-  error: {
-    color: colors.error,
-    marginBottom: spacing.lg,
-    textAlign: 'center',
-    ...typography.caption,
+  errorContainer: {
+    marginBottom: 20,
+    backgroundColor: '#FFE5E5',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FF6B6B',
   },
-  success: {
-    color: colors.success,
-    marginBottom: spacing.lg,
+  errorText: {
+    color: '#D73527',
+    fontSize: 14,
     textAlign: 'center',
-    ...typography.caption,
+    fontWeight: '500',
+  },
+  successContainer: {
+    marginBottom: 20,
+    backgroundColor: '#E6F9ED',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#34C759',
+  },
+  successText: {
+    color: '#28A745',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  inputContainer: {
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: PRIMARY_COLOR,
+    paddingBottom: 8,
+    minHeight: 44,
+  },
+  inputIcon: {
+    marginRight: 12,
   },
   input: {
-    ...forms.input.base,
-    marginBottom: spacing.lg,
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+    paddingVertical: 4,
+    minHeight: 44,
   },
-  buttonContainer: {
+  signInButton: {
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 25,
+    paddingVertical: 16,
+    marginTop: 16,
+    marginBottom: 24,
+    minHeight: 56,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.xl,
-    marginBottom: spacing.xl,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
   },
-  createAccountContainer: {
+  signInButtonDisabled: {
+    opacity: 0.7,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  signInButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  signUpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.lg,
+    flexWrap: 'wrap',
   },
-  createAccountText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
+  signUpText: {
+    fontSize: 16,
+    color: '#9CA3AF',
   },
-  link: {
-    color: colors.primary,
-    textDecorationLine: 'underline',
+  signUpLink: {
+    color: '#FF6B6B',
+    fontWeight: '500',
+    fontSize: 16,
   },
 }); 

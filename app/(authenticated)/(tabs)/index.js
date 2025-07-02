@@ -1,5 +1,5 @@
-// (authenticated)/index.js
-// Home screen with camera access, photo grid, and analysis features
+// (authenticated)/(tabs)/index.js
+// Home tab screen with camera access, photo grid, and analysis features
 
 /* ------------------------------------------------------
 WHAT IT DOES
@@ -16,54 +16,20 @@ DEV PRINCIPLES
 - Proper navigation handling
 - Efficient photo grid rendering
 - Implements caching for better performance
-
-NEXT STEPS
-[x] Update PhotoGrid component
-    - Add analysis status indicator overlay
-    - Show checkmark for analyzed photos
-
-[x] Implement caching for photo grid
-    - Cache photos in AsyncStorage
-    - Show last updated timestamp
-    - Add pull-to-refresh functionality
-
-[ ] Implement tap to view snapshot details
-
-[ ] Integrate Analysis Features
-    - Update Firebase schema for analysis data
-    - Add analyzed boolean to photo metadata
-    - Create analysis results collection
-    - Implement analysis status fetching
-
-[ ] Implement Snapshot Navigation
-    - Create snapshot screen route
-    - Handle photo selection
-    - Pass photo data to snapshot view
-    - Display analysis results table
-
-[ ] Performance Optimizations
-    - Cache analysis results locally
-    - Implement lazy loading for grid
-    - Optimize analysis status updates
-    - Handle offline scenarios
-
-
-
 ------------------------------------------------------*/
 
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../../src/config/firebase';
-import { Ionicons } from '@expo/vector-icons';
-import SettingsDrawer from '../../src/components/layout/SettingsDrawer';
-import PhotoGrid from '../../src/components/photo/PhotoGrid';
-import Header from '../../src/components/ui/Header';
-import { colors, spacing, typography, forms } from '../../src/styles';
-import { useUser } from '../../src/contexts/UserContext';
-import { usePhotoContext } from '../../src/contexts/PhotoContext';
-import BottomNav from '../../src/components/layout/BottomNav';
+import { auth } from '../../../src/config/firebase';
+
+import SettingsDrawer from '../../../src/components/layout/SettingsDrawer';
+import PhotoGrid from '../../../src/components/photo/PhotoGrid';
+import TabHeader from '../../../src/components/ui/TabHeader';
+import { colors, spacing, typography, forms } from '../../../src/styles';
+import { useUser } from '../../../src/contexts/UserContext';
+import { usePhotoContext } from '../../../src/contexts/PhotoContext';
 import { Camera } from 'expo-camera';
 
 export default function Home() {
@@ -75,18 +41,9 @@ export default function Home() {
     console.log('📱 Home screen loaded');
   }, []);
 
-  const handleCameraPress = () => {
-    router.push('/camera');
+  const handleMenuPress = () => {
+    setIsSettingsVisible(true);
   };
-
-  const MenuButton = () => (
-    <TouchableOpacity 
-      onPress={() => setIsSettingsVisible(true)}
-      style={styles.buttonContainer}
-    >
-      <Ionicons name="menu-outline" size={24} color="#333" />
-    </TouchableOpacity>
-  );
 
   const handleLogout = async () => {
     try {
@@ -99,10 +56,9 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      <Header 
+      <TabHeader 
         title="Magic Mirror" 
-        leftComponent={<MenuButton />}
-        isLogo={true}
+        onMenuPress={handleMenuPress}
       />
       
       <View style={[styles.content, styles.photoGridContainer]}>
@@ -125,8 +81,6 @@ export default function Home() {
         )}
       </View>
 
-      <BottomNav onCameraPress={handleCameraPress} />
-
       <SettingsDrawer 
         isVisible={isSettingsVisible}
         onClose={() => setIsSettingsVisible(false)}
@@ -134,8 +88,6 @@ export default function Home() {
     </View>
   );
 }
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -150,17 +102,13 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    marginTop: 110, // Space for new header
     marginBottom: 100, // Space for bottom nav
   },
   photoGridContainer: {
     justifyContent: 'flex-end', // This will push content to bottom
   },
-  buttonContainer: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -177,4 +125,4 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     marginTop: spacing.sm,
   },
-});
+}); 

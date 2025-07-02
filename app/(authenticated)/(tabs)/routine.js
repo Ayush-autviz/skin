@@ -1,5 +1,5 @@
-// routine.js
-// Screen for managing skincare routine and viewing recommendations
+// (authenticated)/(tabs)/routine.js
+// Routine tab screen for managing skincare routine and viewing recommendations
 
 /* ------------------------------------------------------
 WHAT IT DOES
@@ -11,43 +11,35 @@ DEV PRINCIPLES
 - Uses vanilla JavaScript/React Native
 - Clean component structure
 - Consistent styling
-
-NEXT STEPS
-[x] Add Tab Navigation (2024-04-22)
-[x] Add Recommendations Placeholder (2024-04-22)
-[x] Add SafeAreaView (Corrected Placement) (2024-04-22)
-[x] Add Padding below Header (2024-04-22)
-[ ] Design routine tracking interface
-[ ] Implement routine management features
-[ ] Connect Recommendations tab to service
-[x] Add Activity Tab (State, Button, Content) (2024-04-22)
-[x] Restyle Tabs (Underline Style) (2024-04-22)
-[x] Implement Horizontal Scrolling Tabs (2024-04-22)
 ------------------------------------------------------*/
 
-import React, { useState, useEffect } from 'react'; // Keep useState
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView,
-  // Removed FlatList, ActivityIndicator
 } from 'react-native';
-import Header from '../../src/components/ui/Header';
-import RecommendationsList from '../../src/components/routine/RecommendationsList';
-import MyRoutine from '../../src/components/routine/MyRoutine'; // Import the new component
-import { colors, spacing, typography } from '../../src/styles';
-// Removed firebaseService, auth imports
+import TabHeader from '../../../src/components/ui/TabHeader';
+import SettingsDrawer from '../../../src/components/layout/SettingsDrawer';
+import RecommendationsList from '../../../src/components/routine/RecommendationsList';
+import MyRoutine from '../../../src/components/routine/MyRoutine';
+import { colors, spacing, typography } from '../../../src/styles';
 
-export default function RoutineScreen() {
+export default function RoutineTab() {
   const [activeTab, setActiveTab] = useState('myRoutine');
+  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   
   useEffect(() => {
-    console.log('🧴 Routine screen loaded');
+    console.log('🧴 Routine tab loaded');
   }, []);
+
+  const handleMenuPress = () => {
+    setIsSettingsVisible(true);
+  };
 
   return (
     <View style={styles.outerContainer}>
-      <Header 
+      <TabHeader 
         title="Routine"
-        showBack={true}
+        onMenuPress={handleMenuPress}
       />
       <View style={styles.contentContainer}>
         {/* Tab Navigation */}
@@ -71,26 +63,19 @@ export default function RoutineScreen() {
             <Text style={[styles.tabText, activeTab === 'recommendations' && styles.activeTabText]}>Recommendations</Text>
             {activeTab === 'recommendations' && <View style={styles.activeTabIndicator} />}
           </TouchableOpacity>
-          {/* [routine.js]: COMMENTED OUT Activity Tab per current task
-          <TouchableOpacity 
-            style={styles.tabButton}
-            onPress={() => setActiveTab('activity')}
-          >
-            <Text style={[styles.tabText, activeTab === 'activity' && styles.activeTabText]}>Activity</Text>
-            {activeTab === 'activity' && <View style={styles.activeTabIndicator} />}
-          </TouchableOpacity>
-          [routine.js]: END COMMENTED OUT Activity Tab */}
         </ScrollView>
 
         {/* Tab Content */}
-        {activeTab === 'myRoutine' && <MyRoutine />}
-        {activeTab === 'recommendations' && <RecommendationsList />}
-        {/* [routine.js]: COMMENTED OUT Activity Tab Content per current task
-        {activeTab === 'activity' && (
-          <Text style={styles.text}>Activity Feed - Under Construction</Text>
-        )}
-        [routine.js]: END COMMENTED OUT Activity Tab Content */}
+        <View style={styles.tabContentContainer}>
+          {activeTab === 'myRoutine' && <MyRoutine />}
+          {activeTab === 'recommendations' && <RecommendationsList />}
+        </View>
       </View>
+
+      <SettingsDrawer 
+        isVisible={isSettingsVisible}
+        onClose={() => setIsSettingsVisible(false)}
+      />
     </View>
   );
 }
@@ -102,7 +87,8 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    marginTop: 100,
+    marginTop: 110, // Space for new header
+    marginBottom: 100, // Space for bottom nav
   },
   tabScrollView: {
     flexGrow: 0,
@@ -135,6 +121,9 @@ const styles = StyleSheet.create({
     height: 3,
     width: '100%',
     backgroundColor: colors.primary,
+  },
+  tabContentContainer: {
+    flex: 1,
   },
   text: {
     ...typography.body,

@@ -16,30 +16,32 @@ DEV PRINCIPLES
 import palette from './palette';
 
 const colors = {
-  // Brand Colors
-  primary: palette.indigo,
-  secondary: palette.indigo,
+  // Brand Colors - Updated to match auth screens
+  primary: '#8B7355', // Brownish/gold color from auth screens
+  secondary: '#8B7355',
   
   // UI Colors
-  background: palette.gray1,
-  surface: palette.gray2,
+  background: '#FFFFFF', // Pure white to match auth screens
+  surface: '#FFFFFF',
   surfaceHover: palette.gray3,
   
-  // Text Colors
-  textPrimary: palette.gray8,
-  textSecondary: palette.gray7,
-  textTertiary: palette.gray6,
-  textOnPrimary: palette.gray1,
-  textMicrocopy: palette.gray5,
+  // Text Colors - Updated to match auth screens
+  textPrimary: '#1F2937', // Dark gray from auth screens
+  textSecondary: '#6B7280', // Medium gray from auth screens
+  textTertiary: '#9CA3AF', // Light gray from auth screens
+  textOnPrimary: '#FFFFFF', // White text on primary color
+  textMicrocopy: '#9CA3AF',
+  text: '#1F2937', // Alias for textPrimary
+  
   // Status Colors
-  error: palette.red,
+  error: '#FF6B6B', // Red color from auth screens
   success: palette.green,
   warning: palette.yellow,
   info: palette.blue,
   
-  // Border Colors
-  border: palette.gray4,
-  borderFocus: palette.blue,
+  // Border Colors - Updated to match auth theme
+  border: '#8B7355', // Use primary color for borders
+  borderFocus: '#8B7355',
   
   // Utility Colors
   divider: palette.gray3,

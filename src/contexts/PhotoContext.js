@@ -23,7 +23,7 @@ DEV PRINCIPLES
 
 
 
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // COMMENTED OUT - Using new API instead of Firebase
 // import { onPhotosUpdate } from '../services/FirebasePhotosService';
@@ -147,14 +147,18 @@ export function PhotoProvider({ children }) {
   }, [auth.currentUser, unsubscribePhotosListener]); // Depend on user and listener state
   */
 
-  // NEW - Fetch photos from API when user is logged in
+  // NEW - Fetch photos from API when user is logged in (run once)
+  const hasFetchedFromApiRef = useRef(false);
+
   useEffect(() => {
     const user = auth.currentUser;
-    // Only fetch if user exists and photos haven't been loaded yet
-    if (user && photos.length === 0 && !isLoading) {
+    if (!user) return;
+
+    if (!hasFetchedFromApiRef.current) {
+      hasFetchedFromApiRef.current = true;
       fetchPhotosFromAPI(user.uid);
     }
-  }, [auth.currentUser, photos.length, isLoading, fetchPhotosFromAPI]);
+  }, [fetchPhotosFromAPI]);
 
   const loadCachedPhotos = useCallback(async () => {
     // Avoid loading cache if already loading or photos exist

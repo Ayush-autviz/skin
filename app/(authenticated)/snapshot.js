@@ -413,6 +413,7 @@ export default function SnapshotScreen() {
     const poll = async () => {
       try {
         const results = await getHautAnalysisResults(imgId);
+        console.log('🔵 Analysis results:', results);
         
         if (results && results.length > 0) {
           console.log('✅ Analysis results received');
@@ -738,7 +739,19 @@ export default function SnapshotScreen() {
   // POC: Prioritize Haut.ai direct URL for better mask alignment
   const hautAiSquareImageUrl = photoData?.urls?.['500x500']; // Try the square image
   const hautAiPortraitImageUrl = photoData?.urls?.['800x1200'];
-  const imageUri = hautAiSquareImageUrl || hautAiPortraitImageUrl || photoData?.storageUrl || localUri; 
+  const rawImageUri = hautAiSquareImageUrl || hautAiPortraitImageUrl || photoData?.storageUrl || localUri;
+
+  // Ensure S3 presigned URLs work with React-Native <Image>. The core Image
+  // component treats "+" as a space, breaking the AWS signature. Encode the
+  // critical characters if they are present.
+  const sanitizeS3Uri = (uriString) => {
+    if (!uriString) return uriString;
+    // Only touch the query part – a cheap approach is just replacing "+" with
+    // its percent-encoded form and ensuring no literal spaces remain.
+    return uriString.replace(/\+/g, '%2B').replace(/ /g, '%20');
+  };
+
+  const imageUri = sanitizeS3Uri(rawImageUri);
   const maskContentLines = photoData?.masks?.lines;
   const peekSheetHeightAbs = SCREEN_HEIGHT * (BOTTOM_SHEET_COLLAPSED_PERCENTAGE / 100);
   const minimizedSheetHeightAbs = SCREEN_HEIGHT * (SNAP_POINTS.MINIMIZED / 100); // Calculate minimized sheet height

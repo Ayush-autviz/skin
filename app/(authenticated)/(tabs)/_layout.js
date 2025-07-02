@@ -1,39 +1,17 @@
-// BottomNav.js
-// Bottom navigation bar with rounded pill design
+// (authenticated)/(tabs)/_layout.js
+// Tab layout with custom bottom navigation design
 
-/* ------------------------------------------------------
-WHAT IT DOES
-- Displays rounded pill-shaped navigation with 3 sections
-- Shows Progress, Add button, and Routine
-- Highlights active tab with dark background
-- Center button handles camera/add actions
-
-DATA USED
-- onCameraPress: Function to handle camera button press
-- currentRoute: To determine active tab
-
-DEV PRINCIPLES
-- Uses vanilla JavaScript
-- Follows app-wide styling guidelines
-- Modern rounded pill design
-------------------------------------------------------*/
-
+import { Tabs, router } from 'expo-router';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { colors, spacing } from '../../styles';
-import { router, usePathname } from 'expo-router';
+import { colors, spacing } from '../../../src/styles';
 
-export default function BottomNav({ onCameraPress }) {
-  const pathname = usePathname();
-  
-  // Determine active tab based on current route
+function CustomTabBar({ state, descriptors, navigation }) {
   const getActiveTab = () => {
-    if (pathname === '/(authenticated)/progress') {
-      return 'progress';
-    } else if (pathname === '/(authenticated)/routine') {
-      return 'routine';
-    }
-    return null; // No active tab for center button or other routes
+    const currentRoute = state.routes[state.index].name;
+    if (currentRoute === 'progress') return 'progress';
+    if (currentRoute === 'routine') return 'routine';
+    return null;
   };
 
   const activeTab = getActiveTab();
@@ -41,11 +19,23 @@ export default function BottomNav({ onCameraPress }) {
   const handleTabPress = (tab) => {
     switch (tab) {
       case 'progress':
-        router.push('/(authenticated)/progress');
+        navigation.navigate('progress');
         break;
       case 'routine':
-        router.push('/(authenticated)/routine');
+        navigation.navigate('routine');
         break;
+    }
+  };
+
+  const handleCameraPress = () => {
+    const currentRoute = state.routes[state.index].name;
+    
+    if (currentRoute === 'index') {
+      // If on home screen, go to camera
+      router.push('/camera');
+    } else {
+      // If on any other screen, go to home screen
+      navigation.navigate('index');
     }
   };
 
@@ -72,7 +62,7 @@ export default function BottomNav({ onCameraPress }) {
             ]}>
               Progress
             </Text>
-            {activeTab === 'progress' && <View style={styles.tabUnderline} />}
+
           </View>
         </TouchableOpacity>
 
@@ -99,7 +89,7 @@ export default function BottomNav({ onCameraPress }) {
             ]}>
               Routine
             </Text>
-            {activeTab === 'routine' && <View style={styles.tabUnderline} />}
+
           </View>
         </TouchableOpacity>
       </View>
@@ -107,11 +97,42 @@ export default function BottomNav({ onCameraPress }) {
       {/* Add Button (Absolute positioned) */}
       <TouchableOpacity 
         style={styles.addButton}
-        onPress={onCameraPress}
+        onPress={handleCameraPress}
       >
         <Text style={styles.addButtonText}>+</Text>
       </TouchableOpacity>
     </View>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Tabs.Screen 
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarButton: () => null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen 
+        name="progress"
+        options={{
+          title: 'Progress',
+        }}
+      />
+      <Tabs.Screen 
+        name="routine"
+        options={{
+          title: 'Routine',
+        }}
+      />
+    </Tabs>
   );
 }
 
@@ -126,11 +147,10 @@ const styles = StyleSheet.create({
   },
   pillContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F5F1EB', // Cream/beige background
+    backgroundColor: '#F5F1EB',
     borderRadius: 30,
     padding: 4,
     alignItems: 'center',
-    // iOS shadow
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -138,7 +158,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.15,
     shadowRadius: 8,
-    // Android shadow
     elevation: 6,
   },
   tabButton: {
@@ -150,7 +169,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activeTabButton: {
-    backgroundColor: colors.primary, // #8B7355
+    backgroundColor: colors.primary,
   },
   centerSpace: {
     width: 60,
@@ -159,14 +178,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -28,
     left: '50%',
-   // marginLeft: -0, // Half of button width (56/2)
+   // marginLeft: -28, // Half of button width (56/2)
     width: 56,
     height: 56,
     borderRadius: 28,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    // iOS shadow
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -174,7 +192,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.3,
     shadowRadius: 6,
-    // Android shadow
     elevation: 8,
   },
   addButtonText: {
@@ -182,16 +199,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.textOnPrimary,
     marginTop: -2,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: colors.textOnPrimary, // White text on active tab
-  },
-  inactiveTabText: {
-    color: colors.textTertiary, // Gray text on inactive tabs
   },
   tabContent: {
     flexDirection: 'row',
@@ -208,5 +215,15 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: colors.textOnPrimary,
     borderRadius: 1,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: colors.textOnPrimary,
+  },
+  inactiveTabText: {
+    color: colors.textTertiary,
   },
 }); 

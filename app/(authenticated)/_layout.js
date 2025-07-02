@@ -51,19 +51,18 @@ export default function AuthenticatedLayout() {
         gestureDirection: 'horizontal',
       }}
     >
-      {/* Primary Navigation Stack - Card based screens */}
+      {/* Tab Navigation - Main navigation with bottom tabs */}
       <Stack.Screen 
-        name="index"
+        name="(tabs)"
         options={{
-          animation: 'fade', // Home screen fades
+          animation: 'fade',
+          headerShown: false,
         }}
       />
+      
+      {/* Modal/Detail Screens - Slide from right */}
       <Stack.Screen name="camera" />
       <Stack.Screen name="snapshot" />
-      <Stack.Screen name="progress" />
-      <Stack.Screen name="routine" />
-      
-      {/* Detail Screens - Slide from right */}
       <Stack.Screen 
         name="metricDetail"
         options={{
@@ -78,6 +77,10 @@ export default function AuthenticatedLayout() {
           presentation: 'card',
         }}
       />
+      <Stack.Screen name="camera-v1" />
+      <Stack.Screen name="capture" />
+      <Stack.Screen name="liqa" />
+      <Stack.Screen name="profile" />
     </Stack>
   );
 } 

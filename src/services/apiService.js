@@ -179,7 +179,7 @@ export const getHautAnalysisResults = async (imageId) => {
     const response = await apiClient.get(`/haut_process/?image_id=${imageId}`);
 
     if (response.data.status === 200) {
-      const results = response.data.data.result;
+      const results = response?.data?.data?.result;
       console.log('✅ Analysis results retrieved successfully');
       return results;
     } else {
@@ -303,194 +303,88 @@ export const getHautMaskImages = async (imageId) => {
  * @returns {Object} Transformed metrics object
  */
 export const transformHautResults = (hautResults) => {
+  console.log('🔵 Transforming extractd', hautResults);
   try {
-    console.log('🔵 Transforming Haut.ai results');
+    // -----------------------------------------------------------------------------
+    //  SIMPLE ONE-PASS MAPPER (Flat OR Legacy)
+    // -----------------------------------------------------------------------------
+    //  – If "results" is present we unwrap to get a flat list of area_results.
+    //  – Then we iterate once and fill a metrics object using a dictionary that
+    //    maps tech_name → camelCase key expected by the UI.
+    //  – Every step is logged for easier debugging.
     
-    if (!hautResults || !hautResults.length || !hautResults[0]?.results) {
-      throw new Error('Invalid Haut.ai results structure');
+    if (!hautResults || !hautResults.length) {
+      throw new Error('Empty Haut.ai results');
     }
+
+    // Build a flat list of result objects
+    let flatList = [];
+
+    flatList = hautResults[0]?.results;
     
-    // Initialize metrics object with default values
-    const metrics = {
-      imageQuality: { overall: 0, focus: 0, lighting: 0 }
+
+    console.log(`ℹ️ Processing ${flatList.length} metric items`);
+
+    const KEY_MAP = {
+      redness_score: 'rednessScore',
+      uniformness_score: 'uniformnessScore',
+      pores_score: 'poresScore',
+      perceived_age: 'perceivedAge',
+      eye_age: 'eyeAge',
+      skintone_class: 'skinTone',
+      face_skin_type_class: 'skinType',
+      hydration_score: 'hydrationScore',
+      pigmentation_score: 'pigmentationScore',
+      translucency_score: 'translucencyScore',
+      lines_score: 'linesScore',
+      acne_score: 'acneScore',
+      image_quality_score: 'imageQualityOverall',
     };
-    
-    // Get all algorithm results from the first result item
-    const allResults = hautResults[0].results || [];
-    
-    // Process each algorithm result
-    allResults.forEach(algorithmResult => {
-      const algorithmName = algorithmResult.result?.algorithm_tech_name;
-      const areaResults = algorithmResult.result?.area_results || [];
-      
-      console.log(`🔵 Processing algorithm: ${algorithmName}`);
-      
-      switch (algorithmName) {
-        case 'redness':
-          // Extract face-level redness score (primary metric)
-          const faceRedness = areaResults.find(area => area.area_name === 'face');
-          if (faceRedness?.main_metric?.value) {
-            metrics.rednessScore = faceRedness.main_metric.value;
+
+    const metrics = { imageQuality: { overall: 0, focus: 0, lighting: 0 } };
+
+    flatList.forEach((item, idx) => {
+      if (!item) return;
+      const tech = (item.tech_name || '').toLowerCase();
+      const area = (item.area_name || '').toLowerCase();
+      const value = item.value;
+
+      console.log(`  • [${idx}] ${tech} (${area}) = ${value}`);
+
+      if (tech === 'image_quality_score') {
+        metrics.imageQuality.overall = value;
+        (item.sub_metrics || []).forEach((sub) => {
+          const subTech = sub.tech_name?.toLowerCase();
+          if (subTech === 'focus_score' || subTech === 'raw_sharpness') {
+            metrics.imageQuality.focus = sub.value;
           }
-          break;
-          
-        case 'uniformness':
-          const faceUniformness = areaResults.find(area => area.area_name === 'face');
-          if (faceUniformness?.main_metric?.value) {
-            metrics.uniformnessScore = faceUniformness.main_metric.value;
+          if (subTech === 'lightness_score' || subTech === 'intensity') {
+            metrics.imageQuality.lighting = sub.value;
           }
-          break;
-          
-        case 'pores':
-          const facePores = areaResults.find(area => area.area_name === 'face');
-          if (facePores?.main_metric?.value) {
-            metrics.poresScore = facePores.main_metric.value;
-          }
-          break;
-          
-        case 'age':
-          // Extract perceived age
-          const faceAge = areaResults.find(area => area.area_name === 'face');
-          if (faceAge?.main_metric?.tech_name === 'perceived_age') {
-            metrics.perceivedAge = faceAge.main_metric.value;
-          }
-          break;
-          
-        case 'eyes_age':
-          // Extract eye age if available
-          const eyeAge = areaResults.find(area => area.area_name === 'eyes' || area.area_name === 'face');
-          if (eyeAge?.main_metric?.value) {
-            metrics.eyeAge = eyeAge.main_metric.value;
-          }
-          break;
-          
-        case 'quality':
-          // Extract quality metrics
-          const qualityArea = areaResults.find(area => area.area_name === 'face' || area.area_name === 'image');
-          if (qualityArea?.main_metric?.value) {
-            metrics.imageQuality.overall = qualityArea.main_metric.value;
-          }
-          // Extract sub-metrics for quality
-          if (qualityArea?.sub_metrics) {
-            qualityArea.sub_metrics.forEach(subMetric => {
-              switch (subMetric.tech_name) {
-                case 'focus':
-                case 'sharpness':
-                  metrics.imageQuality.focus = subMetric.value;
-                  break;
-                case 'lighting':
-                case 'brightness':
-                  metrics.imageQuality.lighting = subMetric.value;
-                  break;
-              }
-            });
-          }
-          break;
-          
-        case 'skintone_classification':
-          // Extract skin tone classification
-          const skinToneArea = areaResults.find(area => area.area_name === 'face');
-          if (skinToneArea?.main_metric?.value) {
-            metrics.skinTone = skinToneArea.main_metric.value;
-          }
-          break;
-          
-        case 'skin_type':
-          // Extract skin type classification
-          const skinTypeArea = areaResults.find(area => area.area_name === 'face');
-          if (skinTypeArea?.main_metric?.value) {
-            metrics.skinType = skinTypeArea.main_metric.value;
-          }
-          break;
-          
-        case 'hydration':
-          // Extract hydration score
-          const faceHydration = areaResults.find(area => area.area_name === 'face');
-          if (faceHydration?.main_metric?.value) {
-            metrics.hydrationScore = faceHydration.main_metric.value;
-          }
-          break;
-          
-        case 'pigmentation':
-          // Extract pigmentation score
-          const facePigmentation = areaResults.find(area => area.area_name === 'face');
-          if (facePigmentation?.main_metric?.value) {
-            metrics.pigmentationScore = facePigmentation.main_metric.value;
-          }
-          break;
-          
-        case 'translucency':
-          // Extract translucency score
-          const faceTranslucency = areaResults.find(area => area.area_name === 'face');
-          if (faceTranslucency?.main_metric?.value) {
-            metrics.translucencyScore = faceTranslucency.main_metric.value;
-          }
-          break;
-          
-        case 'lines':
-        case 'wrinkles':
-          // Extract lines/wrinkles score
-          const faceLines = areaResults.find(area => area.area_name === 'face');
-          if (faceLines?.main_metric?.value) {
-            metrics.linesScore = faceLines.main_metric.value;
-          }
-          break;
-          
-        case 'acne':
-          // Extract acne score
-          const faceAcne = areaResults.find(area => area.area_name === 'face');
-          if (faceAcne?.main_metric?.value) {
-            metrics.acneScore = faceAcne.main_metric.value;
-          }
-          break;
-          
-        case 'front_face_areas':
-          // This algorithm typically contains mask data rather than metric scores
-          // but we can log it for debugging
-          console.log('🔵 Front face areas algorithm processed (mask data)');
-          break;
-          
-        case 'facial_landmarks':
-          // This algorithm contains landmark coordinates, not needed for metrics display
-          console.log('🔵 Facial landmarks algorithm processed (coordinate data)');
-          break;
-          
-        // Add more algorithm mappings as needed
-        default:
-          console.log(`🟡 Unhandled algorithm: ${algorithmName}`);
-          break;
+        });
+        return;
+      }
+
+      const key = KEY_MAP[tech];
+      if (key) {
+        // Prefer face value but if not set yet take the first encountered
+        if (area === 'face' || metrics[key] === undefined) {
+          metrics[key] = value;
+        }
+      } else {
+        console.log(`    ↳ Unmapped tech_name: ${tech}`);
       }
     });
-    
-    // Ensure we have at least some meaningful data
-    const hasAnyScoreMetrics = Object.keys(metrics).some(key => 
-      key.endsWith('Score') && typeof metrics[key] === 'number'
-    );
-    
-    const hasAnyAgeMetrics = metrics.perceivedAge || metrics.eyeAge;
-    const hasQualityData = metrics.imageQuality?.overall > 0;
-    
-    // If we don't have any meaningful metrics, add some defaults to prevent empty state
-    if (!hasAnyScoreMetrics && !hasAnyAgeMetrics && !hasQualityData) {
-      console.log('⚠️ No meaningful metrics extracted, adding defaults');
-      metrics.imageQuality.overall = 75; // Default quality score
+
+    console.log('✅ Extracted metrics:', metrics);
+
+    // Ensure we have some data
+    if (!Object.keys(metrics).some((k) => k !== 'imageQuality')) {
+      console.warn('⚠️ No primary metrics extracted – returning empty object');
+      return {};
     }
-    
-    console.log('✅ Haut.ai results transformed successfully:', {
-      totalAlgorithms: allResults.length,
-      extractedMetrics: Object.keys(metrics).filter(key => 
-        key !== 'imageQuality' && (typeof metrics[key] === 'number' || typeof metrics[key] === 'string')
-      ).length,
-      hasScoreMetrics: hasAnyScoreMetrics,
-      hasAgeMetrics: hasAnyAgeMetrics,
-      hasQualityData: hasQualityData,
-      sampleMetrics: Object.fromEntries(
-        Object.entries(metrics).filter(([key, value]) => 
-          key !== 'imageQuality' && value !== undefined && value !== null
-        ).slice(0, 5)
-      )
-    });
-    
+
+    console.log('👍 transformHautResults complete');
     return metrics;
   } catch (error) {
     console.error('🔴 Error transforming Haut.ai results:', error);
