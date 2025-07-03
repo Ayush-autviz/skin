@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 110, // Space for new header
+    marginTop: 120, // Space for new header
     marginBottom: 100, // Space for bottom nav
   },
   text: {

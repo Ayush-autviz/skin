@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    marginTop: 110, // Space for new header
+    marginTop: 120, // Space for new header
     marginBottom: 100, // Space for bottom nav
   },
   tabScrollView: {
