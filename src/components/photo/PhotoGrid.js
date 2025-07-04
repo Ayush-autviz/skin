@@ -41,7 +41,8 @@ import {
   StyleSheet,
   Dimensions,
   RefreshControl,
-  TouchableOpacity
+  TouchableOpacity,
+  SectionList
 } from 'react-native';
 import { usePhotoContext } from '../../contexts/PhotoContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,6 +52,7 @@ import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import { Image as ExpoImage } from 'expo-image'; // Much better performance than RN Image
 import useAuthStore from '../../stores/authStore';
+import { format } from 'date-fns';
 
 const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
   const [refreshing, setRefreshing] = useState(false);
@@ -195,17 +197,25 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
     return { color: '#52C41A' };                   // Green for good
   };
 
-  const renderItem = ({ item,index }) => {
+  const renderItem = ({ item, index }) => {
+    if (item.type === 'header') {
+      return (
+        <View style={styles.dateHeader}>
+          <Text style={styles.dateHeaderText}>{item.label}</Text>
+        </View>
+      );
+    }
+
     const qualityInfo = getQualityInfo(item.metrics);
     const imageUrl = item.storageUrl;
 
     return (
-      <TouchableOpacity 
-        style={[styles.photoContainer, { marginLeft: index % 2 === 0 ? 0 : 0 }]} 
+      <TouchableOpacity
+        style={[styles.photoContainer, { marginLeft: index % 2 === 0 ? 0 : 0 }]}
         onPress={() => handlePhotoPress(item)}
       >
         <View style={styles.photoWrapper}>
-          <ExpoImage 
+          <ExpoImage
             source={imageUrl}
             style={styles.photo}
             contentFit="cover"
@@ -213,54 +223,82 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
             memoryCachePolicy="memory-only"
             priority="high"
           />
-          {/* Temporarily commented out quality dot */}
-          {/* {item.metrics && (
-            <View 
-              style={[
-                styles.qualityDot,
-                { backgroundColor: qualityInfo.color }
-              ]} 
-            />
-          )} */}
         </View>
       </TouchableOpacity>
     );
   };
 
+  // ---------- Build data with date headers ----------
+  const buildSections = (photosArr) => {
+    const today = new Date();
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(today.getDate() - 1);
 
+    const makeLabel = (ts) => {
+      const d = new Date(ts);
+      if (d.toDateString() === today.toDateString()) return 'Today';
+      if (d.toDateString() === yesterdayDate.toDateString()) return 'Yesterday';
+      return format(d, 'MMMM d, yyyy');
+    };
+
+    const groups = {};
+    photosArr.forEach((p) => {
+      const label = makeLabel(p.timestamp);
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(p);
+    });
+
+    const chunk = (arr, size) => {
+      const res = [];
+      for (let i = 0; i < arr.length; i += size) {
+        res.push(arr.slice(i, i + size));
+      }
+      return res;
+    };
+
+    return Object.keys(groups).map((label) => ({
+      title: label,
+      data: chunk(groups[label], 2), // rows of 2 photos
+    }));
+  };
+
+  const sections = buildSections(photos);
 
   return (
     <View style={styles.gridContainer}>
-      {/* Last updated removed */}
-      <FlatList
-        ref={flatListRef}
-        data={photos} // Use photos directly (Oldest -> Newest)
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        columnWrapperStyle={{ gap: gutter }}
-        numColumns={2}
-        style={styles.list}
+      <SectionList
+        sections={sections}
+        keyExtractor={(row, idx) => row[0]?.id ? `${row[0].id}-r${idx}` : `row-${idx}`}
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={styles.dateHeader}>
+            <Text style={styles.dateHeaderText}>{title}</Text>
+          </View>
+        )}
+        renderItem={({ item: row }) => (
+          <View style={{ flexDirection: 'row', columnGap: gutter, marginBottom: gutter }}>
+            {row.map((photo, i) => (
+              <TouchableOpacity
+                key={photo.id}
+                style={[styles.photoContainer, { marginLeft: i === 0 ? 0 : 0 }]}
+                onPress={() => handlePhotoPress(photo)}
+              >
+                <View style={styles.photoWrapper}>
+                  <ExpoImage
+                    source={photo.storageUrl}
+                    style={styles.photo}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    memoryCachePolicy="memory-only"
+                    priority="high"
+                  />
+                </View>
+              </TouchableOpacity>
+            ))}
+            {row.length === 1 && <View style={[styles.photoContainer, { opacity: 0 }]} />} {/* filler for uneven */}
+          </View>
+        )}
         contentContainerStyle={styles.grid}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            // onRefresh={handleRefresh} // TEMPORARILY DISABLED - DO NOT DELETE
-            progressViewOffset={80}
-          />
-        }
-        removeClippedSubviews={true}
-        initialNumToRender={12}
-        maxToRenderPerBatch={9}
-        windowSize={21}
-        getItemLayout={(data, index) => ({
-          length: photoSize,
-          offset: photoSize * Math.floor(index / 2),
-          index,
-        })}
-        onEndReachedThreshold={0.5}
-        onEndReached={() => {
-          // Implement pagination here if needed
-        }}
+        showsVerticalScrollIndicator={false}
       />
     </View>
   );
@@ -360,6 +398,16 @@ const styles = StyleSheet.create({
   lastUpdatedText: {
     fontSize: 12,
     color: '#888888',
+  },
+  dateHeader: {
+    width: '100%',
+    paddingVertical: 8,
+    paddingHorizontal: gutter * 1.5,
+  },
+  dateHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8B7355',
   },
 });
 

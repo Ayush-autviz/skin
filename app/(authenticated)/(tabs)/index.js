@@ -19,7 +19,8 @@ DEV PRINCIPLES
 ------------------------------------------------------*/
 
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import SettingsDrawer from '../../../src/components/layout/SettingsDrawer';
@@ -42,6 +43,8 @@ export default function Home() {
   const handleMenuPress = () => {
     setIsSettingsVisible(true);
   };
+
+  console.log('🔵 photos:', photos.length);
 
   const handleLogout = async () => {
     try {
@@ -67,9 +70,12 @@ export default function Home() {
             <Text style={styles.loadingText}>Loading your photos...</Text>
           </View>
         ) : photos.length === 0 ? (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>No photos yet</Text>
-            <Text style={styles.subText}>Tap + to take your first photo</Text>
+          <View style={styles.emptyStateContainer}>
+            <View style={styles.emptyIconWrapper}>
+              <Feather name="camera" size={48} color={colors.primary} />
+            </View>
+            <Text style={styles.emptyTitle}>No snapshots yet</Text>
+            <Text style={styles.emptySubtitle}>Tap the + button below to capture your first photo</Text>
           </View>
         ) : (
           <PhotoGrid 
@@ -123,5 +129,28 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     ...typography.bodySmall,
     marginTop: spacing.sm,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyIconWrapper: {
+    backgroundColor: '#E8E2DA',
+    padding: spacing.lg,
+    borderRadius: 50,
+    marginBottom: spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
   },
 }); 
