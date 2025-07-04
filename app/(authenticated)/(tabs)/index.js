@@ -21,20 +21,18 @@ DEV PRINCIPLES
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { signOut, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../../../src/config/firebase';
 
 import SettingsDrawer from '../../../src/components/layout/SettingsDrawer';
 import PhotoGrid from '../../../src/components/photo/PhotoGrid';
 import TabHeader from '../../../src/components/ui/TabHeader';
 import { colors, spacing, typography, forms } from '../../../src/styles';
-import { useUser } from '../../../src/contexts/UserContext';
+import useAuthStore from '../../../src/stores/authStore';
 import { usePhotoContext } from '../../../src/contexts/PhotoContext';
 import { Camera } from 'expo-camera';
 
 export default function Home() {
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
-  const { user } = useUser();
+  const { user } = useAuthStore();
   const { photos, isLoading, refreshPhotos, lastUpdated } = usePhotoContext();
 
   useEffect(() => {
@@ -47,8 +45,9 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      // _layout.js will handle redirect
+      const { logout } = useAuthStore.getState();
+      logout();
+      router.replace('/auth/sign-in');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -92,36 +91,36 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFF', // Match creamy background of tab bar
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    marginTop: 100, // Space for header
+    marginTop: 100,
   },
   content: {
     flex: 1,
-    marginTop: 120, // Space for new header
-    marginBottom: 100, // Space for bottom nav
+    marginTop: 120,
+    marginBottom: 140, // Extra space for floating add button
+    paddingHorizontal: spacing.lg,
   },
   photoGridContainer: {
-    justifyContent: 'flex-end', // This will push content to bottom
+    justifyContent: 'flex-end',
   },
 
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   loadingText: {
-    color: colors.textLight,
+    color: colors.textSecondary,
     ...typography.bodySmall,
     marginTop: spacing.sm,
   },
   subText: {
-    color: colors.textLight,
+    color: colors.textSecondary,
     ...typography.bodySmall,
     marginTop: spacing.sm,
   },

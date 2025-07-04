@@ -1,11 +1,10 @@
 // onboarding/name.js
-// First onboarding screen - collect name and birth date
+// First onboarding screen - create user profile with image and birth date
 
 import { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
@@ -14,21 +13,24 @@ import {
   StatusBar,
   Image,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useUser } from '../../src/contexts/UserContext';
 import { colors, spacing, typography, forms, borderRadius } from '../../src/styles';
-import { doc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../../src/config/firebase';
+import { Camera, Calendar, User } from 'lucide-react-native';
+import { createProfile } from '../../src/services/newApiService';
+import useAuthStore from '../../src/stores/authStore';
 
 export default function NameScreen() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [profileImage, setProfileImage] = useState(null);
   const [birthDate, setBirthDate] = useState(null);
   const [error, setError] = useState('');
-  const { updateProfile, updateState } = useUser();
+  const [loading, setLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  
+  const { setProfile, user } = useAuthStore();
 
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
@@ -36,35 +38,65 @@ export default function NameScreen() {
     if (selectedDate) setBirthDate(selectedDate);
   };
 
-  const handleNext = async () => {
-    console.log('1. Starting save...');
+  const handleImagePicker = async () => {
+    try {
+      // Request permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant photo library access to select a profile image.');
+        return;
+      }
 
-    if (!firstName.trim() || !lastName.trim() || !birthDate) {
-      console.log('2. Validation failed');
-      setError('Please fill in all fields');
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1], // Square aspect ratio for profile image
+        quality: 0.8,
+        exif: false,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        setProfileImage(result.assets[0]);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
+  const handleNext = async () => {
+    if (!birthDate) {
+      setError('Please select your birth date');
       return;
     }
 
     try {
-      console.log('3. Attempting profile update...');
-      await updateProfile({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        birthDate: birthDate,
-      });
+      setLoading(true);
+      setError('');
+
+      // Format birth date to YYYY-MM-DD
+      const formattedDate = birthDate.toISOString().split('T')[0];
+
+      // Create profile data
+      const profileData = {
+        birth_date: formattedDate
+      };
+
+      // Add profile image if selected
+      if (profileImage) {
+        profileData.profile_img = profileImage;
+      }
+
+      await createProfile(profileData);
       
-      console.log('4. Update successful');
-      
-      // Complete onboarding and go directly to home (skip welcome screen)
-      await updateState('active');
-      const userRef = doc(db, 'users', auth.currentUser.uid);
-      await updateDoc(userRef, {
-        onboardingCompleted: true
-      });
-      router.push('/');
+      // Navigate to main app
+      router.push('/(authenticated)/');
     } catch (err) {
-      console.log('5. Error:', err.message);
-      setError('Failed to save profile. Please try again.');
+      console.error('Profile creation error:', err);
+      setError(err.message || 'Failed to create profile. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,7 +130,7 @@ export default function NameScreen() {
             <View style={styles.formContainer}>         
               {/* Title */}
               <View style={styles.formHeader}>
-                <Text style={styles.title}>Tell Us About You</Text>
+                <Text style={styles.title}>Create Your Profile</Text>
                 <View style={styles.titleUnderline} />
               </View>
 
@@ -110,30 +142,27 @@ export default function NameScreen() {
                 </View>
               ) : null}
 
-              {/* First Name */}
+              {/* Profile Image */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>First Name</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your first name"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  placeholderTextColor="#9CA3AF"
-                  autoCapitalize="words"
-                />
-              </View>
-
-              {/* Last Name */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Last Name</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your last name"
-                  value={lastName}
-                  onChangeText={setLastName}
-                  placeholderTextColor="#9CA3AF"
-                  autoCapitalize="words"
-                />
+                <Text style={styles.label}>Profile Image (Optional)</Text>
+                <TouchableOpacity
+                  style={styles.imagePickerWrapper}
+                  onPress={handleImagePicker}
+                >
+                  {profileImage ? (
+                    <Image
+                      source={{ uri: profileImage.uri }}
+                      style={styles.profileImage}
+                    />
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <Camera size={40} color="#9CA3AF" />
+                      <Text style={styles.imagePlaceholderText}>
+                        Tap to select photo
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
               </View>
 
               {/* Birth Date */}
@@ -161,10 +190,13 @@ export default function NameScreen() {
 
               {/* Continue button */}
               <TouchableOpacity
-                style={styles.primaryButton}
+                style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
                 onPress={handleNext}
+                disabled={loading}
               >
-                <Text style={styles.primaryButtonText}>Continue</Text>
+                <Text style={styles.primaryButtonText}>
+                  {loading ? 'Creating Profile...' : 'Continue'}
+                </Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -228,7 +260,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  primaryButtonDisabled: {
+    opacity: 0.7,
+  },
   primaryButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '600' },
+  imagePickerWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignSelf: 'center',
+    marginVertical: 8,
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  imagePlaceholderText: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
+  },
   buttonContainer: {
     alignItems: 'center',
     marginTop: spacing.xl,

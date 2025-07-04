@@ -24,7 +24,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Image, SafeAreaView, StatusBar } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useUser } from '../../src/contexts/UserContext';
+import useAuthStore from '../../src/stores/authStore';
 import { useThreadContext } from '../../src/contexts/ThreadContext';
 import { generateThreadSummary } from '../../src/services/FirebaseThreadsService';
 import { addRoutineItem, clearPendingAddItem } from '../../src/services/FirebaseUserService';
@@ -100,7 +100,7 @@ const PendingAddItemCard = ({ itemData, onConfirm, onCancel, status }) => {
 const AiChatScreen = () => {
   const router = useRouter();
   const { initialMessage: initialMessageParam, threadId: threadIdParam } = useLocalSearchParams();
-  const { user, profile } = useUser();
+  const { user, profile } = useAuthStore();
   const {
     currentThread,
     threadStatus,
@@ -132,16 +132,23 @@ const AiChatScreen = () => {
   const flatListRef = useRef(null);
 
   const userInitials = useMemo(() => {
-    if (profile) {
-        const firstName = profile.firstName;
-        const lastName = profile.lastName;
+    if (profile?.user_name) {
+        // For the new API, we have user_name instead of firstName/lastName
+        const names = profile.user_name.split(' ');
         let initials = '';
-        if (firstName) initials += firstName.charAt(0);
-        if (lastName) initials += lastName.charAt(0);
+        if (names[0]) initials += names[0].charAt(0);
+        if (names[1]) initials += names[1].charAt(0);
+        return initials.toUpperCase() || '?';
+    } else if (user?.user_name) {
+        // Fallback to user.user_name if profile not loaded yet
+        const names = user.user_name.split(' ');
+        let initials = '';
+        if (names[0]) initials += names[0].charAt(0);
+        if (names[1]) initials += names[1].charAt(0);
         return initials.toUpperCase() || '?';
     }
     return '?';
-  }, [profile]);
+  }, [profile, user]);
 
   useEffect(() => {
     //console.log('💬 aiChat: Received params - initialMessageParam:', initialMessageParam, 'threadIdParam:', threadIdParam);
@@ -155,7 +162,7 @@ const AiChatScreen = () => {
         listenToThread(threadIdParam);
       } else if (initialMessageParam) {
         // console.log('💬 aiChat: No threadIdParam, but initialMessageParam exists. Creating new thread...');
-        if (!user?.uid) {
+        if (!user?.user_id) {
           console.error('💬 aiChat: User not available to create a new thread. Cannot proceed.');
           return;
         }
@@ -250,8 +257,8 @@ const AiChatScreen = () => {
 
   const handleBackPress = useCallback(async () => {
     // console.log('💬 aiChat: Back button pressed. Setting summary flag and triggering summary generation...');
-    if (!user?.uid || !activeThreadId) {
-        console.error(`❌ Cannot trigger summary: userId (${user?.uid}) or activeThreadId (${activeThreadId}) missing.`);
+    if (!user?.user_id || !activeThreadId) {
+        console.error(`❌ Cannot trigger summary: userId (${user?.user_id}) or activeThreadId (${activeThreadId}) missing.`);
         router.back();
         return;
     }
@@ -259,13 +266,13 @@ const AiChatScreen = () => {
     // Summary flag functionality removed - was calling non-existent function
 
     try {
-        await generateThreadSummary(user.uid, activeThreadId);
+        await generateThreadSummary(user.user_id, activeThreadId);
         // console.log(`✅ Summary request called for thread ${activeThreadId}.`);
     } catch (error) {
         console.error(`🔴 Failed to trigger summary generation for thread ${activeThreadId}:`, error);
     }
     router.back();
-  }, [user?.uid, activeThreadId, router]);
+  }, [user?.user_id, activeThreadId, router]);
 
   const handleSend = async () => {
     const messageToSend = inputMessage.trim();

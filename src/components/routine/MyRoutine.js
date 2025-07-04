@@ -16,7 +16,7 @@ import ModalBottomSheet from '../layout/ModalBottomSheet'; // Update import name
 import CustomDateInput from '../ui/CustomDateInput'; // [MyRoutine.js]: Custom MM/DD/YY date input
 import AiMessageCard from '../chat/AiMessageCard'; // Import the refactored AiMessageCard
 import { useRouter } from 'expo-router'; // Import useRouter for navigation
-import { useUser } from '../../contexts/UserContext'; // Import useUser for thread creation
+import useAuthStore from '../../stores/authStore'; // Import useAuthStore for thread creation
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ListItem from '../ui/ListItem'; // Make sure this import is added
 
@@ -88,7 +88,7 @@ const calculateUsageDuration = (dateStarted) => {
 
 export default function MyRoutine() {
   const router = useRouter(); // Get router instance
-  const { user } = useUser(); // Get user from context for thread creation
+  const { user } = useAuthStore(); // Get user from store for thread creation
   const [routineItems, setRoutineItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

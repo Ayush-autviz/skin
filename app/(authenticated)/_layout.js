@@ -15,25 +15,21 @@ DEV PRINCIPLES
 
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../../src/config/firebase';
+import useAuthStore from '../../src/stores/authStore';
 import { Dimensions } from 'react-native';
 const { height } = Dimensions.get('window');
 
 export default function AuthenticatedLayout() {
+  const { isAuthenticated, user } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        // Redirect to sign in if not authenticated
-        router.replace('/auth/sign-in');
-      }
-    });
-
-    return unsubscribe;
-  }, []);
+    if (!isAuthenticated || !user) {
+      // Redirect to sign in if not authenticated
+      router.replace('/auth/sign-in');
+    }
+  }, [isAuthenticated, user, router]);
 
   // Debug logging for route segments
   // console.log('🧭 Layout Segments:', {

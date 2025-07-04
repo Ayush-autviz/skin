@@ -29,11 +29,10 @@ import {
   Image,
   SafeAreaView
 } from 'react-native';
-import { Link } from 'expo-router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../src/config/firebase';
+import { Link, useRouter } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
-import { getAuthErrorMessage } from '../../src/utils/errorMessages';
+import { signIn } from '../../src/services/newApiService';
+import useAuthStore from '../../src/stores/authStore';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -42,6 +41,8 @@ export default function SignIn() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
+  const router = useRouter();
+  const { setUser, setTokens, setLoading: setStoreLoading } = useAuthStore();
   const passwordRef = useRef(null);
 
   const handleSignIn = async () => {
@@ -52,12 +53,29 @@ export default function SignIn() {
 
     try {
       setLoading(true);
+      setStoreLoading(true);
       setError('');
-      await signInWithEmailAndPassword(auth, email, password);
+      
+      const result = await signIn({
+        email: email.toLowerCase().trim(),
+        password: password
+      });
+
+      console.log(result,'result');
+
+      if (result.success) {
+        // Store user data and tokens
+        setUser(result.user);
+        setTokens(result.access_token, result.refresh_token);
+        
+        // Navigate to main app
+        router.push('/(authenticated)/');
+      }
     } catch (err) {
-      setError(getAuthErrorMessage(err));
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
+      setStoreLoading(false);
     }
   };
 

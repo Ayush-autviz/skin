@@ -479,6 +479,7 @@ export default function MetricDetailScreen() {
   
   // Extract parameters from navigation
   const { metricKey, metricValue, photoData } = params || {};
+  console.log('🔵 metricKey:', metricKey);
   
   // Parse the photoData if it's a string
   const parsedPhotoData = typeof photoData === 'string' ? JSON.parse(photoData) : photoData;
@@ -945,9 +946,11 @@ export default function MetricDetailScreen() {
         {/* Mask Image Section */}
         {(() => {
           const conditionName = getConditionNameForMetric(metricKey);
-          const maskImageData = parsedPhotoData?.maskImages?.[conditionName];
+          console.log('🔵 conditionName:', conditionName);
+          const maskImageData = parsedPhotoData?.maskImages?.filter(image => image.skin_condition_name === conditionName)[0];
+          console.log('🔵 maskImageData:', maskImageData);
           
-          if (conditionName && maskImageData?.maskImageUrl) {
+          if (conditionName && maskImageData?.mask_img_url) {
             return (
               <View style={{ marginHorizontal: 16 }}>
                 <Text style={styles.sectionTitle}>Analysis Visualization</Text>
@@ -957,7 +960,7 @@ export default function MetricDetailScreen() {
                   </Text>
                   <View style={styles.maskImageContainer}>
                     <Image 
-                      source={{ uri: maskImageData.maskImageUrl }}
+                      source={{ uri: maskImageData.mask_img_url }}
                       style={styles.maskImage}
                       resizeMode="contain"
                       onError={(error) => {

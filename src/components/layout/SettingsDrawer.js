@@ -16,8 +16,7 @@ DEV PRINCIPLES
 
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Modal, Image } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../config/firebase';
+
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,30 +24,28 @@ import { BlurView } from 'expo-blur';
 import { colors, spacing, typography, fontSize } from '../../styles';
 import { version } from '../../config/version';
 import Avatar from '../ui/Avatar';
-import { useUser } from '../../contexts/UserContext';
+import useAuthStore from '../../stores/authStore';
 
 export default function SettingsDrawer({ isVisible, onClose }) {
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const router = useRouter();
-  const { user, profile, userData, updateState } = useUser();
+  const { user, profile, logout } = useAuthStore();
   
-  const fullName = profile?.firstName && profile?.lastName 
-    ? `${profile.firstName} ${profile.lastName}`.trim()
-    : '';
+  const fullName = profile?.user_name || user?.user_name || '';
 
   const [userInfo, setUserInfo] = useState({
     name: fullName || 'User',
     email: user?.email || '',
-    photoURL: user?.photoURL || null
+    photoURL: profile?.profile_img || null
   });
 
   useEffect(() => {
     setUserInfo({
       name: fullName || 'User',
       email: user?.email || '',
-      photoURL: user?.photoURL || null
+      photoURL: profile?.profile_img || null
     });
-  }, [user, profile]);
+  }, [user, profile, fullName]);
 
   useEffect(() => {
     Animated.timing(slideAnim, {
@@ -60,8 +57,9 @@ export default function SettingsDrawer({ isVisible, onClose }) {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      logout();
       onClose();
+      router.replace('/auth/sign-in');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -74,9 +72,10 @@ export default function SettingsDrawer({ isVisible, onClose }) {
 
   const handleResetOnboarding = async () => {
     try {
-      await updateState('onboarding');
+      // For now, just navigate to onboarding - could implement profile deletion later
       onClose();
-      console.log('✅ User state reset to onboarding');
+      router.push('/onboarding/name');
+      console.log('✅ Navigating to onboarding');
     } catch (error) {
       console.error('❌ Error resetting onboarding:', error);
     }
@@ -133,7 +132,7 @@ export default function SettingsDrawer({ isVisible, onClose }) {
               <View style={styles.profileCard}>
                 <Avatar 
                   name={fullName}
-                  imageUrl={profile?.photoURL}
+                  imageUrl={profile?.profile_img}
                   size="xl"
                 />
                 <View style={styles.profileInfo}>
@@ -173,16 +172,6 @@ export default function SettingsDrawer({ isVisible, onClose }) {
                   onClose();
                 }}
               />
-
-              {userData?.testUser && (
-                <MenuItem
-                  icon="refresh-outline"
-                  title="Reset Onboarding"
-                  onPress={handleResetOnboarding}
-                  iconColor={colors.primary}
-                  textColor={colors.primary}
-                />
-              )}
             </View>
 
             {/* Sign Out Section */}

@@ -30,7 +30,7 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import Chip from '../ui/Chip';
 import { colors, spacing } from '../../styles';
-import { useUser } from '../../contexts/UserContext';
+import useAuthStore from '../../stores/authStore';
 
 // Import the concerns data
 import concernsData from '../../../data/concerns.json';
@@ -51,7 +51,7 @@ const PROFILE_TO_CONCERN_MAPPING = {
 };
 
 export default function MyConcerns({ selectedConcerns = new Set(), onSelectionChange }) {
-  const { user, profile } = useUser();
+  const { user, profile } = useAuthStore();
   
   // Get all concerns from the JSON data
   const allConcerns = Object.values(concernsData.skinConcerns);

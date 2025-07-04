@@ -4,11 +4,10 @@ import { Camera, CameraType, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { CameraView } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import { useUser } from '../../src/hooks/useUser';
+import useAuthStore from '../../src/stores/authStore';
 import Svg, { Path, Defs, Mask, Rect } from 'react-native-svg';
-import { processHautImage, createUserSubject } from '../../src/services/apiService';
 import { colors, spacing, typography } from '../../src/styles';
-import { auth } from '../../src/config/firebase';
+
 
 /* ------------------------------------------------------
 WHAT IT DOES
@@ -153,7 +152,7 @@ const FaceOverlay = () => {
 
 export default function CameraScreen() {
   // Only the hooks we actually use
-  const { user } = useUser();
+  const { user } = useAuthStore();
   const [hasPermission, setHasPermission] = useState(null);
   const [camera, setCamera] = useState(null);
   const [isCameraActive, setIsCameraActive] = useState(true);
@@ -169,18 +168,17 @@ export default function CameraScreen() {
 
   // Monitor authentication state
   useEffect(() => {
-    const currentUser = auth.currentUser;
     console.log('🔵 AUTH: Current user state:', {
-      isAuthenticated: !!currentUser,
-      uid: currentUser?.uid,
-      email: currentUser?.email
+      isAuthenticated: !!user,
+      uid: user?.user_id,
+      email: user?.email
     });
     
     // Test API connection if user is authenticated
-    if (currentUser?.uid) {
-      testUserRegistration(currentUser.uid, currentUser.email);
+    if (user?.user_id) {
+      testUserRegistration(user.user_id, user.email);
     }
-  }, []);
+  }, [user]);
 
   // Test if user is properly registered in external API
   const testUserRegistration = async (userId, userEmail) => {
@@ -256,8 +254,7 @@ export default function CameraScreen() {
   }
 
   // Check if user is authenticated
-  const currentUser = auth.currentUser;
-  if (!currentUser?.uid) {
+  if (!user?.user_id) {
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={styles.message}>Authentication Required</Text>
@@ -298,16 +295,15 @@ export default function CameraScreen() {
   // Shared function for processing photos with Haut.ai API
   const processPhoto = async (photo) => {
     try {
-      // Get user ID directly from Firebase Auth
-      const currentUser = auth.currentUser;
-      if (!currentUser?.uid) {
+      // Get user ID from Zustand store
+      if (!user?.user_id) {
         console.error('🔴 PROCESS: No user ID available');
-        console.log('🔴 PROCESS: Current user:', currentUser);
+        console.log('🔴 PROCESS: Current user:', user);
         Alert.alert('Error', 'User not authenticated. Please sign in again.');
         return;
       }
 
-      const userId = currentUser.uid;
+      const userId = user.user_id;
       console.log('🔵 PROCESS: User ID found:', userId);
       
       const photoId = `${Date.now()}`;

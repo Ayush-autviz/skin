@@ -31,14 +31,12 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
-import { auth } from '../../src/config/firebase';
-import { createProfile } from '../../src/services/FirebaseUserService';
-import { createUserSubject } from '../../src/services/apiService';
-import { getAuthErrorMessage } from '../../src/utils/errorMessages';
+import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react-native';
+import { signUp } from '../../src/services/newApiService';
+import useAuthStore from '../../src/stores/authStore';
 
 export default function SignUp() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -48,11 +46,13 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
+  const { setUser, setTokens, setLoading: setStoreLoading } = useAuthStore();
+  const emailRef = useRef(null);
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
 
   const handleSignUp = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!name.trim() || !email || !password || !confirmPassword) {
       setError('Please fill in all fields');
       return;
     }
@@ -63,29 +63,29 @@ export default function SignUp() {
 
     try {
       setLoading(true);
+      setStoreLoading(true);
       setError('');
 
-      // Step 1: Create Firebase user
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const userId = userCredential.user.uid;
+      // Sign up with new API
+      const result = await signUp({
+        name: name.trim(),
+        email: email.toLowerCase().trim(),
+        password: password
+      });
 
-      // Step 2: Create Firebase profile
-      await createProfile(userId, email);
-
-      // Step 3: Create user subject in external API
-      await createUserSubject(userId, email);
-    } catch (err) {
-      if (err.code && err.code.startsWith('auth/')) {
-        setError(getAuthErrorMessage(err));
-      } else {
-        setError(err.message || 'Registration failed. Please try again.');
+      if (result.success) {
+        // Store user data and tokens
+        setUser(result.user);
+        setTokens(result.access_token, result.refresh_token);
+        
+        // Navigate to profile creation (onboarding)
+        router.push('/onboarding/name');
       }
+    } catch (err) {
+      setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
+      setStoreLoading(false);
     }
   };
 
@@ -139,12 +139,35 @@ export default function SignUp() {
                 </View>
               ) : null}
 
+              {/* Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Name</Text>
+                <View style={styles.inputWrapper}>
+                  <User size={20} color="#9CA3AF" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your name"
+                    value={name}
+                    onChangeText={setName}
+                    autoCapitalize="words"
+                    placeholderTextColor="#9CA3AF"
+                    returnKeyType="next"
+                    onSubmitEditing={() => emailRef.current?.focus()}
+                    accessibilityLabel="Name input"
+                    accessibilityHint="Enter your full name"
+                    autoComplete="name"
+                    textContentType="name"
+                  />
+                </View>
+              </View>
+
               {/* Email */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email</Text>
                 <View style={styles.inputWrapper}>
                   <Mail size={20} color="#9CA3AF" style={styles.inputIcon} />
                   <TextInput
+                    ref={emailRef}
                     style={styles.input}
                     placeholder="demo@email.com"
                     value={email}

@@ -64,6 +64,7 @@ const MetricsSheet = forwardRef(({
   // --- Guard Check (Only for threadId, metrics come from props) ---
   // We might not need a hard guard if insights just don't render without snapshot
   // Let's keep it simple for now.
+  console.log('🔵 MetricsSheet - photoData:', photoData);
 
   // Derive threadId safely
   const threadId = selectedSnapshot?.threadId;
@@ -296,6 +297,8 @@ const MetricsSheet = forwardRef(({
                                     params: {
                                       metricKey: key,
                                       metricValue: value,
+                                      maskResults: photoData?.maskResults,
+                                      maskImages: photoData?.maskImages,
                                       photoData: JSON.stringify(photoData || metrics)
                                     }
                                   });
@@ -343,6 +346,8 @@ const MetricsSheet = forwardRef(({
                                    router.push({
                                      pathname: '/(authenticated)/metricDetail',
                                      params: {
+                                       maskResults: photoData?.maskResults,
+                                       maskImages: photoData?.maskImages,
                                        metricKey: key,
                                        metricValue: value,
                                        photoData: JSON.stringify(photoData || metrics)
@@ -447,10 +452,10 @@ const MetricsSheet = forwardRef(({
         </View>
 
         {/* Sticky AI Insights Header - Simplified */}
-        {(uiState === 'analyzing' || uiState === 'complete') && (
+        {/* {(uiState === 'analyzing' || uiState === 'complete') && (
           // Just render the card directly. It handles its own styling.
           <AiMessageCard />
-        )}
+        )} */}
 
         {/* Scrollable Metrics Content Area */}
         <View style={styles.metricsContentArea}>

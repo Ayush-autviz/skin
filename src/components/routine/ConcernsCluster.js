@@ -22,7 +22,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Chip from '../ui/Chip';
 import { colors, spacing } from '../../styles';
-import { useUser } from '../../contexts/UserContext';
+import useAuthStore from '../../stores/authStore';
 import { 
   profileConcernsToLookupKeys, 
   lookupKeyToProfileKey,
@@ -33,7 +33,7 @@ import {
 import concernsData from '../../../data/concerns.json';
 
 export default function ConcernsCluster() {
-  const { user, profile, updateProfile } = useUser();
+  const { user, profile } = useAuthStore();
   const [selectedConcerns, setSelectedConcerns] = useState(new Set());
   
   // Get all concerns from the JSON data

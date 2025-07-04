@@ -53,7 +53,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect, useRef, useCallback, forwardRef } from 'react';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import Header from '../../src/components/ui/Header';
-import { auth } from '../../src/config/firebase';
 import { formatDate } from '../../src/utils/dateUtils';
 import { deletePhoto } from '../../src/services/FirebasePhotosService';
 import { getDatabase, ref, push } from 'firebase/database';
@@ -76,9 +75,10 @@ import { useThreadContext } from '../../src/contexts/ThreadContext'; // Import T
 import { Image as ExpoImage } from 'expo-image'; // <-- Import ExpoImage
 import { ImageBackground } from 'react-native'; // Added for blurred background
 import { BlurView } from 'expo-blur'; // Added for blur effect
-import { processHautImage, getHautAnalysisResults, getHautMaskResults, getHautMaskImages, transformHautResults } from '../../src/services/apiService';
+import { processHautImage, getHautAnalysisResults, getHautMaskResults, getHautMaskImages, transformHautResults } from '../../src/services/newApiService';
+import useAuthStore from '../../src/stores/authStore';
 
-// Configuration
+// Configurations
 const ANALYSIS_TIMEOUT_SECONDS = 40; // Timeout window for analysis to complete
 const SHOW_DEBUG_BUTTONS = false;
 const QUALITY_THRESHOLD_MIN = 10;  // Minimum acceptable image quality score
@@ -319,7 +319,11 @@ const SnapshotLoading = ({ microcopy, onClose, backgroundImageUri }) => {
 export default function SnapshotScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { photoId, localUri, userId, timestamp, fromPhotoGrid, imageId: passedImageId } = params;
+  const { photoId, localUri, userId: paramUserId, timestamp, fromPhotoGrid, imageId: passedImageId } = params;
+  
+  // Auth store (fallback user ID)
+  const { user } = useAuthStore();
+  const userId = user?.user_id;
   
   // Contexts
   const { createThread } = useThreadContext();
@@ -387,7 +391,7 @@ export default function SnapshotScreen() {
       setLoadingMicrocopy('Processing image...');
       
       console.log('🔵 Starting Haut.ai image processing');
-      const { hautBatchId: batchId, imageId: imgId } = await processHautImage(userId, localUri, 'front_image');
+      const { hautBatchId: batchId, imageId: imgId } = await processHautImage(localUri, 'front_image');
       
       setHautBatchId(batchId);
       setImageId(imgId);
@@ -426,9 +430,12 @@ export default function SnapshotScreen() {
           let maskImages = null;
           try {
             console.log('🔵 Fetching mask results after analysis completion');
+            if (fromPhotoGrid !== 'true') {
+            console.log('inside photogrid');
             maskResults = await getHautMaskResults(imgId);
+            console.log('🔵 maskResults:', maskResults);
             console.log('✅ Mask results retrieved successfully');
-            
+            }
             // Get mask images with S3 URLs for each skin condition
             try {
               console.log('🔵 Fetching mask images with S3 URLs');
@@ -453,6 +460,8 @@ export default function SnapshotScreen() {
             maskImages: maskImages, // Add mask images with S3 URLs for each condition
             status: { state: 'complete' }
           };
+
+          console.log('🔵 photoDataObj to metrics sheet:', photoDataObj);
           
           setPhotoData(photoDataObj);
           setAnalysisResults(results);

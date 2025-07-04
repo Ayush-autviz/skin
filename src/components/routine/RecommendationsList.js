@@ -31,7 +31,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useRouter } from 'expo-router';
 import ListItem from '../ui/ListItem';
 import { colors, spacing, typography } from '../../styles';
-import { useUser } from '../../contexts/UserContext';
+import useAuthStore from '../../stores/authStore';
 import { useThreadContext } from '../../contexts/ThreadContext';
 
 // Import the concerns data
@@ -54,7 +54,7 @@ const PROFILE_TO_CONCERN_MAPPING = {
 
 export default function RecommendationsList() {
   const router = useRouter();
-  const { user, profile } = useUser();
+  const { user, profile } = useAuthStore();
   const { createThread } = useThreadContext();
   
   // State to track which concerns are expanded

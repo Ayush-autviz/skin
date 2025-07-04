@@ -50,7 +50,7 @@ import { getPhotoStatus } from '../../services/FirebasePhotosService';
 import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import { Image as ExpoImage } from 'expo-image'; // Much better performance than RN Image
-import { useUser } from '../../contexts/UserContext';
+import useAuthStore from '../../stores/authStore';
 
 const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
   const [refreshing, setRefreshing] = useState(false);
@@ -60,7 +60,7 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
   const previousPhotoCount = useRef(photos?.length || 0);
   const router = useRouter();
   const { setSelectedSnapshot } = usePhotoContext();
-  const user = useUser();
+  const { user } = useAuthStore();
 
   // Prepare data - Reverse context data (newest-first) to get oldest-first for standard list
   // const preparedData = [...photos].reverse(); // REMOVED - Use photos directly (already Oldest -> Newest)
@@ -195,13 +195,13 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
     return { color: '#52C41A' };                   // Green for good
   };
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item,index }) => {
     const qualityInfo = getQualityInfo(item.metrics);
     const imageUrl = item.storageUrl;
 
     return (
       <TouchableOpacity 
-        style={styles.photoContainer} 
+        style={[styles.photoContainer, { marginLeft: index % 2 === 0 ? 0 : 0 }]} 
         onPress={() => handlePhotoPress(item)}
       >
         <View style={styles.photoWrapper}>
@@ -231,18 +231,13 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
 
   return (
     <View style={styles.gridContainer}>
-      {lastUpdated && (
-        <View style={styles.lastUpdatedContainer}>
-          <Text style={styles.lastUpdatedText}>
-            Last updated: {formatLastUpdated(lastUpdated)}
-          </Text>
-        </View>
-      )}
+      {/* Last updated removed */}
       <FlatList
         ref={flatListRef}
         data={photos} // Use photos directly (Oldest -> Newest)
         renderItem={renderItem}
         keyExtractor={item => item.id}
+        columnWrapperStyle={{ gap: gutter }}
         numColumns={2}
         style={styles.list}
         contentContainerStyle={styles.grid}
@@ -272,7 +267,8 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
 };
 
 const { width } = Dimensions.get('window');
-const photoSize = width / 2 - 2;
+const gutter = 8;
+const photoSize = (width - 19 * 3) / 2; // two columns, 3 gutters (left, middle, right)
 
 const styles = StyleSheet.create({
   centerContainer: {
@@ -281,15 +277,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   grid: {
-    padding: 1,
-    flexGrow: 1,
-    paddingTop: 64,
-    paddingBottom: 100,
+    paddingHorizontal: 0,
+    paddingTop: 34,
+    paddingBottom: 120,
+    rowGap: gutter,
+    columnGap: 0,
   },
 
   gridContainer: {
     flex: 1,
-    backgroundColor: '#eeeeee',
+    backgroundColor: '#FFF', // match app theme
   },
 
   list: {
@@ -297,15 +294,19 @@ const styles = StyleSheet.create({
   },
   
   photoContainer: {
-    flex: 1/2,
-    aspectRatio: 1,
-    padding: 1,
-    backgroundColor: "#f6f6f6",
+    width: photoSize,
+    height: photoSize,
   },
   photoWrapper: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#f0f0f0',
+    flex: 1,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#DDD8D1',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    elevation: 4,
   },
   photo: {
     width: '100%',

@@ -1,52 +1,100 @@
 // profile.js
-// User profile screen with basic information display
+// User profile screen with modern auth-style design
 
 /* ------------------------------------------------------
 WHAT IT DOES
 - Displays user profile information with modern, clean design
-- Allows editing of profile information via edit button
+- Allows editing of profile information with toggle functionality
 - Shows user stats and join date
-- Supports scrollable content
+- Follows auth screen design patterns
 
 DATA USED
 - User profile from UserContext
 - Firestore profile data: firstName, lastName, birthDate, createdAt
 
 DEV PRINCIPLES
-- Clean, modern UI with proper spacing
+- Clean, modern UI following auth screen patterns
 - Consistent typography and colors
-- Proper input handling
+- Proper input handling with icons
+- Smooth transitions between view and edit modes
 ------------------------------------------------------*/
 
-import { useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ActivityIndicator, 
+  ScrollView, 
+  TextInput, 
+  TouchableOpacity, 
+  KeyboardAvoidingView, 
+  Platform,
+  StatusBar,
+  Image,
+  SafeAreaView,
+  Alert
+} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import Header from '../../src/components/ui/Header';
-import Avatar from '../../src/components/ui/Avatar';
-import ConcernsCluster from '../../src/components/routine/ConcernsCluster';
-import { PrimaryButton, SecondaryButton } from '../../src/components/ui/buttons/ModalButtons';
-import { useUser } from '../../src/contexts/UserContext';
-import { colors, spacing, fontSize, typography, forms, shadows, borderRadius } from '../../src/styles';
-import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, fontSize, typography, borderRadius } from '../../src/styles';
+import { User, Calendar, Mail, Edit3, Camera } from 'lucide-react-native';
+import { getProfile, updateProfile } from '../../src/services/newApiService';
+import useAuthStore from '../../src/stores/authStore';
+
+// Design tokens matching auth screens
+const PRIMARY_COLOR = '#8B7355';
 
 export default function Profile() {
-  const userContextData = useUser();
-  const { user, profile, loading, updateProfile, createdAt } = userContextData;
+  const { user, profile, setProfile } = useAuthStore();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   
   const [editForm, setEditForm] = useState({
-    firstName: profile?.firstName || '',
-    lastName: profile?.lastName || '',
-    birthDate: profile?.birthDate ? new Date(profile.birthDate.seconds * 1000) : null
+    user_name: profile?.user_name || user?.user_name || '',
+    birth_date: profile?.birth_date ? new Date(profile.birth_date) : null,
+    profile_img: null // For new image selection
   });
 
+  // Fetch profile data on component mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!profile) {
+        try {
+          setLoading(true);
+          const result = await getProfile();
+          if (result.success) {
+            setProfile(result.profile);
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+          setError('Failed to load profile');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchProfile();
+  }, [profile, setProfile]);
+
+  // Update form when profile changes
+  useEffect(() => {
+    setEditForm({
+      user_name: profile?.user_name || user?.user_name || '',
+      birth_date: profile?.birth_date ? new Date(profile.birth_date) : null,
+      profile_img: null
+    });
+  }, [profile, user]);
+
   const calculateAge = (birthDate) => {
-    if (!birthDate?.seconds) return null;
-    const birth = new Date(birthDate.seconds * 1000);
+    if (!birthDate) return null;
+    const birth = birthDate instanceof Date ? birthDate : new Date(birthDate);
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
@@ -56,195 +104,367 @@ export default function Profile() {
     return age;
   };
 
-  const formatJoinDate = (date) => {
-    if (!date?.seconds) return 'Recently';
-    
-    const joinDate = new Date(date.seconds * 1000);
-    const now = new Date();
-    const diffInMs = now - joinDate;
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    const diffInWeeks = Math.floor(diffInDays / 7);
-    const diffInMonths = Math.floor(diffInDays / 30);
-    const diffInYears = Math.floor(diffInDays / 365);
-    
-    if (diffInDays < 1) return 'Today';
-    if (diffInDays === 1) return '1 day ago';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInWeeks === 1) return '1 week ago';
-    if (diffInWeeks < 4) return `${diffInWeeks} weeks ago`;
-    if (diffInMonths === 1) return '1 month ago';
-    if (diffInMonths < 12) return `${diffInMonths} months ago`;
-    if (diffInYears === 1) return '1 year ago';
-    return `${diffInYears} years ago`;
+  const formatBirthDate = (date) => {
+    if (!date) return 'Not set';
+    const birthDate = date instanceof Date ? date : new Date(date);
+    return birthDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const handleImagePicker = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant photo library access to select a profile image.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        exif: false,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        setEditForm(prev => ({ ...prev, profile_img: result.assets[0] }));
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
   };
 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
       </View>
     );
   }
 
-  const age = calculateAge(profile?.birthDate);
-  const joinDate = formatJoinDate(createdAt);
-  const fullName = profile?.firstName && profile?.lastName 
-    ? `${profile.firstName} ${profile.lastName}`.trim()
-    : 'User';
+  const age = calculateAge(profile?.birth_date);
+  const fullName = profile?.user_name || user?.user_name || 'User';
 
   const handleSave = async () => {
-    try {
-      await updateProfile({
-        firstName: editForm.firstName.trim(),
-        lastName: editForm.lastName.trim(),
-        birthDate: editForm.birthDate
-      });
-      setIsEditing(false);
-      setError('');
-    } catch (err) {
-      setError('Failed to update profile');
+    if (!editForm.user_name.trim()) {
+      setError('Please enter your name');
+      return;
     }
+
+    try {
+      setLoading(true);
+      setError('');
+      
+      const updateData = {};
+      
+      // Add name if changed
+      if (editForm.user_name.trim() !== (profile?.user_name || user?.user_name)) {
+        updateData.user_name = editForm.user_name.trim();
+      }
+      
+      // Add birth date if changed
+      if (editForm.birth_date) {
+        const formattedDate = editForm.birth_date.toISOString().split('T')[0];
+        updateData.birth_date = formattedDate;
+      }
+      
+      // Add profile image if selected
+      if (editForm.profile_img) {
+        updateData.profile_img = editForm.profile_img;
+      }
+      
+      // Only update if there are changes
+      if (Object.keys(updateData).length > 0) {
+        await updateProfile(updateData);
+        
+        // Refresh profile data
+        const result = await getProfile();
+        if (result.success) {
+          setProfile(result.profile);
+        }
+      }
+      
+      setIsEditing(false);
+      setSuccess('Profile updated successfully');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Profile update error:', err);
+      setError(err.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditForm({
+      user_name: profile?.user_name || user?.user_name || '',
+      birth_date: profile?.birth_date ? new Date(profile.birth_date) : null,
+      profile_img: null
+    });
+    setError('');
+    setSuccess('');
   };
 
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
+    if (event.type === 'dismissed') return;
     if (selectedDate) {
-      setEditForm(prev => ({ ...prev, birthDate: selectedDate }));
+      setEditForm(prev => ({ ...prev, birth_date: selectedDate }));
     }
   };
 
   return (
     <View style={styles.container}>
-      <Header 
-        title="Profile"
-        showBack={true}
-        rightComponent={
-          !isEditing && (
-            <TouchableOpacity 
-              onPress={() => setIsEditing(true)}
-              style={styles.editButton}
-            >
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          )
-        }
-      />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
       
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
-      >
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+      {/* Header illustration */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={require('../../assets/images/auth.png')}
+          style={styles.headerImage}
+          resizeMode="cover"
+          accessibilityLabel="Profile illustration"
+        />
+        
+        {/* Back button overlay */}
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+          accessibilityLabel="Go back"
         >
-          {isEditing ? (
-            <View style={styles.editSection}>
-              <View style={styles.formContainer}>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>First Name</Text>
-                  <TextInput
-                    style={[forms.input.base]}
-                    value={editForm.firstName}
-                    onChangeText={(text) => setEditForm(prev => ({ ...prev, firstName: text }))}
-                    placeholder="First Name"
-                    autoCapitalize="words"
-                  />
-                </View>
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
+        
+        {/* Edit button overlay */}
+        {!isEditing && (
+          <TouchableOpacity 
+            style={styles.editButtonOverlay}
+            onPress={() => setIsEditing(true)}
+            accessibilityLabel="Edit profile"
+          >
+            <Edit3 size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
+      </View>
 
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Last Name</Text>
-                  <TextInput
-                    style={[forms.input.base]}
-                    value={editForm.lastName}
-                    onChangeText={(text) => setEditForm(prev => ({ ...prev, lastName: text }))}
-                    placeholder="Last Name"
-                    autoCapitalize="words"
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Birth Date</Text>
-                  <DateTimePicker
-                    value={editForm.birthDate || new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={handleDateChange}
-                    maximumDate={new Date()}
-                    style={styles.datePicker}
-                  />
-                </View>
-
-                {error && <Text style={styles.error}>{error}</Text>}
-
-                <View style={styles.buttonContainer}>
-                  <SecondaryButton
-                    title="Cancel"
-                    onPress={() => {
-                      setIsEditing(false);
-                      setEditForm({
-                        firstName: profile?.firstName || '',
-                        lastName: profile?.lastName || '',
-                        birthDate: profile?.birthDate ? new Date(profile.birthDate.seconds * 1000) : null
-                      });
-                      setError('');
-                    }}
-                    style={styles.cancelButtonStyle}
-                  />
-                  <PrimaryButton
-                    title="Save"
-                    onPress={handleSave}
-                    style={styles.saveButtonStyle}
-                  />
-                </View>
-              </View>
-            </View>
-          ) : (
-            <>
-              <View style={styles.profileHeader}>
-                <View style={styles.avatarContainer}>
-                  <Avatar 
-                    name={fullName}
-                    imageUrl={profile?.photoURL}
-                    size="xl"
-                  />
-                </View>
-                <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{fullName}</Text>
-                  <Text style={styles.userEmail}>{user?.email}</Text>
-                </View>
+      <SafeAreaView style={styles.safeAreaBottom}>
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            <View style={styles.formContainer}>
+              {/* Title */}
+              <View style={styles.formHeader}>
+                <Text style={styles.title}>
+                  {isEditing ? 'Edit Profile' : 'Profile'}
+                </Text>
+                <View style={styles.titleUnderline} />
               </View>
 
-              <View style={styles.infoSection}>
-                <View style={styles.bioSection}>
-                  {age && (
-                    <View style={styles.infoItem}>
-                      <Ionicons name="calendar-outline" size={24} color={colors.primary} style={styles.infoIcon} />
-                      <Text style={styles.infoText}>{age}</Text>
-                      <Text style={styles.infoLabel}>years old</Text>
+              {/* Success message */}
+              {success ? (
+                <View style={styles.successContainer}>
+                  <Text style={styles.successText} accessibilityRole="status">
+                    {success}
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* Error message */}
+              {error ? (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText} accessibilityRole="alert">
+                    {error}
+                  </Text>
+                </View>
+              ) : null}
+
+              {isEditing ? (
+                // EDIT MODE
+                <>
+                  {/* Profile Image */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Profile Image</Text>
+                    <TouchableOpacity
+                      style={styles.imagePickerWrapper}
+                      onPress={handleImagePicker}
+                    >
+                      {editForm.profile_img ? (
+                        <Image
+                          source={{ uri: editForm.profile_img.uri }}
+                          style={styles.profileImage}
+                        />
+                      ) : profile?.profile_img ? (
+                        <Image
+                          source={{ uri: profile.profile_img }}
+                          style={styles.profileImage}
+                        />
+                      ) : (
+                        <View style={styles.imagePlaceholder}>
+                          <Camera size={40} color="#9CA3AF" />
+                          <Text style={styles.imagePlaceholderText}>
+                            Tap to change photo
+                          </Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Name */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Name</Text>
+                    <View style={styles.inputWrapper}>
+                      <User size={20} color="#9CA3AF" style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter your name"
+                        value={editForm.user_name}
+                        onChangeText={(text) => setEditForm(prev => ({ ...prev, user_name: text }))}
+                        autoCapitalize="words"
+                        placeholderTextColor="#9CA3AF"
+                        returnKeyType="next"
+                      />
+                    </View>
+                  </View>
+
+                                     {/* Birth Date */}
+                   <View style={styles.inputContainer}>
+                     <Text style={styles.label}>Birth Date</Text>
+                     <View style={styles.inputWrapper}>
+                       <Calendar size={20} color="#9CA3AF" style={styles.inputIcon} />
+                       <TouchableOpacity
+                         style={styles.dateInputButton}
+                         onPress={() => setShowDatePicker(true)}
+                       >
+                         <Text style={[styles.dateText, !editForm.birth_date && { color: '#9CA3AF' }]}>
+                           {editForm.birth_date ? editForm.birth_date.toDateString() : 'Select your birth date'}
+                         </Text>
+                       </TouchableOpacity>
+                     </View>
+                                      </View>
+
+                   {showDatePicker && (
+                     <DateTimePicker
+                       value={editForm.birth_date || new Date()}
+                       mode="date"
+                       display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                       onChange={handleDateChange}
+                       maximumDate={new Date()}
+                     />
+                   )}
+
+                   {/* Action Buttons */}
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={handleCancel}
+                      accessibilityLabel="Cancel editing"
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={styles.saveButton}
+                      onPress={handleSave}
+                      accessibilityLabel="Save changes"
+                    >
+                      <Text style={styles.saveButtonText}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                // VIEW MODE
+                <>
+                  {/* Profile Image */}
+                  {profile?.profile_img && (
+                    <View style={styles.profileImageContainer}>
+                      <Image
+                        source={{ uri: profile.profile_img }}
+                        style={styles.profileImageLarge}
+                      />
                     </View>
                   )}
-                  <View style={styles.infoItem}>
-                    <Ionicons name="time-outline" size={24} color={colors.primary} style={styles.infoIcon} />
-                    <Text style={styles.infoText}>Joined</Text>
-                    <Text style={styles.infoLabel}>{joinDate}</Text>
-                  </View>
-                </View>
-              </View>
 
-              {/* TEMPORARILY COMMENTED OUT - Concerns cluster confusing users
-              <View style={styles.concernsSection}>
-                <Text style={styles.sectionTitle}>What would you like to improve?</Text>
-                <Text style={styles.sectionSubtitle}>Help us personalize your skincare recommendations</Text>
-                <ConcernsCluster />
-              </View>
-              */}
-            </>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+                  {/* Profile Info Card */}
+                  <View style={styles.infoCard}>
+                    <View style={styles.infoRow}>
+                      <View style={styles.infoIconContainer}>
+                        <User size={20} color={PRIMARY_COLOR} />
+                      </View>
+                      <View style={styles.infoContent}>
+                        <Text style={styles.infoLabel}>Name</Text>
+                        <Text style={styles.infoValue}>{fullName}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.infoRow}>
+                      <View style={styles.infoIconContainer}>
+                        <Mail size={20} color={PRIMARY_COLOR} />
+                      </View>
+                      <View style={styles.infoContent}>
+                        <Text style={styles.infoLabel}>Email</Text>
+                        <Text style={styles.infoValue}>{user?.email}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.infoRow}>
+                      <View style={styles.infoIconContainer}>
+                        <Calendar size={20} color={PRIMARY_COLOR} />
+                      </View>
+                      <View style={styles.infoContent}>
+                        <Text style={styles.infoLabel}>Birth Date</Text>
+                        <Text style={styles.infoValue}>
+                          {formatBirthDate(profile?.birth_date)}
+                          {age && ` (${age} years old)`}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+
+
+                  {/* Edit Button */}
+                  {/* <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => setIsEditing(true)}
+                    accessibilityLabel="Edit profile"
+                  >
+                    <Edit3 size={20} color="#FFFFFF" style={styles.editButtonIcon} />
+                    <Text style={styles.editButtonText}>Edit Profile</Text>
+                  </TouchableOpacity> */}
+
+                  {/* Logout Button */}
+                  <TouchableOpacity
+                    style={styles.logoutButton}
+                    onPress={() => {
+                      const { logout } = useAuthStore.getState();
+                      logout();
+                      router.replace('/auth/sign-in');
+                    }}
+                    accessibilityLabel="Logout"
+                  >
+                    <Text style={styles.logoutButtonText}>Logout</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </View>
   );
 }
@@ -252,182 +472,340 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
+  },
+  imageContainer: {
+    width: '100%',
+    height: 250,
+    backgroundColor: '#FFFFFF',
+    position: 'relative',
+  },
+  headerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  editButtonOverlay: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  safeAreaBottom: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  keyboardContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    marginTop: 100,
-    padding: spacing.lg
-  },
-  profileHeader: {
-    alignItems: 'center',
-    padding: spacing.xxl,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.lg,
-    ...shadows.md,
-  },
-  avatarContainer: {
-    marginBottom: spacing.md,
-  },
-  userInfo: {
-    alignItems: 'center',
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-    textAlign: 'center',
-  },
-  userEmail: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  editSection: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.lg,
-    ...shadows.sm,
+    flexGrow: 1,
   },
   formContainer: {
-    padding: spacing.xl,
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 30,
+    paddingTop: 20,
+    paddingBottom: 50,
+  },
+  formHeader: {
+    marginBottom: 40,
+    alignItems: 'flex-start',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  titleUnderline: {
+    width: 60,
+    height: 3,
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 2,
+  },
+  successContainer: {
+    marginBottom: 20,
+    backgroundColor: '#E6F9ED',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#34C759',
+  },
+  successText: {
+    color: '#28A745',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  errorContainer: {
+    marginBottom: 20,
+    backgroundColor: '#FFE5E5',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FF6B6B',
+  },
+  errorText: {
+    color: '#D73527',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   inputContainer: {
-    marginBottom: spacing.lg,
+    marginBottom: 24,
   },
   label: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  dateChip: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: borderRadius.pill,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    alignSelf: 'flex-start',
-    marginTop: spacing.xs,
-  },
-  dateChipText: {
-    fontSize: fontSize.md,
-    color: colors.textPrimary,
+    fontSize: 16,
     fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 12,
   },
-  placeholderText: {
-    color: colors.textSecondary,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: PRIMARY_COLOR,
+    paddingBottom: 8,
+    minHeight: 44,
   },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+    paddingVertical: 4,
+    minHeight: 44,
+  },
+     dateInputButton: {
+     flex: 1,
+     paddingVertical: 4,
+     minHeight: 44,
+     justifyContent: 'center',
+   },
+   dateText: {
+     fontSize: 16,
+     color: '#1F2937',
+   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.xl,
+    gap: 12,
+    marginTop: 40,
   },
-  cancelButtonStyle: {
+  cancelButton: {
     flex: 1,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 25,
+    paddingVertical: 16,
+    minHeight: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  saveButtonStyle: {
-    flex: 1,
+  cancelButtonText: {
+    color: '#6B7280',
+    fontSize: 18,
+    fontWeight: '600',
   },
   saveButton: {
-    color: colors.primary,
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  error: {
-    fontSize: fontSize.sm,
-    color: colors.error,
-    marginTop: spacing.small,
-  },
-  infoSection: {
-    padding: spacing.xl,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.lg,
-    ...shadows.sm,
-  },
-  concernsSection: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
+    flex: 1,
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 25,
+    paddingVertical: 16,
+    minHeight: 56,
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.xl,
-    ...shadows.sm,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
   },
-  sectionTitle: {
-    fontSize: 20,
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-    textAlign: 'center',
   },
-  sectionSubtitle: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-    paddingHorizontal: spacing.md,
+  infoCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
   },
-  bioSection: {
+  infoRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
     alignItems: 'center',
-    marginTop: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    marginBottom: 16,
   },
-  infoItem: {
+  infoIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 16,
+  },
+  infoContent: {
     flex: 1,
   },
-  infoIcon: {
-    marginBottom: spacing.xs,
-  },
-  infoText: {
-    fontSize: fontSize.md,
-    fontWeight: '500',
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
   infoLabel: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: spacing.xs,
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 16,
+    color: '#1F2937',
+    fontWeight: '500',
+  },
+  statsCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 30,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statsLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  statsValue: {
+    fontSize: 14,
+    color: '#1F2937',
+    fontWeight: '500',
   },
   editButton: {
-    color: colors.primary,
-    fontSize: fontSize.md,
-    fontWeight: '500',
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 25,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 56,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+  },
+  editButtonIcon: {
+    marginRight: 8,
+  },
+  editButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  logoutButton: {
+    backgroundColor: '#FF6B6B',
+    borderRadius: 25,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 56,
+    marginTop: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+  },
+  logoutButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  profileImageContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileImageLarge: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: PRIMARY_COLOR,
+  },
+  imagePickerWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignSelf: 'center',
+    marginVertical: 8,
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  imagePlaceholderText: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  editButton: {
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xs,
-    minWidth: 40,
-    alignItems: 'center',
-  },
-  editButtonText: {
-    color: colors.primary,
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-  },
-  datePicker: {
-    margin: 0,
-    paddingTop: 0,
-    paddingBottom: 0,
-    paddingLeft: 0,
-    paddingRight: 0,
-    marginLeft: -12,
-    marginTop: 10,
   },
 }); 

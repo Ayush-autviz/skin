@@ -142,6 +142,8 @@ export const processHautImage = async (userId, imageUri, imageType = 'front_imag
       }
     });
 
+    console.log('🔵 Haut.ai API Response:', response.data);
+
     if (response.data.status === 200) {
       const { hautBatchId, imageId } = response.data.data.result;
       console.log('✅ Image processed successfully:', { hautBatchId, imageId });
@@ -397,56 +399,64 @@ export const transformHautResults = (hautResults) => {
  * @param {string} userId - Firebase user ID
  * @returns {Promise<Array>} Array of photo objects
  */
-export const getUserPhotos = async (userId) => {
-  try {
-    console.log('🔵 Getting user photos from API:', { userId });
+// export const getUserPhotos = async (userId) => {
+//   try {
+//     console.log('🔵 Getting user photos from API:', { userId });
     
-    const response = await apiClient.get(`/haut_process/?user_id=${userId}`);
+//     const response = await apiClient.get(`/haut_process/?user_id=${userId}`);
 
-    if (response.data.status === 200) {
-      const photos = response.data.data.result;
-      console.log('✅ User photos retrieved successfully:', photos.length);
-      
-      // Transform the API response to match the expected format
-      const transformedPhotos = photos.map(photo => ({
-        id: photo.image_id, // Use image_id as the photo ID
-        storageUrl: photo.front_image, // Use front_image as the storage URL
-        timestamp: new Date(photo.created_at), // Convert created_at to Date object
-        analyzed: true, // Assume all photos from API are analyzed
-        analyzing: false,
-        metrics: {}, // Add empty metrics object for compatibility
-        hautUploadData: {
-          imageId: photo.image_id
-        },
-        // Add original API data for reference
-        apiData: {
-          id: photo.id,
-          image_id: photo.image_id,
-          front_image: photo.front_image,
-          left_image: photo.left_image,
-          right_image: photo.right_image,
-          created_at: photo.created_at,
-          updated_at: photo.updated_at
-        }
-      }));
-      
-      return transformedPhotos;
-    } else {
-      throw new Error(`API returned status ${response.data.status}: ${response.data.message}`);
-    }
-  } catch (error) {
-    console.error('🔴 Error getting user photos:', error);
+//     if (response.data.status === 200) {
+//       const apiData = response.data.data;
+
+//       // Handle case where API returns empty object or "result not found"
+//       if (!apiData || !Array.isArray(apiData.result) || apiData.result.length === 0) {
+//         console.log('ℹ️ No photos found for user (empty result set)');
+//         return [];
+//       }
+
+//       const photos = apiData.result;
+//       console.log('✅ User photos retrieved successfully:', photos.length);
+
+//       // Transform the API response to match the expected format
+//       const transformedPhotos = photos.map(photo => ({
+//         id: photo.image_id, // Use image_id as the photo ID
+//         storageUrl: photo.front_image, // Use front_image as the storage URL
+//         timestamp: new Date(photo.created_at), // Convert created_at to Date object
+//         analyzed: true, // Assume all photos from API are analyzed
+//         analyzing: false,
+//         metrics: {}, // Add empty metrics object for compatibility
+//         hautUploadData: {
+//           imageId: photo.image_id
+//         },
+//         // Add original API data for reference
+//         apiData: {
+//           id: photo.id,
+//           image_id: photo.image_id,
+//           front_image: photo.front_image,
+//           left_image: photo.left_image,
+//           right_image: photo.right_image,
+//           created_at: photo.created_at,
+//           updated_at: photo.updated_at
+//         }
+//       }));
+
+//       return transformedPhotos;
+//     } else {
+//       throw new Error(`API returned status ${response.data.status}: ${response.data.message}`);
+//     }
+//   } catch (error) {
+//     console.error('🔴 Error getting user photos:', error);
     
-    // Handle different types of errors
-    if (error.response) {
-      throw new Error(`Server error: ${error.response.data?.message || error.response.statusText}`);
-    } else if (error.request) {
-      throw new Error('Network error: Unable to reach the server');
-    } else {
-      throw new Error(`Request error: ${error.message}`);
-    }
-  }
-};
+//     // Handle different types of errors
+//     if (error.response) {
+//       throw new Error(`Server error: ${error.response.data?.message || error.response.statusText}`);
+//     } else if (error.request) {
+//       throw new Error('Network error: Unable to reach the server');
+//     } else {
+//       throw new Error(`Request error: ${error.message}`);
+//     }
+//   }
+// };
 
 /**
  * Test function to verify API connection

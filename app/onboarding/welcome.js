@@ -11,26 +11,20 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { router } from 'expo-router';
-import { useUser } from '../../src/contexts/UserContext';
+import useAuthStore from '../../src/stores/authStore';
 import { colors, spacing, typography, forms, shadows, borderRadius } from '../../src/styles';
-import { doc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../../src/config/firebase';
 import ConcernsCluster from '../../src/components/routine/ConcernsCluster';
 
 export default function WelcomeScreen() {
-  const { updateState } = useUser();
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleContinue = async () => {
     try {
       setLoading(true);
-      await updateState('active');
-      const userRef = doc(db, 'users', auth.currentUser.uid);
-      await updateDoc(userRef, {
-        onboardingCompleted: true
-      });
-      router.push('/');
+      // Navigate to main app - profile was already created in name.js
+      router.replace('/(authenticated)/(tabs)');
     } catch (err) {
       console.log('Error completing onboarding:', err);
       setError('Failed to complete setup. Please try again.');
