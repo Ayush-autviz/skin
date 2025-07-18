@@ -47,7 +47,6 @@ import {
 import { usePhotoContext } from '../../contexts/PhotoContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { getPhotoStatus } from '../../services/FirebasePhotosService';
 import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import { Image as ExpoImage } from 'expo-image'; // Much better performance than RN Image
@@ -126,7 +125,6 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
       id: photoId,
       url: photo.storageUrl,
       storageUrl: photo.storageUrl,
-      threadId: photo.threadId || null, // threadId might not exist in API data
       // Add API data for reference
       apiData: photo.apiData
     });
@@ -316,7 +314,7 @@ const styles = StyleSheet.create({
   },
   grid: {
     paddingHorizontal: 0,
-    paddingTop: 34,
+    paddingTop: 10,
     paddingBottom: 120,
     rowGap: gutter,
     columnGap: 0,
@@ -410,14 +408,5 @@ const styles = StyleSheet.create({
     color: '#8B7355',
   },
 });
-
-const getPhotoAnalysisStatus = async (photoId) => {
-  try {
-    return await getPhotoStatus(photoId);
-  } catch (error) {
-    console.error('Error fetching photo status:', error);
-    return { analyzed: false, analyzing: false };
-  }
-};
 
 export default PhotoGrid; 

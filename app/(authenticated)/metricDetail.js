@@ -52,7 +52,8 @@ const getConditionNameForMetric = (metricKey) => {
     'linesScore': 'lines',
     'translucencyScore': 'translucency',
     'pigmentationScore': 'pigmentation',
-    'uniformnessScore': 'uniformness'
+    'uniformnessScore': 'uniformness',
+    'eyeAreaCondition': 'eye_bags'
   };
   
   return mapping[metricKey] || null;
@@ -471,6 +472,13 @@ const MetricVisualizations = {
       </View>
     );
   }
+};
+
+const sanitizeS3Uri = (uriString) => {
+  if (!uriString) return uriString;
+  // Only touch the query part – a cheap approach is just replacing "+" with
+  // its percent-encoded form and ensuring no literal spaces remain.
+  return uriString.replace(/\+/g, '%2B').replace(/ /g, '%20');
 };
 
 export default function MetricDetailScreen() {
@@ -960,7 +968,7 @@ export default function MetricDetailScreen() {
                   </Text>
                   <View style={styles.maskImageContainer}>
                     <Image 
-                      source={{ uri: maskImageData.mask_img_url }}
+                      source={{ uri: sanitizeS3Uri(maskImageData.mask_img_url) }}
                       style={styles.maskImage}
                       resizeMode="contain"
                       onError={(error) => {

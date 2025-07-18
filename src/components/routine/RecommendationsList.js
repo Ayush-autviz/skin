@@ -52,7 +52,7 @@ const PROFILE_TO_CONCERN_MAPPING = {
   'Wrinkles': 'linesScore'
 };
 
-export default function RecommendationsList() {
+const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
   const router = useRouter();
   const { user, profile } = useAuthStore();
   const { createThread } = useThreadContext();
@@ -101,19 +101,13 @@ export default function RecommendationsList() {
     setExpandedConcerns(newExpanded);
   };
 
-  const handleRecommendationPress = async (item) => {
-    try {
-      console.log(`Tapped on recommendation: ${item.text}`);
-      const message = item.initialChatMessage || `Tell me more about how ${item.text.toLowerCase()} can help my skin.`;
-      router.push({
-        pathname: '/(authenticated)/aiChat',
-        params: { 
-          initialMessage: message,
-        }
-      });
-    } catch (error) {
-      console.error('❌ Error handling recommendation press:', error);
+  const handleRecommendationPress = async (recommendation) => {
+    if (onRecommendationPress) {
+      onRecommendationPress(recommendation);
     }
+    
+    console.log('Recommendation pressed:', recommendation.name);
+    // TODO: Navigate to recommendation detail or AI chat when implemented
   };
 
   // Render individual recommendation item

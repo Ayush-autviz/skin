@@ -17,7 +17,8 @@ DEV PRINCIPLES
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Modal, Image } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -29,6 +30,8 @@ import useAuthStore from '../../stores/authStore';
 export default function SettingsDrawer({ isVisible, onClose }) {
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const router = useRouter();
+  const navigation = useNavigation();
+  const pathname = usePathname();
   const { user, profile, logout } = useAuthStore();
   
   const fullName = profile?.user_name || user?.user_name || '';
@@ -39,6 +42,9 @@ export default function SettingsDrawer({ isVisible, onClose }) {
     photoURL: profile?.profile_img || null
   });
 
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
   useEffect(() => {
     setUserInfo({
       name: fullName || 'User',
@@ -46,6 +52,41 @@ export default function SettingsDrawer({ isVisible, onClose }) {
       photoURL: profile?.profile_img || null
     });
   }, [user, profile, fullName]);
+
+  // Check navigation readiness and focus state
+  useEffect(() => {
+    // Consider navigation ready if we have a pathname and user is authenticated
+    const isReady = !!(pathname && user && user.user_id);
+    setIsNavigationReady(isReady);
+    
+    console.log('🧭 [SettingsDrawer] Navigation readiness:', { 
+      pathname, 
+      hasUser: !!user, 
+      hasUserId: !!user?.user_id,
+      isReady 
+    });
+  }, [pathname, user]);
+
+  // Listen for navigation focus state
+  useEffect(() => {
+    const focusListener = navigation?.addListener?.('focus', () => {
+      console.log('🧭 [SettingsDrawer] Navigation focused');
+      setIsFocused(true);
+    });
+
+    const blurListener = navigation?.addListener?.('blur', () => {
+      console.log('🧭 [SettingsDrawer] Navigation blurred');
+      setIsFocused(false);
+    });
+
+    // Set initial focus state
+    setIsFocused(navigation?.isFocused?.() || false);
+
+    return () => {
+      focusListener?.();
+      blurListener?.();
+    };
+  }, [navigation]);
 
   useEffect(() => {
     Animated.timing(slideAnim, {
@@ -57,42 +98,182 @@ export default function SettingsDrawer({ isVisible, onClose }) {
 
   const handleSignOut = async () => {
     try {
+      console.log('🔵 [SettingsDrawer] Sign out - Navigation ready:', isNavigationReady);
       logout();
       onClose();
-      router.replace('/auth/sign-in');
+      
+      const delay = isNavigationReady ? 100 : 300;
+      setTimeout(() => {
+        if (router && typeof router.replace === 'function') {
+          router.replace('/auth/sign-in');
+        } else {
+          console.error('🔴 [SettingsDrawer] Router not available for sign out');
+        }
+      }, delay);
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
 
-  const handleProfilePress = () => {
+  // Simple test function for debugging
+  const handleProfilePressSimple = () => {
+    console.log('🔵 [SettingsDrawer] Simple profile press test');
     onClose();
-    router.push('/profile');
+    
+    setTimeout(() => {
+      console.log('🔵 [SettingsDrawer] Attempting simple navigation...');
+      try {
+        // Correct route path - we're already in (authenticated) stack, so just use 'profile'
+        router.push('/profile');
+        console.log('✅ [SettingsDrawer] Simple navigation attempted with correct path');
+      } catch (error) {
+        console.error('🔴 [SettingsDrawer] Simple navigation failed:', error);
+      }
+    }, 1000);
+  };
+
+  const handleProfilePress = () => {
+    console.log('🔵 [SettingsDrawer] Profile press attempt');
+    console.log('🔵 [SettingsDrawer] Current pathname:', pathname);
+    console.log('🔵 [SettingsDrawer] Router available:', !!router);
+    console.log('🔵 [SettingsDrawer] Navigation available:', !!navigation);
+    console.log('🔵 [SettingsDrawer] User authenticated:', !!user);
+    console.log('🔵 [SettingsDrawer] Navigation state:', navigation?.getState?.());
+    console.log('🔵 [SettingsDrawer] Is focused:', isFocused);
+    console.log('🔵 [SettingsDrawer] Navigation ready:', isNavigationReady);
+    
+    onClose();
+    
+    // Determine delay based on readiness state
+    const baseDelay = isNavigationReady && isFocused ? 150 : 800;
+    console.log(`🔵 [SettingsDrawer] Using base delay: ${baseDelay}ms`);
+    
+    // Try multiple navigation strategies with retry logic
+    const tryNavigate = (attempt = 1) => {
+      console.log(`🔵 [SettingsDrawer] Navigation attempt ${attempt}`);
+          console.log('🔵 [SettingsDrawer] Available methods:', {
+      routerPush: !!(router && router.push),
+      routerReplace: !!(router && router.replace),
+      routerNavigate: !!(router && router.navigate),
+      navigationNavigate: !!(navigation && navigation.navigate),
+      navigationGetParent: !!(navigation && navigation.getParent),
+      navigationReset: !!(navigation && navigation.reset)
+    });
+    
+    // Debug navigation structure
+    try {
+      const navState = navigation?.getState?.();
+      console.log('🔵 [SettingsDrawer] Full navigation state:', JSON.stringify(navState, null, 2));
+      const parentNav = navigation?.getParent?.();
+      console.log('🔵 [SettingsDrawer] Parent navigation:', !!parentNav);
+      if (parentNav) {
+        console.log('🔵 [SettingsDrawer] Parent state:', JSON.stringify(parentNav.getState?.(), null, 2));
+      }
+    } catch (error) {
+      console.log('🔵 [SettingsDrawer] Could not get navigation state:', error.message);
+    }
+      
+      try {
+        // Strategy 1: Use parent navigator (this is the correct approach based on the nav state)
+        if (navigation && navigation.getParent && typeof navigation.getParent === 'function') {
+          const parentNavigation = navigation.getParent();
+          if (parentNavigation && typeof parentNavigation.navigate === 'function') {
+            parentNavigation.navigate('profile');
+            console.log('✅ [SettingsDrawer] Navigation attempted with parent.navigate');
+            return;
+          }
+        }
+        
+        // Strategy 2: Try expo-router push as fallback
+        if (router && typeof router.push === 'function') {
+          router.push('/profile');
+          console.log('✅ [SettingsDrawer] Navigation attempted with router.push');
+          return;
+        }
+        
+        // Strategy 3: Try React Navigation navigate directly
+        if (navigation && typeof navigation.navigate === 'function') {
+          navigation.navigate('profile');
+          console.log('✅ [SettingsDrawer] Navigation attempted with navigation.navigate');
+          return;
+        }
+        
+        // Strategy 4: Try expo-router replace
+        if (router && typeof router.replace === 'function') {
+          router.replace('/profile');
+          console.log('✅ [SettingsDrawer] Navigation attempted with router.replace');
+          return;
+        }
+        
+        // Strategy 5: Try navigating with correct nested structure
+        if (navigation && typeof navigation.navigate === 'function') {
+          // Navigate directly to profile within current stack
+          navigation.navigate('profile');
+          console.log('✅ [SettingsDrawer] Navigation attempted with correct nested navigation');
+          return;
+        }
+        
+        throw new Error('No navigation methods available');
+        
+      } catch (error) {
+        console.error(`🔴 [SettingsDrawer] Navigation attempt ${attempt} failed:`, error);
+        
+        // Retry up to 3 times with increasing delays
+        if (attempt < 3) {
+          const delay = attempt * 500; // 500ms, 1000ms delays
+          console.log(`⏳ [SettingsDrawer] Retrying navigation in ${delay}ms...`);
+          setTimeout(() => tryNavigate(attempt + 1), delay);
+        } else {
+          console.error('🔴 [SettingsDrawer] All navigation attempts failed');
+          // Final fallback - try with much longer delay and simpler path
+          console.log('🔄 [SettingsDrawer] Attempting manual navigation with long delay as last resort');
+          setTimeout(() => {
+            try {
+              // Try just "profile" without the full path
+              if (router?.push) {
+                router.push('/profile');
+                console.log('✅ [SettingsDrawer] Final attempt with simple path');
+              } else if (router?.replace) {
+                router.replace('/profile');
+                console.log('✅ [SettingsDrawer] Final attempt with simple replace');
+              }
+            } catch (finalError) {
+              console.error('🔴 [SettingsDrawer] Final navigation attempt failed:', finalError);
+            }
+          }, 2000); // Much longer delay
+        }
+      }
+    };
+    
+    // Start navigation attempt after drawer closes
+    setTimeout(tryNavigate, baseDelay);
   };
 
   const handleResetOnboarding = async () => {
     try {
       // For now, just navigate to onboarding - could implement profile deletion later
       onClose();
-      router.push('/onboarding/name');
-      console.log('✅ Navigating to onboarding');
+      setTimeout(() => {
+        router.push('/onboarding/name');
+        console.log('✅ Navigating to onboarding');
+      }, 100);
     } catch (error) {
       console.error('❌ Error resetting onboarding:', error);
     }
   };
 
-  const MenuItem = ({ icon, title, onPress, textColor = colors.textPrimary, iconColor = colors.primary, showArrow = true }) => (
+  const MenuItem = ({ icon, title, onPress, textColor = colors.textPrimary, iconColor = colors.primary, showArrow = true, disabled = false }) => (
     <TouchableOpacity 
-      style={styles.menuItem}
-      onPress={onPress}
-      activeOpacity={0.7}
+      style={[styles.menuItem, disabled && styles.menuItemDisabled]}
+      onPress={disabled ? undefined : onPress}
+      activeOpacity={disabled ? 1 : 0.7}
     >
       <View style={styles.menuItemContent}>
         <View style={styles.menuItemLeft}>
           <View style={styles.iconContainer}>
-            <Ionicons name={icon} size={22} color={iconColor} />
+            <Ionicons name={icon} size={22} color={disabled ? colors.textTertiary : iconColor} />
           </View>
-          <Text style={[styles.menuText, { color: textColor }]}>{title}</Text>
+          <Text style={[styles.menuText, { color: disabled ? colors.textTertiary : textColor }]}>{title}</Text>
         </View>
         {showArrow && (
           <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
@@ -159,8 +340,11 @@ export default function SettingsDrawer({ isVisible, onClose }) {
                 icon="notifications-outline"
                 title="Notifications"
                 onPress={() => {
-                  // TODO: Implement notifications screen navigation
                   onClose();
+                  // TODO: Implement notifications screen navigation
+                  setTimeout(() => {
+                    // router.push('/(authenticated)/notifications');
+                  }, 100);
                 }}
               />
               
@@ -168,8 +352,11 @@ export default function SettingsDrawer({ isVisible, onClose }) {
                 icon="help-circle-outline"
                 title="Help & FAQs"
                 onPress={() => {
-                  // TODO: Implement FAQ screen navigation
                   onClose();
+                  // TODO: Implement FAQ screen navigation
+                  setTimeout(() => {
+                    // router.push('/(authenticated)/help');
+                  }, 100);
                 }}
               />
             </View>
@@ -287,6 +474,9 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     marginBottom: 10,
+  },
+  menuItemDisabled: {
+    opacity: 0.5,
   },
   menuItemContent: {
     flexDirection: 'row',

@@ -32,7 +32,6 @@ import {
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useThreadContext } from '../../contexts/ThreadContext';
 import { usePhotoContext } from '../../contexts/PhotoContext';
 import AiMessageCard from '../chat/AiMessageCard'; // Import AiMessageCard
 import palette from '../../styles/palette'; // Import palette for consistent colors
@@ -55,20 +54,17 @@ const MetricsSheet = forwardRef(({
   onViewStateChange,
   onTryAgain
 }, ref) => {
-  // --- Consume Contexts (only needed for AI Insights part) ---
   const photoContext = usePhotoContext();
-  const threadContext = useThreadContext();
   const selectedSnapshot = photoContext?.selectedSnapshot; // Get snapshot for threadId
-  const { listenToThread, threadStatus, latestMessage, retryMessage } = threadContext;
-
+  
   // --- Guard Check (Only for threadId, metrics come from props) ---
-  // We might not need a hard guard if insights just don't render without snapshot
-  // Let's keep it simple for now.
-  console.log('🔵 MetricsSheet - photoData:', photoData);
-
+  if (!selectedSnapshot) {
+    console.log('⚠️ MetricsSheet: No selectedSnapshot available');
+  }
+  
   // Derive threadId safely
-  const threadId = selectedSnapshot?.threadId;
-
+  // const threadId = selectedSnapshot?.threadId;
+  
   // --- Hooks for Sheet Animation & State ---
   const sheetPosition = useRef(new Animated.Value(SNAP_POINTS.COLLAPSED)).current;
   const [currentSnapPoint, setCurrentSnapPoint] = useState(SNAP_POINTS.COLLAPSED);
@@ -243,19 +239,6 @@ const MetricsSheet = forwardRef(({
   };
 
   const router = useRouter();
-
-  // --- Effect to Listen to Thread ---
-  useEffect(() => {
-    if (threadId) {
-      const cleanup = listenToThread(threadId);
-      return cleanup;
-    } else {
-      // Cleanup logic if threadId disappears
-       if (typeof listenToThread === 'function') {
-           listenToThread(null);
-       }
-    }
-  }, [threadId, listenToThread]);
 
   // --- Render Metrics Content (Scrollable Part - uses metrics prop) ---
   const renderMetricsContent = () => {
@@ -451,11 +434,10 @@ const MetricsSheet = forwardRef(({
           </TouchableOpacity>
         </View>
 
-        {/* Sticky AI Insights Header - Simplified */}
-        {/* {(uiState === 'analyzing' || uiState === 'complete') && (
-          // Just render the card directly. It handles its own styling.
-          <AiMessageCard />
-        )} */}
+        {/* AI Insights Section - Coming Soon */}
+        <View style={styles.aiInsightsPlaceholder}>
+          <Text style={styles.placeholderText}>AI Insights Coming Soon</Text>
+        </View>
 
         {/* Scrollable Metrics Content Area */}
         <View style={styles.metricsContentArea}>
@@ -749,6 +731,18 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: 'rgba(0, 0, 0, 0.6)',
     marginLeft: 1,
+  },
+  aiInsightsPlaceholder: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  placeholderText: {
+    color: '#9CA3AF',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

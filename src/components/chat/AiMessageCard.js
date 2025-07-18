@@ -26,7 +26,6 @@ DEPENDENCIES
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons'; 
-import { useThreadContext } from '../../contexts/ThreadContext';
 import { useRouter } from 'expo-router';
 import Chip from '../ui/Chip'; // Import Chip for the action button
 import { spacing, colors, palette, typography } from '../../styles'; // Import styles
@@ -41,15 +40,15 @@ const AiMessageCard = ({
   const router = useRouter();
   const insets = useSafeAreaInsets(); // Add this
   // Only use context if overrideText is not provided
-  const { currentThread, isSummaryRequestedRecently } = overrideText ? { currentThread: null, isSummaryRequestedRecently: false } : useThreadContext();
+  // const { currentThread, isSummaryRequestedRecently } = overrideText ? { currentThread: null, isSummaryRequestedRecently: false } : useThreadContext();
   
   const [showFallbackPrompt, setShowFallbackPrompt] = useState(false); 
   const fallbackTimerRef = useRef(null);
 
   // Determine content presence (only relevant if not using overrideText)
-  const summaryContent = currentThread?.summary;
-  const messageContent = currentThread?.messages?.[0]?.content;
-  const hasAnyContent = !!summaryContent || !!messageContent;
+  // const summaryContent = currentThread?.summary;
+  // const messageContent = currentThread?.messages?.[0]?.content;
+  // const hasAnyContent = !!summaryContent || !!messageContent;
 
   // Effect for fallback prompt (only runs if not using overrideText)
   useEffect(() => {
@@ -58,16 +57,16 @@ const AiMessageCard = ({
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
     setShowFallbackPrompt(false); 
 
-    if (!hasAnyContent && !isSummaryRequestedRecently && currentThread?.id) { 
-        fallbackTimerRef.current = setTimeout(() => {
-            //console.log('🤖 AiMessageCard: Fallback timer triggered.');
-            setShowFallbackPrompt(true);
-            fallbackTimerRef.current = null; 
-        }, 4000); 
-    }
+    // if (!hasAnyContent && !isSummaryRequestedRecently && currentThread?.id) { 
+    //     fallbackTimerRef.current = setTimeout(() => {
+    //         //console.log('🤖 AiMessageCard: Fallback timer triggered.');
+    //         setShowFallbackPrompt(true);
+    //         fallbackTimerRef.current = null; 
+    //     }, 4000); 
+    // }
 
     return () => { if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current); };
-  }, [currentThread?.id, hasAnyContent, isSummaryRequestedRecently, overrideText]); 
+  }, [overrideText]); 
 
   // --- Determine string to show --- 
   let stringToShow = "..."; 
@@ -75,12 +74,6 @@ const AiMessageCard = ({
 
   if (overrideText) {
       stringToShow = overrideText;
-  } else if (isSummaryRequestedRecently) {
-      stringToShow = "..."; 
-  } else if (summaryContent && summaryContent !== '...') { 
-    stringToShow = summaryContent; 
-  } else if (messageContent) {
-    stringToShow = messageContent; 
   } else if (showFallbackPrompt) {
     stringToShow = "Tell me about your routine or your skin in this snapshot";
     applyPromptStyle = true;
@@ -97,16 +90,16 @@ const AiMessageCard = ({
 
   // Original navigation handler
   const handleNavigateToChat = useCallback(() => {
-    if (currentThread?.id) {
-      console.log(`🔵 AiMessageCard: Navigating to chat for thread ${currentThread.id}`);
-      router.push({
-          pathname: '/(authenticated)/aiChat',
-          params: { threadId: currentThread.id, initialMessage: messageContent },
-      });
-    } else {
-      console.warn('⚠️ AiMessageCard: Cannot navigate, currentThread or ID is missing.');
-    }
-  }, [currentThread?.id, messageContent, router]);
+    // if (currentThread?.id) {
+    //   console.log(`🔵 AiMessageCard: Navigating to chat for thread ${currentThread.id}`);
+    //   router.push({
+    //       pathname: '/(authenticated)/aiChat',
+    //       params: { threadId: currentThread.id, initialMessage: messageContent },
+    //   });
+    // } else {
+    //   console.warn('⚠️ AiMessageCard: Cannot navigate, currentThread or ID is missing.');
+    // }
+  }, [router]);
 
   // Determine the onPress action for the main card container
   const handleCardPress = () => {

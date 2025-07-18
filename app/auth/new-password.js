@@ -1,15 +1,15 @@
-// sign-up.js
-// Authentication screen for user registration
+// new-password.js
+// New password screen for password reset flow
 
 /* ------------------------------------------------------
 WHAT IT DOES
-- Handles user registration with email/password
-- Calls external API to create user subject
-- Provides navigation to sign in
-- Displays form validation and error messages
+- Allows users to set a new password after OTP verification
+- Uses reset token from OTP verification for security
+- Provides password confirmation and validation
+- Navigates to sign in after successful password reset
 
 DEV PRINCIPLES
-- Consistent design with Sign-In screen
+- Consistent design with other auth screens  
 - Uses React Native best practices
 - Implements proper form validation
 - Provides clear user feedback
@@ -30,28 +30,56 @@ import {
   Image,
   SafeAreaView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react-native';
-import { signUp } from '../../src/services/newApiService';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Lock, Eye, EyeOff } from 'lucide-react-native';
+import { newPassword } from '../../src/services/newApiService';
 
-export default function SignUp() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+export default function NewPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const router = useRouter();
-  const emailRef = useRef(null);
-  const passwordRef = useRef(null);
+  const params = useLocalSearchParams();
+  
+  // Extract parameters from previous screen
+  const email = params.email;
+  const resetToken = params.resetToken;
+  
   const confirmPasswordRef = useRef(null);
 
-  const handleSignUp = async () => {
-    if (!name || !email || !password || !confirmPassword) {
+  const validatePassword = (password) => {
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters long';
+    }
+    if (!/(?=.*[a-z])/.test(password)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!/(?=.*[A-Z])/.test(password)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!/(?=.*\d)/.test(password)) {
+      return 'Password must contain at least one number';
+    }
+    if (!/(?=.*[@$!%*?&])/.test(password)) {
+      return 'Password must contain at least one special character (@$!%*?&)';
+    }
+    return null;
+  };
+
+  const handleSetNewPassword = async () => {
+    if (!password || !confirmPassword) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     
@@ -64,20 +92,22 @@ export default function SignUp() {
     setIsLoading(true);
     
     try {
-      const result = await signUp({ name: name.trim(), email: email.toLowerCase().trim(), password });
+      const result = await newPassword({
+        email: email,
+        password: password,
+        reset_token: resetToken
+      });
       
       if (result.success) {
-        // Navigate to OTP verification screen for signup flow
-        router.push({
-          pathname: '/auth/verify-otp',
-          params: { 
-            email: email.toLowerCase().trim(),
-            isSignup: 'true'
-          }
-        });
+        setSuccessMessage(result.message);
+        
+        // Navigate to sign in after successful password reset
+        setTimeout(() => {
+          router.replace('/auth/sign-in');
+        }, 2000);
       }
     } catch (err) {
-      setError(err.message || 'Sign up failed. Please try again.');
+      setError(err.message || 'Failed to reset password. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -97,8 +127,17 @@ export default function SignUp() {
           source={require('../../assets/images/auth.png')}
           style={styles.headerImage}
           resizeMode="cover"
-          accessibilityLabel="Sign up illustration"
+          accessibilityLabel="New password illustration"
         />
+        
+        {/* Back button overlay */}
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+          accessibilityLabel="Go back"
+        >
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
       </View>
 
       <SafeAreaView style={styles.safeAreaBottom}>
@@ -117,77 +156,41 @@ export default function SignUp() {
             <View style={styles.formContainer}>
               {/* Title */}
               <View style={styles.formHeader}>
-                <Text style={styles.title}>Create Account</Text>
+                <Text style={styles.title}>Create New Password</Text>
                 <View style={styles.titleUnderline} />
               </View>
 
-              {/* Error */}
+              {/* Subtitle */}
+              <Text style={styles.subtitle}>
+                Create a strong password for your account. Make sure it's at least 6 characters long and includes uppercase, lowercase, numbers, and special characters.
+              </Text>
+
+              {/* Success message */}
+              {successMessage ? (
+                <View style={styles.successContainer}>
+                  <Text style={styles.successText} accessibilityRole="status">
+                    {successMessage}
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* Error message */}
               {error ? (
                 <View style={styles.errorContainer}>
-                  <Text
-                    style={styles.errorText}
-                    accessibilityRole="alert"
-                  >
+                  <Text style={styles.errorText} accessibilityRole="alert">
                     {error}
                   </Text>
                 </View>
               ) : null}
 
-              {/* Name */}
+              {/* New Password */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Name</Text>
-                <View style={styles.inputWrapper}>
-                  <User size={20} color="#9CA3AF" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your name"
-                    value={name}
-                    onChangeText={setName}
-                    autoCapitalize="words"
-                    placeholderTextColor="#9CA3AF"
-                    returnKeyType="next"
-                    onSubmitEditing={() => emailRef.current?.focus()}
-                    accessibilityLabel="Name input"
-                    accessibilityHint="Enter your full name"
-                    autoComplete="name"
-                    textContentType="name"
-                  />
-                </View>
-              </View>
-
-              {/* Email */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Email</Text>
-                <View style={styles.inputWrapper}>
-                  <Mail size={20} color="#9CA3AF" style={styles.inputIcon} />
-                  <TextInput
-                    ref={emailRef}
-                    style={styles.input}
-                    placeholder="demo@email.com"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    placeholderTextColor="#9CA3AF"
-                    returnKeyType="next"
-                    onSubmitEditing={() => passwordRef.current?.focus()}
-                    accessibilityLabel="Email input"
-                    accessibilityHint="Enter your email address"
-                    autoComplete="email"
-                    textContentType="emailAddress"
-                  />
-                </View>
-              </View>
-
-              {/* Password */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Password</Text>
+                <Text style={styles.label}>New Password</Text>
                 <View style={styles.inputWrapper}>
                   <Lock size={20} color="#9CA3AF" style={styles.inputIcon} />
                   <TextInput
-                    ref={passwordRef}
                     style={styles.input}
-                    placeholder="Create password"
+                    placeholder="Enter new password"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -196,6 +199,8 @@ export default function SignUp() {
                     onSubmitEditing={() => confirmPasswordRef.current?.focus()}
                     autoComplete="new-password"
                     textContentType="newPassword"
+                    accessibilityLabel="New password input"
+                    accessibilityHint="Enter your new password"
                   />
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
@@ -216,21 +221,23 @@ export default function SignUp() {
 
               {/* Confirm Password */}
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Confirm Password</Text>
+                <Text style={styles.label}>Confirm New Password</Text>
                 <View style={styles.inputWrapper}>
                   <Lock size={20} color="#9CA3AF" style={styles.inputIcon} />
                   <TextInput
                     ref={confirmPasswordRef}
                     style={styles.input}
-                    placeholder="Confirm password"
+                    placeholder="Confirm new password"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showConfirmPassword}
                     placeholderTextColor="#9CA3AF"
                     returnKeyType="done"
-                    onSubmitEditing={handleSignUp}
+                    onSubmitEditing={handleSetNewPassword}
                     autoComplete="new-password"
                     textContentType="newPassword"
+                    accessibilityLabel="Confirm password input"
+                    accessibilityHint="Confirm your new password"
                   />
                   <TouchableOpacity
                     onPress={() =>
@@ -251,28 +258,26 @@ export default function SignUp() {
                 </View>
               </View>
 
-              {/* Create Account Button */}
+              {/* Password requirements */}
+              {/* <View style={styles.requirementsContainer}>
+                <Text style={styles.requirementsTitle}>Password must contain:</Text>
+                <Text style={styles.requirementText}>• At least 6 characters</Text>
+                <Text style={styles.requirementText}>• Uppercase and lowercase letters</Text>
+                <Text style={styles.requirementText}>• At least one number</Text>
+                <Text style={styles.requirementText}>• At least one special character (@$!%*?&)</Text>
+              </View> */}
+
+              {/* Update Password Button */}
               <TouchableOpacity
-                style={[styles.signUpButton, isLoading && styles.signUpButtonDisabled]}
-                onPress={handleSignUp}
+                style={[styles.updateButton, isLoading && styles.updateButtonDisabled]}
+                onPress={handleSetNewPassword}
                 disabled={isLoading}
-                accessibilityLabel={isLoading ? 'Creating account' : 'Sign up'}
+                accessibilityLabel={isLoading ? 'Updating password' : 'Update password'}
               >
-                <Text style={styles.signUpButtonText}>
-                  {isLoading ? 'Creating account...' : 'Sign Up'}
+                <Text style={styles.updateButtonText}>
+                  {isLoading ? 'Updating Password...' : 'Update Password'}
                 </Text>
               </TouchableOpacity>
-
-              {/* Sign in link */}
-              <View style={styles.signUpContainer}>
-                <Text style={styles.signUpText}>Already have an account? </Text>
-                <TouchableOpacity
-                  onPress={() => router.push('/auth/sign-in')}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.signUpLink}>Sign in</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -281,7 +286,7 @@ export default function SignUp() {
   );
 }
 
-// Design tokens (matching Sign-In screen)
+// Design tokens (consistent with other auth screens)
 const PRIMARY_COLOR = '#8B7355';
 
 const styles = StyleSheet.create({
@@ -291,12 +296,29 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: '100%',
-    height: 230,
+    height: 250,
     backgroundColor: '#FFFFFF',
+    position: 'relative',
   },
   headerImage: {
     width: '100%',
     height: '100%',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   safeAreaBottom: {
     flex: 1,
@@ -316,11 +338,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 30,
-    paddingTop: 5,
+    paddingTop: 20,
     paddingBottom: 50,
   },
   formHeader: {
-    marginBottom: 25,
+    marginBottom: 16,
     alignItems: 'flex-start',
   },
   title: {
@@ -334,6 +356,26 @@ const styles = StyleSheet.create({
     height: 3,
     backgroundColor: PRIMARY_COLOR,
     borderRadius: 2,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  successContainer: {
+    marginBottom: 20,
+    backgroundColor: '#E5F8E5',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#10B981',
+  },
+  successText: {
+    color: '#059669',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   errorContainer: {
     marginBottom: 20,
@@ -350,13 +392,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
     fontSize: 16,
     fontWeight: '500',
     color: '#6B7280',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -383,11 +425,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  signUpButton: {
+  requirementsContainer: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 32,
+  },
+  requirementsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  requirementText: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  updateButton: {
     backgroundColor: PRIMARY_COLOR,
     borderRadius: 25,
     paddingVertical: 16,
-    marginTop: 10,
     marginBottom: 24,
     minHeight: 56,
     justifyContent: 'center',
@@ -401,29 +460,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
   },
-  signUpButtonDisabled: {
+  updateButtonDisabled: {
     opacity: 0.7,
     elevation: 0,
     shadowOpacity: 0,
   },
-  signUpButtonText: {
+  updateButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',
-  },
-  signUpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  signUpText: {
-    fontSize: 16,
-    color: '#9CA3AF',
-  },
-  signUpLink: {
-    color: '#FF6B6B',
-    fontWeight: '500',
-    fontSize: 16,
   },
 }); 

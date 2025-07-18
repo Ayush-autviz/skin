@@ -43,6 +43,7 @@ import { User, Calendar, Mail, Edit3, Camera } from 'lucide-react-native';
 import { getProfile, updateProfile } from '../../src/services/newApiService';
 import useAuthStore from '../../src/stores/authStore';
 
+
 // Design tokens matching auth screens
 const PRIMARY_COLOR = '#8B7355';
 
@@ -52,7 +53,8 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   
   const [editForm, setEditForm] = useState({
@@ -61,34 +63,53 @@ export default function Profile() {
     profile_img: null // For new image selection
   });
 
-  // Fetch profile data on component mount
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!profile) {
-        try {
-          setLoading(true);
-          const result = await getProfile();
-          if (result.success) {
-            setProfile(result.profile);
-          }
-        } catch (error) {
-          console.error('Error fetching profile:', error);
-          setError('Failed to load profile');
-        } finally {
-          setLoading(false);
-        }
+  // Fetch profile data
+  const fetchProfile = async () => {
+    try {
+      setIsProfileLoading(true);
+      const res = await getProfile();
+      if (res.success) {
+        setProfile(res.profile);
       }
-    };
+    } catch (err) {
+      console.error('🔴 Profile fetch error:', err);
+      setError(err.message || 'Failed to load profile');
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
 
+  // Update profile data
+  const updateProfileData = async (data) => {
+    try {
+      setIsUpdating(true);
+      setError('');
+      
+      await updateProfile(data);
+      await fetchProfile(); // Refresh profile data
+      
+      setSuccess('Profile updated successfully');
+      setTimeout(() => setSuccess(''), 3000);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('🔴 Profile update error:', err);
+      setError(err.message || 'Failed to update profile');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Load profile on mount
+  useEffect(() => {
     fetchProfile();
-  }, [profile, setProfile]);
+  }, []);
 
-  // Update form when profile changes
+  // Keep edit form in sync when profile data arrives/changes
   useEffect(() => {
     setEditForm({
       user_name: profile?.user_name || user?.user_name || '',
       birth_date: profile?.birth_date ? new Date(profile.birth_date) : null,
-      profile_img: null
+      profile_img: null,
     });
   }, [profile, user]);
 
@@ -139,7 +160,7 @@ export default function Profile() {
     }
   };
 
-  if (loading) {
+  if (isProfileLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={PRIMARY_COLOR} />
@@ -150,54 +171,37 @@ export default function Profile() {
   const age = calculateAge(profile?.birth_date);
   const fullName = profile?.user_name || user?.user_name || 'User';
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!editForm.user_name.trim()) {
       setError('Please enter your name');
       return;
     }
+    setError('');
 
-    try {
-      setLoading(true);
-      setError('');
-      
-      const updateData = {};
-      
-      // Add name if changed
-      if (editForm.user_name.trim() !== (profile?.user_name || user?.user_name)) {
-        updateData.user_name = editForm.user_name.trim();
-      }
-      
-      // Add birth date if changed
-      if (editForm.birth_date) {
-        const formattedDate = editForm.birth_date.toISOString().split('T')[0];
-        updateData.birth_date = formattedDate;
-      }
-      
-      // Add profile image if selected
-      if (editForm.profile_img) {
-        updateData.profile_img = editForm.profile_img;
-      }
-      
-      // Only update if there are changes
-      if (Object.keys(updateData).length > 0) {
-        await updateProfile(updateData);
-        
-        // Refresh profile data
-        const result = await getProfile();
-        if (result.success) {
-          setProfile(result.profile);
-        }
-      }
-      
-      setIsEditing(false);
-      setSuccess('Profile updated successfully');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      console.error('Profile update error:', err);
-      setError(err.message || 'Failed to update profile');
-    } finally {
-      setLoading(false);
+    const updateData = {};
+    
+    // Add name if changed
+    if (editForm.user_name.trim() !== (profile?.user_name || user?.user_name)) {
+      updateData.user_name = editForm.user_name.trim();
     }
+    
+    // Add birth date if changed
+    if (editForm.birth_date) {
+      const formattedDate = editForm.birth_date.toISOString().split('T')[0];
+      updateData.birth_date = formattedDate;
+    }
+    
+    // Add profile image if selected
+    if (editForm.profile_img) {
+      updateData.profile_img = editForm.profile_img;
+    }
+    
+    if (Object.keys(updateData).length === 0) {
+      setIsEditing(false);
+      return;
+    }
+
+    updateProfileData(updateData);
   };
 
   const handleCancel = () => {
@@ -341,7 +345,7 @@ export default function Profile() {
                     </View>
                   </View>
 
-                                     {/* Birth Date */}
+                   {/* Birth Date */}
                    <View style={styles.inputContainer}>
                      <Text style={styles.label}>Birth Date</Text>
                      <View style={styles.inputWrapper}>
@@ -355,7 +359,7 @@ export default function Profile() {
                          </Text>
                        </TouchableOpacity>
                      </View>
-                                      </View>
+                   </View>
 
                    {showDatePicker && (
                      <DateTimePicker
@@ -380,9 +384,12 @@ export default function Profile() {
                     <TouchableOpacity
                       style={styles.saveButton}
                       onPress={handleSave}
-                      accessibilityLabel="Save changes"
+                      disabled={isUpdating}
+                      accessibilityLabel={isUpdating ? 'Saving...' : 'Save changes'}
                     >
-                      <Text style={styles.saveButtonText}>Save</Text>
+                      <Text style={styles.saveButtonText}>
+                        {isUpdating ? 'Saving...' : 'Save'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </>
@@ -435,8 +442,6 @@ export default function Profile() {
                     </View>
                   </View>
 
-
-
                   {/* Edit Button */}
                   {/* <TouchableOpacity
                     style={styles.editButton}
@@ -476,7 +481,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: '100%',
-    height: 250,
+    height: 220,
     backgroundColor: '#FFFFFF',
     position: 'relative',
   },
@@ -486,7 +491,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 50,
+    top: 60,
     left: 20,
     width: 40,
     height: 40,
@@ -502,7 +507,7 @@ const styles = StyleSheet.create({
   },
   editButtonOverlay: {
     position: 'absolute',
-    top: 50,
+    top: 60,
     right: 20,
     width: 40,
     height: 40,
@@ -616,7 +621,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 40,
+    marginTop: 10,
   },
   cancelButton: {
     flex: 1,
@@ -785,6 +790,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 60,
+    backgroundColor: '#F3F4F6',
   },
   imagePlaceholder: {
     width: '100%',

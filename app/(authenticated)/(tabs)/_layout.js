@@ -107,6 +107,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
 export default function TabLayout() {
   return (
+   
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
@@ -133,6 +134,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    
   );
 }
 
@@ -144,6 +146,7 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
+
   },
   pillContainer: {
     flexDirection: 'row',

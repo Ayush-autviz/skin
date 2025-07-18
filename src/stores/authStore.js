@@ -17,8 +17,9 @@ const useAuthStore = create(
       accessToken: null,
       refreshToken: null,
       
-      // Profile data
+      // Profile data and status
       profile: null,
+      profileStatus: null, // true = complete, false = incomplete
       
       // Actions
       setUser: (user) => set({ user, isAuthenticated: !!user }),
@@ -29,6 +30,8 @@ const useAuthStore = create(
       }),
       
       setProfile: (profile) => set({ profile }),
+      
+      setProfileStatus: (profileStatus) => set({ profileStatus }),
       
       setLoading: (loading) => set({ loading }),
       
@@ -43,6 +46,7 @@ const useAuthStore = create(
         accessToken: null,
         refreshToken: null,
         profile: null,
+        profileStatus: null,
         loading: false 
       }),
       
@@ -58,6 +62,7 @@ const useAuthStore = create(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         profile: state.profile,
+        profileStatus: state.profileStatus,
       }),
     }
   )

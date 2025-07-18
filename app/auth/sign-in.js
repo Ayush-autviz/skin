@@ -39,10 +39,10 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const router = useRouter();
-  const { setUser, setTokens, setLoading: setStoreLoading } = useAuthStore();
+  const { setUser, setTokens, setProfileStatus, setLoading: setStoreLoading } = useAuthStore();
   const passwordRef = useRef(null);
 
   const handleSignIn = async () => {
@@ -50,32 +50,23 @@ export default function SignIn() {
       setError('Please fill in all fields');
       return;
     }
-
+    
+    setError('');
+    setIsLoading(true);
+    
     try {
-      setLoading(true);
-      setStoreLoading(true);
-      setError('');
+      const result = await signIn({ email: email.toLowerCase().trim(), password });
       
-      const result = await signIn({
-        email: email.toLowerCase().trim(),
-        password: password
-      });
-
-      console.log(result,'result');
-
       if (result.success) {
-        // Store user data and tokens
         setUser(result.user);
         setTokens(result.access_token, result.refresh_token);
-        
-        // Navigate to main app
-        router.push('/(authenticated)/');
+        setProfileStatus(result.profile_status);
+        // Let AuthProvider handle the routing after authentication
       }
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
-      setLoading(false);
-      setStoreLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -185,15 +176,13 @@ export default function SignIn() {
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.signInButton, loading && styles.signInButtonDisabled]}
+                style={[styles.signInButton, isLoading && styles.signInButtonDisabled]}
                 onPress={handleSignIn}
-                disabled={loading}
-                accessibilityLabel={loading ? "Signing in" : "Sign in"}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: loading }}
+                disabled={isLoading}
+                accessibilityLabel={isLoading ? "Signing in" : "Sign in"}
               >
                 <Text style={styles.signInButtonText}>
-                  {loading ? 'Signing in...' : 'Sign In'}
+                  {isLoading ? 'Signing in...' : 'Sign In'}
                 </Text>
               </TouchableOpacity>
 

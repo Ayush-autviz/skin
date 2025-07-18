@@ -110,7 +110,7 @@ DATA MODEL IN USERS/PHOTOS:
 ------------------------------------------------------*/
 
 import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, FlatList, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, FlatList, Animated } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useThreadContext } from '../../contexts/ThreadContext'; // Import thread context
 import { usePhotoContext } from '../../contexts/PhotoContext'; // Import photo context
@@ -663,40 +663,27 @@ const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScr
 
 const MetricsSeries = ({ photos }) => {
   const [selectedIndex, setSelectedIndex] = useState(null);
-  const [showContent, setShowContent] = useState(true); // Start with overlay showing
+  // Removed showContent state - loading is now handled by parent component
   const { metrics, timestamps } = processPhotoMetrics(photos);
   const timeSelectorRef = useRef(null);
   const initialSelectionDoneRef = useRef(false);
   const lastTapTimeRef = useRef(0);
   const forceScrollSyncRef = useRef(false);
-  const { currentThread, listenToThread } = useThreadContext(); // Use thread context
   const { setSelectedSnapshot } = usePhotoContext(); // Use photo context
   const router = useRouter(); // Use router
 
-  // Simple timeout approach - hide loading overlay after 2 seconds
-  useEffect(() => {
-    if (photos.length > 0 && showContent) {
-      // console.log(`[MetricsSeries] Starting 2-second timeout for ${photos.length} photos`);
-      const timeoutId = setTimeout(() => {
-        // console.log(`[MetricsSeries] Timeout reached! Hiding loading overlay.`);
-        setShowContent(false);
-      }, 2000);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [photos.length, showContent]);
+  // Removed loading overlay timeout - loading is now handled by parent component
 
   // Debug renders
   // useEffect(() => {
   //   console.log(`[MetricsSeries] Render state:`, {
-  //     showContent,
   //     photosLength: photos.length,
   //     selectedIndex,
   //     metricsLength: metrics?.length,
   //     timestampsLength: timestamps?.length,
   //     initialSelectionDone: initialSelectionDoneRef.current
   //   });
-  // }, [showContent, selectedIndex]); // Only log when these key states change
+  // }, [selectedIndex]); // Only log when these key states change
 
   // Bar chart constants (matching MetricRow)
   const barSlotWidth = 16;
@@ -760,32 +747,6 @@ const MetricsSeries = ({ photos }) => {
       params: { photoId, thumbnailUrl: photo.storageUrl }
     });
   };
-
-  // Effect to listen to the thread of the selected photo
-  useEffect(() => {
-    let unsubscribeThread = () => {}; // Default no-op cleanup
-    if (selectedIndex !== null && photos && selectedIndex >= 0 && selectedIndex < photos.length) {
-        const selectedPhoto = photos[selectedIndex];
-        const threadId = selectedPhoto?.threadId; // Get threadId from selected photo
-        if (threadId) {
-            // console.log(`[MetricsSeries] Selected photo ${selectedPhoto.id}, listening to thread ${threadId}`);
-            unsubscribeThread = listenToThread(threadId); // Call context function
-        } else {
-            // console.log(`[MetricsSeries] Selected photo ${selectedPhoto.id} has no threadId. Clearing listener.`);
-            unsubscribeThread = listenToThread(null); // Clear listener if no threadId
-        }
-    } else {
-        // No photo selected, clear listener
-        //  console.log(`[MetricsSeries] No photo selected. Clearing listener.`);
-        unsubscribeThread = listenToThread(null);
-    }
-
-    // Cleanup function for this effect
-    return () => {
-        //  console.log(`[MetricsSeries] Cleanup effect for selectedIndex ${selectedIndex}. Unsubscribing thread listener.`);
-        unsubscribeThread();
-    };
-  }, [selectedIndex, photos, listenToThread]); // Dependencies
 
   // Auto-select most recent photo on mount/data load (run only once per data load)
   useEffect(() => {
@@ -852,7 +813,7 @@ const MetricsSeries = ({ photos }) => {
   }
 
   // Determine the note text based on the current thread summary
-  const noteText = currentThread?.summary || (selectedIndex !== null ? " " : " ");
+  const noteText = " " || (selectedIndex !== null ? " " : " ");
 
   return (
     <View style={styles.container}>
@@ -877,13 +838,6 @@ const MetricsSeries = ({ photos }) => {
           />
         ))}
       </ScrollView>
-
-      {/* Loading overlay - conditionally rendered on top */}
-      {showContent && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#6E46FF" />
-        </View>
-      )}
     </View>
   );
 };
@@ -1232,33 +1186,9 @@ const styles = StyleSheet.create({
     height: 48,
   },
   plotArea: {
-    flexDirection: 'row',
+        flexDirection: 'row',
     alignItems: 'flex-end',
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: "#ffffff",
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#ffffff',
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  loadingSubtext: {
-    fontSize: 14,
-    color: '#ffffff',
-  },
-  timeoutText: {
-    fontSize: 12,
-    color: '#ffffff',
-    marginTop: 8,
+    marginLeft: 24,
   },
 });
 

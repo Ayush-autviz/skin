@@ -22,6 +22,8 @@ import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 import SettingsDrawer from '../../../src/components/layout/SettingsDrawer';
 import PhotoGrid from '../../../src/components/photo/PhotoGrid';
@@ -36,15 +38,25 @@ export default function Home() {
   const { user } = useAuthStore();
   const { photos, isLoading, refreshPhotos, lastUpdated } = usePhotoContext();
 
+  console.log("isLoading", isLoading);
+
   useEffect(() => {
     console.log('📱 Home screen loaded');
   }, []);
+
+  // Refetch photos whenever the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('📱 Home screen focused - refreshing photos');
+      refreshPhotos();
+    }, [])
+  );
 
   const handleMenuPress = () => {
     setIsSettingsVisible(true);
   };
 
-  console.log('🔵 photos:', photos.length);
+  console.log('🔵 photos:', photos);
 
   const handleLogout = async () => {
     try {
@@ -55,6 +67,7 @@ export default function Home() {
       console.error('Logout error:', error);
     }
   };
+  console.log('🔵 photos:', photos);
 
   return (
     <View style={styles.container}>
@@ -103,7 +116,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    marginTop: 100,
+   marginTop: 100,
   },
   content: {
     flex: 1,

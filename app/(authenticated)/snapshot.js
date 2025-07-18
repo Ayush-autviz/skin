@@ -54,11 +54,8 @@ import { useState, useEffect, useRef, useCallback, forwardRef } from 'react';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import Header from '../../src/components/ui/Header';
 import { formatDate } from '../../src/utils/dateUtils';
-import { deletePhoto } from '../../src/services/FirebasePhotosService';
-import { getDatabase, ref, push } from 'firebase/database';
-import { getFirestore, doc, onSnapshot, collection, addDoc, updateDoc } from 'firebase/firestore';
-import AnalysisMetrics from '../../src/components/analysis/AnalysisMetrics';
-import { useFocusEffect } from '@react-navigation/native';
+import { processHautImage, getHautAnalysisResults, getHautMaskResults, getHautMaskImages, transformHautResults, deletePhoto } from '../../src/services/newApiService';
+import useAuthStore from '../../src/stores/authStore';
 import { Camera } from 'expo-camera'; // Import Camera
 import { usePhotoContext } from '../../src/contexts/PhotoContext';  // Add this import
 import Modal from 'react-native-modal';
@@ -71,12 +68,10 @@ import {
 } from 'react-native-gesture-handler';
 import SnapshotPhoto from '../../src/components/photo/SnapshotPhoto';
 import AiMessageCard from '../../src/components/chat/AiMessageCard';
-import { useThreadContext } from '../../src/contexts/ThreadContext'; // Import ThreadContext
 import { Image as ExpoImage } from 'expo-image'; // <-- Import ExpoImage
 import { ImageBackground } from 'react-native'; // Added for blurred background
 import { BlurView } from 'expo-blur'; // Added for blur effect
-import { processHautImage, getHautAnalysisResults, getHautMaskResults, getHautMaskImages, transformHautResults } from '../../src/services/newApiService';
-import useAuthStore from '../../src/stores/authStore';
+
 
 // Configurations
 const ANALYSIS_TIMEOUT_SECONDS = 40; // Timeout window for analysis to complete
@@ -326,8 +321,7 @@ export default function SnapshotScreen() {
   const userId = user?.user_id;
   
   // Contexts
-  const { createThread } = useThreadContext();
-  const { selectedSnapshot, setSelectedSnapshot } = usePhotoContext();
+  const { selectedSnapshot, setSelectedSnapshot, refreshPhotos } = usePhotoContext();
   
   // State management
   const [viewState, setViewState] = useState('default');
@@ -424,27 +418,36 @@ export default function SnapshotScreen() {
           
           // Transform results to match app structure
           const transformedMetrics = transformHautResults(results);
+          console.log('🔵 transformedMetrics:', transformedMetrics);
+
+          // if in trsnsformed metric has only image quality we nedd to throw an error and set uiState to no_results
+          if (Object.keys(transformedMetrics).length === 1 && transformedMetrics.imageQuality) {
+            console.log('🔴 No results found');
+            setLoadingMicrocopy('No results found');
+            setUiState('no_results');
+            return;
+          }
           
           // Get mask results after analysis is complete
           let maskResults = null;
           let maskImages = null;
           try {
             console.log('🔵 Fetching mask results after analysis completion');
-            if (fromPhotoGrid !== 'true') {
+            // if (fromPhotoGrid !== 'true') {
             console.log('inside photogrid');
-            maskResults = await getHautMaskResults(imgId);
+            maskImages = await getHautMaskResults(imgId);
             console.log('🔵 maskResults:', maskResults);
             console.log('✅ Mask results retrieved successfully');
-            }
+            // }
             // Get mask images with S3 URLs for each skin condition
-            try {
-              console.log('🔵 Fetching mask images with S3 URLs');
-              maskImages = await getHautMaskImages(imgId);
-              console.log('✅ Mask images retrieved successfully');
-            } catch (maskImageError) {
-              console.log('⚠️ Mask images not ready yet or error occurred:', maskImageError.message);
-              // Continue without mask images - they're not critical for the main flow
-            }
+            // try {
+            //   console.log('🔵 Fetching mask images with S3 URLs');
+            //   maskImages = await getHautMaskImages(imgId);
+            //   console.log('✅ Mask images retrieved successfully');
+            // } catch (maskImageError) {
+            //   console.log('⚠️ Mask images not ready yet or error occurred:', maskImageError.message);
+            //   // Continue without mask images - they're not critical for the main flow
+            // }
           } catch (error) {
             console.log('⚠️ Mask results not ready yet or error occurred:', error.message);
             // Continue without mask results - they're not critical for the main flow
@@ -467,6 +470,10 @@ export default function SnapshotScreen() {
           setAnalysisResults(results);
           setLoadingMicrocopy('Analysis complete');
           setUiState('complete');
+          
+          // Refresh photos to update the photo lists
+          refreshPhotos();
+          console.log('✅ Photos refreshed after analysis completion');
           
           // Stop polling
           stopPolling();
@@ -595,30 +602,56 @@ export default function SnapshotScreen() {
   // Handle deletion of photo and navigation
   const handleDelete = async () => {
     try {
-      console.log('🗑️ Deleting photo:', photoId);
+      // Get the image ID for deletion
+      const imageIdToDelete = imageId || photoData?.hautUploadData?.imageId || photoId;
+      
+      if (!imageIdToDelete) {
+        throw new Error('No image ID available for deletion');
+      }
+      
+      console.log('🗑️ Deleting photo with ID:', imageIdToDelete);
+      
+      // Call the delete API
+      await deletePhoto(imageIdToDelete);
+      
+      // Navigate away and clear context
       router.replace('/(authenticated)/');
       setSelectedSnapshot(null); // Clear context
       
-      // For Haut.ai flow, we don't need to delete from Firebase
-      // The photo is only stored locally and in memory
-      console.log('✅ Photo deleted (Haut.ai flow)');
+      // Refresh photos to update the photo lists after deletion
+      refreshPhotos();
+      console.log('✅ Photo deleted successfully and photos refreshed');
+      
     } catch (error) {
       console.error('🔴 Delete failed:', error);
-      Alert.alert("Error", "Cannot delete snapshot, data missing.");
+      Alert.alert("Error", `Failed to delete photo: ${error.message}`);
     }
   };
 
   // Handle deletion of photo without navigation (for auto-delete)
   const handleDeleteSilently = async () => {
-    try {
-      console.log('🗑️ Silently deleting photo:', photoId);
+    // try {
+    //   // Get the image ID for deletion
+    //   const imageIdToDelete = imageId || photoData?.hautUploadData?.imageId || photoId;
       
-      // For Haut.ai flow, we don't need to delete from Firebase
-      // The photo is only stored locally and in memory
-      console.log('✅ Photo silently deleted (Haut.ai flow)');
-    } catch (error) {
-      console.error('🔴 Silent delete failed:', error);
-    }
+    //   if (!imageIdToDelete) {
+    //     console.warn('🔴 Silent delete skipped: No image ID available');
+    //     return;
+    //   }
+      
+    //   console.log('🗑️ Silently deleting photo with ID:', imageIdToDelete);
+      
+    //   // Call the delete API
+    //   await deletePhoto(imageIdToDelete);
+      
+    //   // Refresh photos to update the photo lists after silent deletion
+    //   refreshPhotos();
+    //   console.log('✅ Photo silently deleted successfully and photos refreshed');
+      
+    // } catch (error) {
+    //   console.error('🔴 Silent delete failed:', error);
+    //   // Don't show user alert for silent delete - just log the error
+    // }
   };
 
   // Get formatted date for header
@@ -641,55 +674,6 @@ export default function SnapshotScreen() {
     console.log('📱 Snapshot: Exit zoom from header');
     changeViewState('default'); // Return to default state
   };
-
-  // Create AI thread when analysis is complete
-  const ensureThreadExists = async () => {
-    if (!photoData?.metrics || !photoData?.id) {
-      console.log('🔵 No metrics or photo ID available for thread creation');
-      return;
-    }
-
-    try {
-      console.log('🔵 Creating AI thread for photo:', photoData.id);
-      
-      // Create a real thread using ThreadContext
-      const threadId = await createThread({
-        type: 'snapshot_analysis',
-        photoId: photoData.id,
-        initialMessageContent: "I've analyzed your skin snapshot. What would you like to know about your results?"
-      });
-      
-      if (threadId) {
-        // Update photo data with the real thread ID
-        setPhotoData(prev => ({
-          ...prev,
-          threadId: threadId
-        }));
-        
-        // Update PhotoContext's selectedSnapshot with the threadId
-        setSelectedSnapshot(prev => ({
-          ...prev,
-          id: photoData.id,
-          url: photoData.storageUrl,
-          storageUrl: photoData.storageUrl,
-          threadId: threadId
-        }));
-        
-        console.log('✅ AI thread created:', threadId);
-      } else {
-        console.error('🔴 Failed to create thread - no ID returned');
-      }
-    } catch (error) {
-      console.error('🔴 Error creating thread:', error);
-    }
-  };
-
-  // Call ensureThreadExists when analysis is complete
-  useEffect(() => {
-    if (uiState === 'complete' && photoData?.metrics && !photoData?.threadId) {
-      ensureThreadExists();
-    }
-  }, [uiState, photoData?.metrics, photoData?.threadId]);
 
   const handleClose = () => {
     console.log('📱 Snapshot: Close button pressed');
@@ -724,10 +708,10 @@ export default function SnapshotScreen() {
       console.log('🔴 AUTO-DELETE: Analysis failed or timed out');
       
       // Small delay to make sure UI updates first and user can see the message
-      const deleteTimer = setTimeout(() => {
-        console.log('🔴 AUTO-DELETE: Executing silent delete for failed analysis');
-        handleDeleteSilently();
-      }, 800);
+      // const deleteTimer = setTimeout(() => {
+      //   console.log('🔴 AUTO-DELETE: Executing silent delete for failed analysis');
+      //   handleDeleteSilently();
+      // }, 800);
       
       return () => clearTimeout(deleteTimer);
     }

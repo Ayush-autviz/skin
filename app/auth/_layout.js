@@ -43,6 +43,18 @@ export default function AuthLayout() {
           animation: 'slide_from_right'
         }}
       />
+      <Stack.Screen 
+        name="verify-otp"
+        options={{
+          animation: 'slide_from_right'
+        }}
+      />
+      <Stack.Screen 
+        name="new-password"
+        options={{
+          animation: 'slide_from_right'
+        }}
+      />
     </Stack>
   );
 } 

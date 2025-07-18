@@ -20,7 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { colors, spacing, typography, forms, borderRadius } from '../../src/styles';
 import { Camera, Calendar, User } from 'lucide-react-native';
-import { createProfile } from '../../src/services/newApiService';
+import { createProfile, getProfile } from '../../src/services/newApiService';
 import useAuthStore from '../../src/stores/authStore';
 
 export default function NameScreen() {
@@ -30,7 +30,7 @@ export default function NameScreen() {
   const [loading, setLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   
-  const { setProfile, user } = useAuthStore();
+  const { setProfile, setProfileStatus, user } = useAuthStore();
 
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
@@ -89,6 +89,15 @@ export default function NameScreen() {
       }
 
       await createProfile(profileData);
+      
+      // Set profile status to complete
+      setProfileStatus(true);
+      
+      // Fetch the created profile data
+      const profileResult = await getProfile();
+      if (profileResult.success) {
+        setProfile(profileResult.profile);
+      }
       
       // Navigate to main app
       router.push('/(authenticated)/');
@@ -293,6 +302,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 8,
     textAlign: 'center',
+    width: '90%',
   },
   buttonContainer: {
     alignItems: 'center',

@@ -71,7 +71,7 @@ apiClient.interceptors.response.use(
  * @param {string} userData.email - User email
  * @param {string} userData.password - User password  
  * @param {string} userData.name - User name
- * @returns {Promise<Object>} User data with tokens
+ * @returns {Promise<Object>} User data without tokens (OTP will be sent)
  */
 export const signUp = async (userData) => {
   try {
@@ -84,17 +84,17 @@ export const signUp = async (userData) => {
     });
 
     if (response.data.status === 201) {
-      console.log('✅ User signed up successfully');
+      console.log('✅ User signed up successfully, OTP sent to email');
       return {
         success: true,
+        message: response.data.message,
         user: {
           user_id: response.data.data.result.user_id,
           user_name: response.data.data.result.user_name,
           subject_id: response.data.data.result.subject_id,
-          email: userData.email
-        },
-        access_token: response.data.data.result.access_token,
-        refresh_token: response.data.data.result.refresh_token
+          email: userData.email,
+          profile_status: response.data.data.result.profile_status
+        }
       };
     } else {
       throw new Error(response.data.message || 'Signup failed');
@@ -108,6 +108,162 @@ export const signUp = async (userData) => {
     }
     
     throw new Error(error.response?.data?.message || error.message || 'Signup failed');
+  }
+};
+
+/**
+ * Verify OTP for signup or forgot password
+ * @param {Object} otpData - OTP verification data
+ * @param {boolean} otpData.signup - true for signup, false for forgot password
+ * @param {string} otpData.email - User email
+ * @param {string} otpData.otp - OTP code
+ * @returns {Promise<Object>} Verification result
+ */
+export const verifyOtp = async (otpData) => {
+  try {
+    console.log('🔵 Verifying OTP for:', otpData.email);
+    
+    const response = await apiClient.post('/user/verify-otp', {
+      signup: otpData.signup,
+      email: otpData.email,
+      otp: otpData.otp
+    });
+
+    if (response.data.status === 200) {
+      console.log('✅ OTP verified successfully');
+      return {
+        success: true,
+        message: response.data.message,
+        reset_token: response.data.data.reset_token // Only present for forgot password flow
+      };
+    } else {
+      throw new Error(response.data.message || 'OTP verification failed');
+    }
+  } catch (error) {
+    console.error('🔴 OTP verification error:', error);
+    
+    if (error.response?.data?.status === 400) {
+      throw new Error(error.response.data.message || 'Invalid OTP.');
+    }
+    
+    throw new Error(error.response?.data?.message || error.message || 'OTP verification failed');
+  }
+};
+
+/**
+ * Send forgot password OTP
+ * @param {string} email - User email
+ * @returns {Promise<Object>} Success response
+ */
+export const forgotPassword = async (email) => {
+  try {
+    console.log('🔵 Sending forgot password OTP to:', email);
+    
+    const response = await apiClient.post('/user/forgot-password', {
+      email: email
+    });
+
+    if (response.data.status === 200) {
+      console.log('✅ Forgot password OTP sent successfully');
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to send reset OTP');
+    }
+  } catch (error) {
+    console.error('🔴 Forgot password error:', error);
+    throw new Error(error.response?.data?.message || error.message || 'Failed to send reset OTP');
+  }
+};
+
+/**
+ * Set new password using reset token
+ * @param {Object} passwordData - New password data
+ * @param {string} passwordData.email - User email
+ * @param {string} passwordData.password - New password
+ * @param {string} passwordData.reset_token - Reset token from OTP verification
+ * @returns {Promise<Object>} Success response
+ */
+export const newPassword = async (passwordData) => {
+  try {
+    console.log('🔵 Setting new password for:', passwordData.email);
+    
+    const response = await apiClient.post('/user/new-password', {
+      email: passwordData.email,
+      password: passwordData.password,
+      reset_token: passwordData.reset_token
+    });
+
+    if (response.data.status === 200) {
+      console.log('✅ Password changed successfully');
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to change password');
+    }
+  } catch (error) {
+    console.error('🔴 New password error:', error);
+    throw new Error(error.response?.data?.message || error.message || 'Failed to change password');
+  }
+};
+
+/**
+ * Resend OTP during signup
+ * @param {string} email - User email
+ * @returns {Promise<Object>} Success response
+ */
+export const resendOtp = async (email) => {
+  try {
+    console.log('🔵 Resending signup OTP to:', email);
+    
+    const response = await apiClient.post('/user/resend-otp', {
+      email: email
+    });
+
+    if (response.data.status === 200) {
+      console.log('✅ Signup OTP resent successfully');
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to resend OTP');
+    }
+  } catch (error) {
+    console.error('🔴 Resend OTP error:', error);
+    throw new Error(error.response?.data?.message || error.message || 'Failed to resend OTP');
+  }
+};
+
+/**
+ * Resend OTP during forgot password
+ * @param {string} email - User email
+ * @returns {Promise<Object>} Success response
+ */
+export const resendOtpForgotPassword = async (email) => {
+  try {
+    console.log('🔵 Resending forgot password OTP to:', email);
+    
+    const response = await apiClient.post('/user/resend-otp-forgot-password', {
+      email: email
+    });
+
+    if (response.data.status === 200) {
+      console.log('✅ Forgot password OTP resent successfully');
+      return {
+        success: true,
+        message: response.data.message
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to resend OTP');
+    }
+  } catch (error) {
+    console.error('🔴 Resend forgot password OTP error:', error);
+    throw new Error(error.response?.data?.message || error.message || 'Failed to resend OTP');
   }
 };
 
@@ -145,7 +301,8 @@ export const signIn = async (credentials) => {
           email: credentials.email
         },
         access_token: response.data.access_token,
-        refresh_token: response.data.refresh_token
+        refresh_token: response.data.refresh_token,
+        profile_status: response.data.profile_status
       };
     } else {
       throw new Error(response.data.message || 'Login failed');
@@ -413,8 +570,8 @@ export const getHautMaskResults = async (imageId) => {
 
     console.log('🔵 response mask results:', response.data);
 
-    if (response.data.status === 201) {
-      return response.data.data.result;
+    if (response.data.status === 201 || response.data.status === 200) {
+      return response.data.data.result.mask_result;
     }
 
     throw new Error(response.data.message || 'Failed to fetch mask results');
@@ -458,6 +615,7 @@ export const transformHautResults = (hautResults) => {
       pores_score: 'poresScore',
       perceived_age: 'perceivedAge',
       eye_age: 'eyeAge',
+      eye_area_condition: 'eyeAreaCondition',
       skintone_class: 'skinTone',
       face_skin_type_class: 'skinType',
       hydration_score: 'hydrationScore',
@@ -470,7 +628,11 @@ export const transformHautResults = (hautResults) => {
 
     const metrics = { imageQuality: { overall: 0, focus: 0, lighting: 0 } };
 
+    console.log('hautResults', hautResults);
+
     const flat = hautResults[0]?.results ?? hautResults; // Support both wrapped and flat formats
+
+    console.log('flat', flat);
 
     flat.forEach((item) => {
       if (!item) return;
@@ -541,8 +703,142 @@ export const getUserPhotos = async () => {
     throw new Error(error.response?.data?.message || error.message || 'Failed to fetch photos');
   }
 };
+
+/**
+ * Deletes a photo by image ID
+ * @param {string} imageId - Image ID to delete
+ * @returns {Promise<Object>} Success response
+ */
+export const deletePhoto = async (imageId) => {
+  try {
+    console.log('🔵 Deleting photo with ID:', imageId);
+    
+    const response = await apiClient.delete(`/haut_process/?image_id=${imageId}`);
+
+    if (response.data.status === 200) {
+      console.log('✅ Photo deleted successfully');
+      return {
+        success: true,
+        message: response.data.message || 'Photo deleted successfully'
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to delete photo');
+    }
+  } catch (error) {
+    console.error('🔴 deletePhoto error:', error);
+    throw new Error(error.response?.data?.message || error.message || 'Failed to delete photo');
+  }
+};
 // -----------------------------------------------------------------------------
 // END Haut.ai helpers
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+// COMPARISON/PROGRESS API FUNCTIONS
+// -----------------------------------------------------------------------------
+
+/**
+ * Fetches comparison data for the progress screen
+ * @param {string} dateFilter - Date filter (default: 'older_than_6_months')
+ * @returns {Promise<Object>} Comparison data with processed photo metrics
+ */
+export const getComparison = async (dateFilter = 'older_than_6_months') => {
+  try {
+    console.log('🔵 Fetching comparison data with filter:', dateFilter);
+    
+    const response = await apiClient.get(`/comparison/?date_filter=${dateFilter}`);
+
+    if (response.data.status === 200) {
+      console.log('✅ Comparison data fetched successfully');
+      return {
+        success: true,
+        data: response.data.data
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch comparison data');
+    }
+  } catch (error) {
+    console.error('🔴 getComparison error:', error);
+    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch comparison data');
+  }
+};
+
+/**
+ * Transforms comparison API response into photo format expected by MetricsSeries
+ * @param {Object} comparisonData - Raw comparison data from API
+ * @returns {Array} Array of photo objects with metrics for MetricsSeries
+ */
+export const transformComparisonData = (comparisonData) => {
+  console.log('🔵 comparisonData:', comparisonData);
+  try {
+    if (!comparisonData?.result?.score_img_data) {
+      console.log('ℹ️ No score image data found in comparison response');
+      return [];
+    }
+
+    const { score_img_data } = comparisonData.result;
+    
+    // Transform each photo entry into MetricsSeries expected format
+    const transformedPhotos = Object.keys(score_img_data).map((photoId, index) => {
+      const photoData = score_img_data[photoId];
+      const { image, conditions } = photoData;
+      
+      // Create metrics object from conditions array
+      const metrics = {};
+      
+      // Map API condition names to MetricsSeries expected metric keys
+      const conditionMapping = {
+        'acne': 'acneScore',
+        'age': 'perceivedAge', 
+        'eye_bags': 'eyeAreaCondition',
+        'hydration': 'hydrationScore',
+        'lines': 'linesScore',
+        'pigmentation': 'pigmentationScore',
+        'pores': 'poresScore',
+        'redness': 'rednessScore',
+        'translucency': 'translucencyScore',
+        'uniformness': 'uniformnessScore'
+      };
+
+      // Convert conditions array to metrics object
+      conditions.forEach(condition => {
+        const metricKey = conditionMapping[condition.skin_condition_name];
+        if (metricKey) {
+          metrics[metricKey] = condition.skin_condition_score;
+        }
+      });
+
+      // Generate sequential timestamps (spaced 1 day apart for timeline display)
+      // Since API doesn't provide timestamps, create artificial timeline
+      const baseDate = new Date();
+      baseDate.setDate(baseDate.getDate() - (Object.keys(score_img_data).length - 1 - index));
+
+      // Create photo object in expected format
+      return {
+        id: photoId,
+        storageUrl: image.front_image,
+        timestamp: baseDate,
+        analyzed: true,
+        analyzing: false,
+        metrics: metrics,
+        hautUploadData: {
+          imageId: photoId
+        },
+        apiData: photoData
+      };
+    });
+
+    console.log(`✅ Transformed ${transformedPhotos.length} photos from comparison data`);
+    return transformedPhotos;
+    
+  } catch (error) {
+    console.error('🔴 transformComparisonData error:', error);
+    return [];
+  }
+};
+
+// -----------------------------------------------------------------------------
+// END COMPARISON/PROGRESS API FUNCTIONS
 // -----------------------------------------------------------------------------
 
 export default apiClient; 

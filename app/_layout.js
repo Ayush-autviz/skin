@@ -11,33 +11,33 @@ export default function RootLayout() {
       <AuthProvider>
         <PhotoProvider>
           <ThreadProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-              }}
-            >
-              <Stack.Screen 
-                name="(authenticated)" 
-                options={{
-                  animation: 'fade',
+              <Stack
+                screenOptions={{
+                  headerShown: false,
                 }}
-              />
-              <Stack.Screen 
-                name="auth" 
-                options={{
-                  animation: 'fade',
-                }}
-              />
-              <Stack.Screen 
-                name="onboarding" 
-                options={{
-                  animation: 'fade',
-                }}
-              />
-            </Stack>
-          </ThreadProvider>
-        </PhotoProvider>
-      </AuthProvider>
+              >
+                <Stack.Screen 
+                  name="(authenticated)" 
+                  options={{
+                    animation: 'fade',
+                  }}
+                />
+                <Stack.Screen 
+                  name="auth" 
+                  options={{
+                    animation: 'fade',
+                  }}
+                />
+                <Stack.Screen 
+                  name="onboarding" 
+                  options={{
+                    animation: 'fade',
+                  }}
+                />
+              </Stack>
+            </ThreadProvider>
+          </PhotoProvider>
+        </AuthProvider>
     </GestureHandlerRootView>
   );
 } 

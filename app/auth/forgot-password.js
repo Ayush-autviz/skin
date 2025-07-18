@@ -30,10 +30,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { sendPasswordResetEmail } from 'firebase/auth';
 import { Mail } from 'lucide-react-native';
-import { auth } from '../../src/config/firebase';
-import { getAuthErrorMessage } from '../../src/utils/errorMessages';
+import { forgotPassword } from '../../src/services/newApiService';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -48,16 +46,25 @@ export default function ForgotPassword() {
       return;
     }
 
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
     try {
-      setLoading(true);
-      setError('');
-      setSuccess('');
-      await sendPasswordResetEmail(auth, email);
-      setSuccess('Check your email for reset instructions');
-      setEmail('');
+      const result = await forgotPassword(email.toLowerCase().trim());
+      
+      if (result.success) {
+        // Navigate to OTP verification screen for forgot password flow
+        router.push({
+          pathname: '/auth/verify-otp',
+          params: { 
+            email: email.toLowerCase().trim(),
+            isSignup: 'false'
+          }
+        });
+      }
     } catch (err) {
-      const msg = err.code ? getAuthErrorMessage(err) : err.message;
-      setError(msg);
+      setError(err.message || 'Failed to send reset email. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -145,17 +152,17 @@ export default function ForgotPassword() {
                 </View>
               </View>
 
-              {/* Send link */}
+              {/* Send Reset Code */}
               <TouchableOpacity
                 style={[styles.signInButton, loading && styles.signInButtonDisabled]}
                 onPress={handleResetPassword}
                 disabled={loading}
-                accessibilityLabel={loading ? 'Sending email' : 'Send reset link'}
+                accessibilityLabel={loading ? 'Sending reset code' : 'Send reset code'}
                 accessibilityRole="button"
                 accessibilityState={{ disabled: loading }}
               >
                 <Text style={styles.signInButtonText}>
-                  {loading ? 'Sending...' : 'Send Reset Link'}
+                  {loading ? 'Sending...' : 'Send Reset Code'}
                 </Text>
               </TouchableOpacity>
 
