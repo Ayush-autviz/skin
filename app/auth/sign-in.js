@@ -16,19 +16,18 @@ DEV PRINCIPLES
 ------------------------------------------------------*/
 
 import { useState, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  ScrollView,
   Platform,
   StatusBar,
   Image,
   SafeAreaView
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Link, useRouter } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { signIn } from '../../src/services/newApiService';
@@ -73,29 +72,26 @@ export default function SignIn() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
-      
-      <View style={styles.imageContainer}>
-        <Image
-          source={require('../../assets/images/auth.png')}
-          style={styles.headerImage}
-          resizeMode="cover"
-          accessibilityLabel="Sign in illustration"
-        />
-      </View>
 
-      <SafeAreaView style={styles.safeAreaBottom}>
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
+      <KeyboardAwareScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        enableOnAndroid={true}
+        extraScrollHeight={20}
+        enableResetScrollToCoords={false}
+      >
+        {/* Header Image */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={require('../../assets/images/auth.png')}
+            style={styles.headerImage}
+            resizeMode="cover"
+            accessibilityLabel="Sign in illustration"
+          />
+        </View>
             <View style={styles.formContainer}>
               <View style={styles.formHeader}>
                 <Text style={styles.title}>Sign in</Text>
@@ -196,10 +192,8 @@ export default function SignIn() {
                   </Link>
                 </TouchableOpacity>
               </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+        </View>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -208,6 +202,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   imageContainer: {
     width: '100%',
@@ -218,22 +219,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  safeAreaBottom: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  keyboardContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
   formContainer: {
-    flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 30,
     paddingTop: 20,

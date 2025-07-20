@@ -24,13 +24,12 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  ScrollView,
   Platform,
   StatusBar,
   Image,
   SafeAreaView,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Mail } from 'lucide-react-native';
 import { verifyOtp, resendOtp, resendOtpForgotPassword } from '../../src/services/newApiService';
@@ -177,38 +176,34 @@ export default function VerifyOtp() {
         translucent={false}
       />
 
-      {/* Header illustration */}
-      <View style={styles.imageContainer}>
-        <Image
-          source={require('../../assets/images/auth.png')}
-          style={styles.headerImage}
-          resizeMode="cover"
-          accessibilityLabel="OTP verification illustration"
-        />
-        
-        {/* Back button overlay */}
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-          accessibilityLabel="Go back"
-        >
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-      </View>
+      <KeyboardAwareScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        enableOnAndroid={true}
+        extraScrollHeight={20}
+        enableResetScrollToCoords={false}
+      >
+        {/* Header illustration */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={require('../../assets/images/auth.png')}
+            style={styles.headerImage}
+            resizeMode="cover"
+            accessibilityLabel="OTP verification illustration"
+          />
 
-      <SafeAreaView style={styles.safeAreaBottom}>
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={false}
+          {/* Back button overlay */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
           >
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+        </View>
             <View style={styles.formContainer}>
               {/* Title */}
               <View style={styles.formHeader}>
@@ -303,10 +298,8 @@ export default function VerifyOtp() {
                 <Mail size={16} color="#9CA3AF" />
                 <Text style={styles.emailText}>{email}</Text>
               </View> */}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+        </View>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -346,23 +339,14 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
-  safeAreaBottom: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  keyboardContainer: {
-    
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
   scrollView: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     flexGrow: 1,
   },
   formContainer: {
-    flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 30,
     paddingTop: 40,

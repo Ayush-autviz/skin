@@ -22,13 +22,12 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  ScrollView,
   Platform,
   StatusBar,
   Image,
   SafeAreaView,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter } from 'expo-router';
 import { Mail } from 'lucide-react-native';
 import { forgotPassword } from '../../src/services/newApiService';
@@ -71,36 +70,32 @@ export default function ForgotPassword() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar
         barStyle="dark-content"
         backgroundColor="#FFFFFF"
         translucent={false}
       />
 
-      {/* Header illustration */}
-      <View style={styles.imageContainer}>
-        <Image
-          source={require('../../assets/images/auth.png')}
-          style={styles.headerImage}
-          resizeMode="cover"
-          accessibilityLabel="Forgot password illustration"
-        />
-      </View>
-
-      <SafeAreaView style={styles.safeAreaBottom}>
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
+      <KeyboardAwareScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        enableOnAndroid={true}
+        extraScrollHeight={20}
+        enableResetScrollToCoords={false}
+      >
+        {/* Header illustration */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={require('../../assets/images/auth.png')}
+            style={styles.headerImage}
+            resizeMode="cover"
+            accessibilityLabel="Forgot password illustration"
+          />
+        </View>
             <View style={styles.formContainer}>
               {/* Title */}
               <View style={styles.formHeader}>
@@ -176,11 +171,9 @@ export default function ForgotPassword() {
                   <Text style={styles.signUpLink}>Sign in</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </View>
+        </View>
+      </KeyboardAwareScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -192,6 +185,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   imageContainer: {
     width: '100%',
     height: 250,
@@ -201,22 +201,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  safeAreaBottom: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  keyboardContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
   formContainer: {
-    flex: 1,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 30,
     paddingTop: 40,
