@@ -12,6 +12,9 @@ const apiClient = axios.create({
   timeout: 30000,
 });
 
+// Export apiClient for use in other services
+export { apiClient };
+
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {

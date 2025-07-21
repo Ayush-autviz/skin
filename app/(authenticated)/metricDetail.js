@@ -1067,8 +1067,13 @@ export default function MetricDetailScreen() {
                       
                       router.push({
                         pathname: '/(authenticated)/aiChat',
-                        params: { 
+                        params: {
+                          chatType: 'snapshot_feedback',
+                          imageId: photoData?.id || photoData?.image_id,
                           initialMessage: initialMessage,
+                          metrics: JSON.stringify(photoData?.metrics || {}),
+                          skinConcerns: JSON.stringify([]),
+                          skinType: 'normal'
                         }
                       });
                     }}
@@ -1105,8 +1110,13 @@ export default function MetricDetailScreen() {
                         const message = item.initialChatMessage || `Tell me more about how ${item.text.toLowerCase()} can help my skin.`;
                         router.push({
                           pathname: '/(authenticated)/aiChat',
-                          params: { 
+                          params: {
+                            chatType: 'snapshot_feedback',
+                            imageId: photoData?.id || photoData?.image_id,
                             initialMessage: message,
+                            metrics: JSON.stringify(photoData?.metrics || {}),
+                            skinConcerns: JSON.stringify([]),
+                            skinType: 'normal'
                           }
                         });
                       }}

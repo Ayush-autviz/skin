@@ -105,9 +105,20 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
     if (onRecommendationPress) {
       onRecommendationPress(recommendation);
     }
-    
+
     console.log('Recommendation pressed:', recommendation.name);
-    // TODO: Navigate to recommendation detail or AI chat when implemented
+
+    // Navigate to AI chat with recommendation context
+    const message = recommendation.initialChatMessage || `Tell me more about ${recommendation.text.toLowerCase()} and how it can help my skin.`;
+    router.push({
+      pathname: '/(authenticated)/aiChat',
+      params: {
+        chatType: 'routine_check',
+        initialMessage: 'recommendations',
+        skinConcerns: JSON.stringify([]),
+        skinType: 'normal'
+      }
+    });
   };
 
   // Render individual recommendation item
