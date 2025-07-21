@@ -19,12 +19,13 @@ import {
 } from 'react-native';
 import TabHeader from '../../../src/components/ui/TabHeader';
 import SettingsDrawer from '../../../src/components/layout/SettingsDrawer';
-import RecommendationsList from '../../../src/components/routine/RecommendationsList';
+
 import MyRoutine from '../../../src/components/routine/MyRoutine';
+import RecommendationsList from '../../../src/components/routine/RecommendationsList';
 import { colors, spacing, typography } from '../../../src/styles';
 
 export default function RoutineTab() {
-  const [activeTab, setActiveTab] = useState('myRoutine');
+  const [activeTab, setActiveTab] = useState('recommendations');
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   
   useEffect(() => {

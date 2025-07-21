@@ -142,12 +142,12 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
 
   return (
     <ScrollView style={styles.container}>
-      {/* TEMPORARILY COMMENTED OUT - Concerns filters confusing users
-      <MyConcerns 
+      {/* TEMPORARILY COMMENTED OUT - Concerns filters confusing users */}
+      {/* <MyConcerns 
         selectedConcerns={selectedConcerns}
         onSelectionChange={setSelectedConcerns}
-      />
-      */}
+      /> */}
+     
       
       <View style={styles.microcopyContainer}>
         <Text style={styles.microcopyText}>
@@ -186,6 +186,8 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
     </ScrollView>
   );
 }
+
+export default RecommendationsList;
 
 const styles = StyleSheet.create({
   container: {

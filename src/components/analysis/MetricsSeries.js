@@ -373,15 +373,15 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
           }}
         />
         {/* Note text INSIDE the grey container, below the FlatList */}
-        <Text style={styles.noteInsideCarouselArea}>
+        {/* <Text style={styles.noteInsideCarouselArea}>
           {noteText || ' '}
-        </Text>
+        </Text> */}
       </View>
       
       {/* Shadow layers remain visually below the grey container */}
-      <View style={styles.shadowLayer1} />
+      {/* <View style={styles.shadowLayer1} />
       <View style={styles.shadowLayer2} />
-      <View style={styles.shadowLayer3} />
+      <View style={styles.shadowLayer3} /> */}
     </View>
   );
 });
@@ -846,24 +846,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: width,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#FFFFFF',
   },
   card: {
     backgroundColor: 'white',
     marginHorizontal: 16,
-    marginVertical: 4,
-    padding: 12,
-    borderRadius: 12,
+    marginVertical: 6,
+    padding: 16,
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F5F5F5',
   },
   categoryText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#555',
-    letterSpacing: 0.5,
+    color: '#2C2C2C',
+    letterSpacing: 0.3,
   },
   dataSection: {
     height: 60,  // Adjusted for better proportions
@@ -938,12 +941,15 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   timeSelectorContainer: {
-    backgroundColor: '#333333', // Darker background for photo carousel
+    backgroundColor: '#FFFFFF', // Clean white background
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    // marginBottom: 16, // Removed margin bottom
-    // Padding will be handled by FlatList content and the note text
-    // paddingVertical: 16, 
+    borderBottomColor: '#E5E5E5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    paddingVertical:10
   },
   shadowLayer1: {
     position: 'absolute',
@@ -1015,7 +1021,9 @@ const styles = StyleSheet.create({
   },
   metricsContainer: {
     flex: 1,
-    paddingTop: 24, // Added top padding for spacing from carousel
+    paddingTop: 16,
+    paddingBottom: 20,
+    backgroundColor: '#FAFAFA',
   },
   noDataContainer: {
     flex: 1,
@@ -1045,28 +1053,27 @@ const styles = StyleSheet.create({
     width: DATE_CARD_WIDTH,
     height: DATE_CARD_HEIGHT,
     marginHorizontal: DATE_CARD_MARGIN,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
   },
   selectedPhotoThumbCard: {
-    // Scale set to 110% - Animation will handle the actual transform
-    // transform: [{ scale: 1.1 }], 
-    
-    // Further enhance shadow for more "pop"
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 }, // Further increased height offset
-    shadowOpacity: 0.30, // Further increased opacity
-    shadowRadius: 15, // Further increased radius
-    elevation: 15, // Further increased elevation for Android
-    zIndex: 10, // Keep zIndex
+    shadowColor: '#8B7355',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 12,
+    zIndex: 10,
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: '#8B7355',
+    transform: [{ scale: 1.05 }],
   },
   thumbContainer: {
     flex: 1,
@@ -1116,21 +1123,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   averageText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#999',
-    marginRight: 8,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#8B7355',
+    marginRight: 12,
+    backgroundColor: '#8B735510',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   percentChangeText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     marginRight: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   positiveChange: {
-    color: '#34C759',
+    color: '#22C55E',
+    backgroundColor: '#22C55E15',
   },
   negativeChange: {
-    color: '#FF3B30',
+    color: '#EF4444',
+    backgroundColor: '#EF444415',
   },
   changeLabel: {
     fontSize: 10,

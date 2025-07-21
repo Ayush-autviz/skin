@@ -435,9 +435,9 @@ const MetricsSheet = forwardRef(({
         </View>
 
         {/* AI Insights Section - Coming Soon */}
-        <View style={styles.aiInsightsPlaceholder}>
+        <TouchableOpacity style={styles.aiInsightsPlaceholder}>
           <Text style={styles.placeholderText}>AI Insights Coming Soon</Text>
-        </View>
+        </TouchableOpacity>
 
         {/* Scrollable Metrics Content Area */}
         <View style={styles.metricsContentArea}>
