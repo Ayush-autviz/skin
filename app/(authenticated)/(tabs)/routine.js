@@ -44,7 +44,7 @@ export default function RoutineTab() {
       />
       <View style={styles.contentContainer}>
         {/* Tab Navigation */}
-        {/* <ScrollView 
+        <ScrollView 
           horizontal={true} 
           showsHorizontalScrollIndicator={false}
           style={styles.tabScrollView}
@@ -64,7 +64,7 @@ export default function RoutineTab() {
             <Text style={[styles.tabText, activeTab === 'recommendations' && styles.activeTabText]}>Recommendations</Text>
             {activeTab === 'recommendations' && <View style={styles.activeTabIndicator} />}
           </TouchableOpacity>
-        </ScrollView> */}
+        </ScrollView>
 
         {/* Tab Content */}
         <View style={styles.tabContentContainer}>
