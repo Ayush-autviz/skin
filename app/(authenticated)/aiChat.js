@@ -209,11 +209,21 @@ export default function AiChatScreen() {
     }
   };
 
+  // const scrollToBottom = useCallback(() => {
+  //   if (flatListRef.current && messages.length > 0) {
+  //     flatListRef.current.scrollToEnd({ animated: true });
+  //   }
+  // }, [messages.length]);
+
   const scrollToBottom = useCallback(() => {
     if (flatListRef.current && messages.length > 0) {
-      flatListRef.current.scrollToEnd({ animated: true });
+      // Add a small delay to ensure FlatList has rendered
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     }
   }, [messages.length]);
+
 
   useEffect(() => {
     scrollToBottom();
@@ -299,8 +309,9 @@ export default function AiChatScreen() {
       {/* Messages */}
       <Animated.View style={[styles.messagesContainer, { opacity: fadeAnim }]}>
         <FlatList
-          ref={flatListRef}
-          data={messages}
+          // ref={flatListRef}
+          inverted={true}
+          data={messages.reverse()}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesList}
