@@ -84,7 +84,7 @@ export default function AiChatScreen() {
 
   const loadChatHistory = async () => {
     try {
-      const response = await getChatHistory(CHAT_TYPES.MOTIVATIONAL, imageId);
+      const response = await getChatHistory(CHAT_TYPES.SNAPSHOT_FEEDBACK, imageId);
       if (response.success && response.messages.length > 0) {
         const formattedMessages = response.messages.map(transformApiMessage);
         setMessages(formattedMessages);
@@ -246,10 +246,11 @@ export default function AiChatScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
       {/* Header */}
+      <SafeAreaView style={{ flex: 0 }} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
@@ -303,7 +304,7 @@ export default function AiChatScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -371,7 +372,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -479,6 +480,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     marginRight: spacing.sm,
+    marginBottom: spacing.sm,
     maxHeight: 100,
   },
   sendButton: {
@@ -488,6 +490,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: spacing.sm,
     ...shadows.sm,
   },
   sendButtonDisabled: {

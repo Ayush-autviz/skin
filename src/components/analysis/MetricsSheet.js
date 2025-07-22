@@ -35,6 +35,7 @@ import { useRouter } from 'expo-router';
 import { usePhotoContext } from '../../contexts/PhotoContext';
 import AiMessageCard from '../chat/AiMessageCard'; // Import AiMessageCard
 import palette from '../../styles/palette'; // Import palette for consistent colors
+import useAuthStore from '../../stores/authStore';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -56,6 +57,7 @@ const MetricsSheet = forwardRef(({
 }, ref) => {
   const photoContext = usePhotoContext();
   const selectedSnapshot = photoContext?.selectedSnapshot; // Get snapshot for threadId
+  const { user, profile } = useAuthStore();
   
   // --- Guard Check (Only for threadId, metrics come from props) ---
   if (!selectedSnapshot) {
@@ -434,9 +436,38 @@ const MetricsSheet = forwardRef(({
           </TouchableOpacity>
         </View>
 
-        {/* AI Insights Section - Coming Soon */}
-        <TouchableOpacity style={styles.aiInsightsPlaceholder}>
-          <Text style={styles.placeholderText}>AI Insights Coming Soon</Text>
+        {/* AI Insights Section - Chat Style Message */}
+        <TouchableOpacity 
+          style={styles.aiInsightsMessage}
+          onPress={() => {
+            if (photoData && metrics) {
+              // Get firstName from profile or user
+              const firstName = profile?.user_name || user?.user_name || 'there';
+              
+              router.push({
+                pathname: '/(authenticated)/aiChat',
+                params: {
+                  chatType: 'snapshot_feedback',
+                  imageId: photoData?.id || photoData?.image_id,
+                  initialMessage: 'Analyze my score',
+                  firstName: firstName,
+                  metrics: JSON.stringify(metrics),
+                  skinConcerns: JSON.stringify([]),
+                  skinType: 'normal'
+                }
+              });
+            }
+          }}
+        >
+          {/* <View style={styles.aiAvatar}>
+            <Text style={styles.aiAvatarText}>a</Text>
+          </View> */}
+          <View style={styles.aiMessageContent}>
+            <Text style={styles.aiMessageText}>Analyze my score</Text>
+            <View style={styles.aiMessageFooter}>
+              <Text style={styles.aiMessageTime}>Tap to chat</Text>
+            </View>
+          </View>
         </TouchableOpacity>
 
         {/* Scrollable Metrics Content Area */}
@@ -732,17 +763,49 @@ const styles = StyleSheet.create({
     color: 'rgba(0, 0, 0, 0.6)',
     marginLeft: 1,
   },
-  aiInsightsPlaceholder: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    alignItems: 'center',
+  aiInsightsMessage: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
   },
-  placeholderText: {
-    color: '#9CA3AF',
+  aiAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#6E46FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  aiAvatarText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  aiMessageContent: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  aiMessageText: {
     fontSize: 16,
-    fontWeight: '500',
+    color: '#374151',
+    lineHeight: 20,
+  },
+  aiMessageFooter: {
+    marginTop: 8,
+  },
+  aiMessageTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
   },
 });
 

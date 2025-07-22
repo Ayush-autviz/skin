@@ -4,8 +4,15 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import useAuthStore from '../../stores/authStore';
 
 export default function MyRoutine() {
+  const router = useRouter();
+  const { user, profile } = useAuthStore();
+  
+  // Get firstName from profile or user
+  const firstName = profile?.user_name || user?.user_name || 'there';
 
   const handleNavigateToChat = () => {
     router.push({
@@ -13,6 +20,7 @@ export default function MyRoutine() {
       params: {
         chatType: 'routine_check',
         initialMessage: 'my routine',
+        firstName: firstName,
         skinConcerns: JSON.stringify([]),
         skinType: 'normal'
       }

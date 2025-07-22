@@ -27,20 +27,24 @@ export const CHAT_TYPES = {
  */
 export const sendChatMessage = async (messageData) => {
   try {
-    console.log('🔵 Sending chat message:', messageData.type);
+    console.log('🔵 Sending chat message:', messageData);
     
     const payload = {
       type: messageData.type,
       ...(messageData.image_id && { image_id: messageData.image_id }),
       ...(messageData.firstName && { firstName: messageData.firstName }),
       ...(messageData.skinType && { skinType: messageData.skinType }),
-      ...(messageData.skinConcerns && { skinConcerns: messageData.skinConcerns }),
+      ...(messageData.skinConcerns && { skinConcerns: [`${messageData.query}`] }),
       ...(messageData.metrics && { metrics: messageData.metrics }),
       ...(messageData.excludedMetrics && { excludedMetrics: messageData.excludedMetrics }),
       ...(messageData.query && { query: messageData.query })
     };
 
+    console.log('🔵 Payload:', payload);
+
     const response = await apiClient.post('/chat/', payload);
+
+    console.log('🔵 Response of sendChatMessage:', response);
 
     if (response.data.status === 201) {
       console.log('✅ Chat message sent successfully');
@@ -68,7 +72,10 @@ export const getChatHistory = async (type, image_id) => {
   try {
     console.log('🔵 Fetching chat history:', { type, image_id });
     
+    
     const response = await apiClient.get(`/chat/?type=${type}&image_id=${image_id}`);
+
+    console.log('🔵 Response of getChatHistory:', response);
 
     if (response.data.status === 200) {
       console.log('✅ Chat history fetched successfully');

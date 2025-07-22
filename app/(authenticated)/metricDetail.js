@@ -36,6 +36,7 @@ import { usePhotoContext } from '../../src/contexts/PhotoContext';
 import ListItem from '../../src/components/ui/ListItem';
 import FloatingTooltip from '../../src/components/ui/FloatingTooltip';
 import { colors } from '../../src/styles';
+import useAuthStore from '../../src/stores/authStore';
 
 // Import the JSON data
 import concernsData from '../../data/concerns.json';
@@ -484,6 +485,7 @@ const sanitizeS3Uri = (uriString) => {
 export default function MetricDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user, profile } = useAuthStore();
   
   // Extract parameters from navigation
   const { metricKey, metricValue, photoData } = params || {};
@@ -1065,13 +1067,15 @@ export default function MetricDetailScreen() {
                         initialMessage = `${topic.description} This relates to your ${metricDisplayName.toLowerCase()} of ${metricValue}. Would you like me to provide more detailed information about this topic?`;
                       }
                       
+                      // Get firstName from profile or user
+                      const firstName = profile?.user_name || user?.user_name || 'there';
+                      
                       router.push({
                         pathname: '/(authenticated)/aiChat',
                         params: {
-                          chatType: 'snapshot_feedback',
-                          imageId: photoData?.id || photoData?.image_id,
+                          chatType: 'routine_check',
                           initialMessage: initialMessage,
-                          metrics: JSON.stringify(photoData?.metrics || {}),
+                          firstName: firstName,
                           skinConcerns: JSON.stringify([]),
                           skinType: 'normal'
                         }
@@ -1108,13 +1112,15 @@ export default function MetricDetailScreen() {
                       onPress={() => {
                         // console.log(`Tapped on recommendation: ${item.text}`);
                         const message = item.initialChatMessage || `Tell me more about how ${item.text.toLowerCase()} can help my skin.`;
+                        // Get firstName from profile or user
+                        const firstName = profile?.user_name || user?.user_name || 'there';
+                        
                         router.push({
                           pathname: '/(authenticated)/aiChat',
                           params: {
-                            chatType: 'snapshot_feedback',
-                            imageId: photoData?.id || photoData?.image_id,
+                            chatType: 'product_recommendation',
                             initialMessage: message,
-                            metrics: JSON.stringify(photoData?.metrics || {}),
+                            firstName: firstName,
                             skinConcerns: JSON.stringify([]),
                             skinType: 'normal'
                           }

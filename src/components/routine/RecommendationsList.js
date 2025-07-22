@@ -108,13 +108,18 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
 
     console.log('Recommendation pressed:', recommendation.name);
 
+    // Get firstName from profile or user
+    const firstName = profile?.user_name || user?.user_name || 'there';
+    console.log('🎯 [RecommendationsList] First name:', firstName);
+
     // Navigate to AI chat with recommendation context
     const message = recommendation.initialChatMessage || `Tell me more about ${recommendation.text.toLowerCase()} and how it can help my skin.`;
     router.push({
       pathname: '/(authenticated)/aiChat',
       params: {
-        chatType: 'routine_check',
-        initialMessage: 'recommendations',
+        chatType: 'product_recommendation',
+        initialMessage: message,
+        firstName: firstName,
         skinConcerns: JSON.stringify([]),
         skinType: 'normal'
       }
