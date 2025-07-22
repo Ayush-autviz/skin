@@ -704,17 +704,17 @@ export default function SnapshotScreen() {
     }
     
     // Case 2: Analysis failed or timed out
-    if (uiState === 'no_results') {
-      console.log('🔴 AUTO-DELETE: Analysis failed or timed out');
+    // if (uiState === 'no_results') {
+    //   console.log('🔴 AUTO-DELETE: Analysis failed or timed out');
       
-      // Small delay to make sure UI updates first and user can see the message
-      // const deleteTimer = setTimeout(() => {
-      //   console.log('🔴 AUTO-DELETE: Executing silent delete for failed analysis');
-      //   handleDeleteSilently();
-      // }, 800);
+    //   // Small delay to make sure UI updates first and user can see the message
+    //   // const deleteTimer = setTimeout(() => {
+    //   //   console.log('🔴 AUTO-DELETE: Executing silent delete for failed analysis');
+    //   //   handleDeleteSilently();
+    //   // }, 800);
       
-      return () => clearTimeout(deleteTimer);
-    }
+    //   return () => clearTimeout(deleteTimer);
+    // }
   }, [photoData, uiState]);
 
   // --- Render Logic --- 

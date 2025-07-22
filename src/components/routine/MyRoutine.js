@@ -28,25 +28,23 @@ export default function MyRoutine() {
   }
   return (
     <View style={styles.container}>
-          <View style={styles.emptyListTopContainer}>
-          <TouchableOpacity
-            style={styles.motivationalCard}
-            activeOpacity={0.85}
-            onPress={handleNavigateToChat}
-          >
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>a</Text>
+      <View style={styles.emptyListTopContainer}>
+        <TouchableOpacity
+          style={styles.aiInsightsMessage}
+          activeOpacity={0.85}
+          onPress={handleNavigateToChat}
+        >
+          {/* <View style={styles.aiAvatar}>
+            <Text style={styles.aiAvatarText}>a</Text>
+          </View> */}
+          <View style={styles.aiMessageContent}>
+            <Text style={styles.aiMessageText}>Let's get started! Tell me about your current routine.</Text>
+            <View style={styles.aiMessageFooter}>
+              <Text style={styles.aiMessageTime}>Tap to chat</Text>
             </View>
-            <Text style={styles.motivationalText}>
-              {"Let's get started! Tell me about your current routine."}
-            </Text>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={24}
-              style={styles.arrowIcon}
-            />
-          </TouchableOpacity>
-        </View>
+          </View>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -62,21 +60,52 @@ const styles = StyleSheet.create({
   emptyListTopContainer: {
     paddingTop: 24,
     alignItems: 'stretch',
-    paddingHorizontal: 0,
+    paddingHorizontal: 16,
   },
   
-  avatarText: {
+  // AI Insights Message Styles (matching MetricsSheet)
+  aiInsightsMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    // paddingVertical: 6,
+    marginBottom: 16,
+  },
+  aiAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#6E46FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  aiAvatarText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 12,
+    fontSize: 14,
   },
-  motivationalText: {
-    fontSize: 13,
+  aiMessageContent: {
     flex: 1,
-   
+    backgroundColor: '#F8F9FA',
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  arrowIcon: {
+  aiMessageText: {
     fontSize: 16,
-    marginLeft: 8,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  aiMessageFooter: {
+    marginTop: 8,
+  },
+  aiMessageTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
   },
 }); 

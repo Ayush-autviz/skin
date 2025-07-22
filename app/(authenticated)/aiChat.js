@@ -86,7 +86,30 @@ export default function AiChatScreen() {
     try {
       const response = await getChatHistory(CHAT_TYPES.SNAPSHOT_FEEDBACK, imageId);
       if (response.success && response.messages.length > 0) {
-        const formattedMessages = response.messages.map(transformApiMessage);
+        const formattedMessages = [];
+        
+        response.messages.forEach((apiMessage) => {
+          // Add user message if query exists
+          if (apiMessage.query && Array.isArray(apiMessage.query) && apiMessage.query.length > 0) {
+            apiMessage.query.forEach((userQuery, index) => {
+              formattedMessages.push({
+                id: `user-${apiMessage.id}-${index}`,
+                content: userQuery,
+                role: 'user',
+                timestamp: new Date(apiMessage.created_at)
+              });
+            });
+          }
+          
+          // Add AI response
+          formattedMessages.push({
+            id: `ai-${apiMessage.id}`,
+            content: apiMessage.response,
+            role: 'assistant',
+            timestamp: new Date(apiMessage.created_at)
+          });
+        });
+        
         setMessages(formattedMessages);
       }
     } catch (error) {
@@ -97,6 +120,16 @@ export default function AiChatScreen() {
 
   const sendInitialMessage = async () => {
     try {
+      // Check if the initial message is already in the chat history
+      const messageExists = messages.some(msg => 
+        msg.role === 'user' && msg.content === initialMessage
+      );
+      
+      if (messageExists) {
+        console.log('Initial message already exists in chat history, skipping...');
+        return;
+      }
+
       const messageData = {
         type: chatType,
         firstName,
