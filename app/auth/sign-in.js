@@ -44,9 +44,21 @@ export default function SignIn() {
   const { setUser, setTokens, setProfileStatus, setLoading: setStoreLoading } = useAuthStore();
   const passwordRef = useRef(null);
 
+  // Email validation function
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSignIn = async () => {
     if (!email || !password) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address');
       return;
     }
     
@@ -104,7 +116,7 @@ export default function SignIn() {
                     {error}
                   </Text>
                 </View>
-              ) : null}
+              ) : <View style={{height: 65}} />}
               
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email</Text>
@@ -226,7 +238,7 @@ const styles = StyleSheet.create({
     paddingBottom: 50,
   },
   formHeader: {
-    marginBottom: 40,
+    marginBottom: 20,
     alignItems: 'flex-start',
   },
   title: {
@@ -242,7 +254,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   errorContainer: {
-    marginBottom: 20,
+    marginBottom: 20, 
     backgroundColor: '#FFE5E5',
     borderRadius: 8,
     padding: 12,
@@ -292,7 +304,7 @@ const styles = StyleSheet.create({
   forgotPasswordContainer: {
     alignSelf: 'flex-end',
     marginTop: 8,
-    minHeight: 44, // Accessibility minimum touch target
+    minHeight: 24, // Accessibility minimum touch target
     justifyContent: 'center',
   },
   forgotPasswordText: {
@@ -304,8 +316,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#8B7355',
     borderRadius: 25,
     paddingVertical: 16,
-    marginTop: 40,
-    marginBottom: 24,
+    marginTop: 20,
+    marginBottom: 10,
     minHeight: 56, // Better touch target
     justifyContent: 'center',
     alignItems: 'center',

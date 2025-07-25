@@ -74,7 +74,7 @@ import { BlurView } from 'expo-blur'; // Added for blur effect
 
 
 // Configurations
-const ANALYSIS_TIMEOUT_SECONDS = 40; // Timeout window for analysis to complete
+const ANALYSIS_TIMEOUT_SECONDS = 45; // Timeout window for analysis to complete (1 minute)
 const SHOW_DEBUG_BUTTONS = false;
 const QUALITY_THRESHOLD_MIN = 10;  // Minimum acceptable image quality score
 const QUALITY_WARNING_THRESHOLD = 50;  // Threshold for displaying quality warning
@@ -315,6 +315,8 @@ export default function SnapshotScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { photoId, localUri, userId: paramUserId, timestamp, fromPhotoGrid, imageId: passedImageId } = params;
+
+  console.log('🔵 params from snapshot screen:', params);
   
   // Auth store (fallback user ID)
   const { user } = useAuthStore();
@@ -340,6 +342,7 @@ export default function SnapshotScreen() {
   // Refs
   const uploadTimeoutRef = useRef(null);
   const pollingTimeoutRef = useRef(null);
+  const mainTimeoutRef = useRef(null);
   // Flag to ensure initialization logic runs only once
   const hasInitializedRef = useRef(false);
 
@@ -408,6 +411,14 @@ export default function SnapshotScreen() {
   const startPollingForResults = (imgId) => {
     console.log('🔵 Starting polling for results:', imgId);
     
+    // Set up the main timeout for the entire polling process
+    mainTimeoutRef.current = setTimeout(() => {
+      console.log('⏰ Analysis timeout reached (1 minute)');
+      setLoadingMicrocopy('No metrics found');
+      setUiState('no_results');
+      stopPolling();
+    }, ANALYSIS_TIMEOUT_MS);
+    
     const poll = async () => {
       try {
         const results = await getHautAnalysisResults(imgId);
@@ -415,6 +426,12 @@ export default function SnapshotScreen() {
         
         if (results && results.length > 0) {
           console.log('✅ Analysis results received');
+          
+          // Clear the main timeout since we got results
+          if (mainTimeoutRef.current) {
+            clearTimeout(mainTimeoutRef.current);
+            mainTimeoutRef.current = null;
+          }
           
           // Transform results to match app structure
           const transformedMetrics = transformHautResults(results);
@@ -491,6 +508,10 @@ export default function SnapshotScreen() {
           pollingTimeoutRef.current = setTimeout(poll, 3000);
         } else {
           console.error('🔴 Polling error:', error);
+          if (mainTimeoutRef.current) {
+            clearTimeout(mainTimeoutRef.current);
+            mainTimeoutRef.current = null;
+          }
           setLoadingMicrocopy('Analysis failed');
           setUiState('no_results');
           stopPolling();
@@ -506,6 +527,11 @@ export default function SnapshotScreen() {
     if (pollingTimeoutRef.current) {
       clearTimeout(pollingTimeoutRef.current);
       pollingTimeoutRef.current = null;
+    }
+    // Clear the main timeout
+    if (mainTimeoutRef.current) {
+      clearTimeout(mainTimeoutRef.current);
+      mainTimeoutRef.current = null;
     }
   };
 

@@ -436,7 +436,8 @@ const MetricsSheet = forwardRef(({
           </TouchableOpacity>
         </View>
 
-        {/* AI Insights Section - Chat Style Message */}
+        {/* AI Insights Section - Chat Style Message - Only show when analysis is complete */}
+        {uiState === 'complete' && (
         <TouchableOpacity 
           style={styles.aiInsightsMessage}
           onPress={() => {
@@ -469,6 +470,7 @@ const MetricsSheet = forwardRef(({
             </View>
           </View>
         </TouchableOpacity>
+        )}
 
         {/* Scrollable Metrics Content Area */}
         <View style={styles.metricsContentArea}>

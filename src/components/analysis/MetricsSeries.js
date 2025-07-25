@@ -731,20 +731,57 @@ const MetricsSeries = ({ photos }) => {
 
   const handleLongPress = (photo, index) => {
     // Navigate to snapshot using same pattern as PhotoGrid
-    const photoId = photo.id.replace('.jpg', '');
+    // Don't remove .jpg - use the photo.id directly like PhotoGrid does
+    const photoId = photo.id;
     
-    // Store photo in context for snapshot screen
+    // Convert timestamp to the required format: 'Thu Jul 24 2025 12:01:59 GMT+0530'
+    let timestampParam = null;
+    if (photo.timestamp) {
+      const ts = photo.timestamp;
+      let dateObj;
+      
+      if (ts?.seconds && typeof ts.seconds === 'number') {
+        // Firestore Timestamp
+        dateObj = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0));
+      } else if (ts instanceof Date) {
+        // Already a JS Date
+        dateObj = ts;
+      } else {
+        // Attempt conversion from string/number
+        dateObj = new Date(ts);
+      }
+      
+      // Format to the required format: 'Thu Jul 24 2025 12:01:59 GMT+0530'
+      if (dateObj instanceof Date && !isNaN(dateObj.getTime())) {
+        timestampParam = dateObj.toString();
+      }
+    }
+
+    // Store photo in context for snapshot screen - include apiData like PhotoGrid does
     setSelectedSnapshot({
       id: photoId,
       url: photo.storageUrl,
       storageUrl: photo.storageUrl,
-      threadId: photo.threadId
+      threadId: photo.threadId,
+      apiData: {
+        created_at: timestampParam // Add the timestamp as created_at to match PhotoGrid structure
+      }
     });
+
+
+    console.log('🔵 photoId from MetricsSeries:', photo);
 
     // Navigate to snapshot screen
     router.push({ 
       pathname: '/snapshot', 
-      params: { photoId, thumbnailUrl: photo.storageUrl }
+      params: { 
+        photoId: photo.hautUploadData?.imageId, 
+        imageId: photo.hautUploadData?.imageId, // Use photo.id directly - this should be the image_id from API
+        thumbnailUrl: photo.storageUrl, 
+        localUri: photo.storageUrl, 
+        fromPhotoGrid: 'true', 
+        timestamp: timestampParam // Use the properly formatted ISO string
+      }
     });
   };
 

@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0AC0AB2E7F18275F33B37EB6 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 736A072E6D6733826A7C603C /* ExpoModulesProvider.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		A443C41182D3594B8A3D2CA7 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 17049A67FF4509F7CD14E088 /* PrivacyInfo.xcprivacy */; };
-		B49953618C0C818D33E72FCF /* libPods-MagicMirror.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FD81A0ACF09E23F4A04D68AD /* libPods-MagicMirror.a */; };
+		4734C1B808F6BEE14E44FA5C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = DE82A0D23F821D72201691BE /* PrivacyInfo.xcprivacy */; };
+		637A257731D13374692E371A /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADDEDAB52E412B9302A2EF87 /* ExpoModulesProvider.swift */; };
+		806BDEA08AD25671A4D99371 /* libPods-MagicMirror.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 980739A432732B5B789227F4 /* libPods-MagicMirror.a */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -20,16 +20,16 @@
 		13B07F961A680F5B00A75B9A /* MagicMirror.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicMirror.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MagicMirror/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = MagicMirror/Info.plist; sourceTree = "<group>"; };
-		17049A67FF4509F7CD14E088 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = MagicMirror/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		3C4C5B0796305362DC3F0A67 /* Pods-MagicMirror.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MagicMirror.release.xcconfig"; path = "Target Support Files/Pods-MagicMirror/Pods-MagicMirror.release.xcconfig"; sourceTree = "<group>"; };
-		736A072E6D6733826A7C603C /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MagicMirror/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		A4C7093B55F91C7CC06F3A25 /* Pods-MagicMirror.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MagicMirror.debug.xcconfig"; path = "Target Support Files/Pods-MagicMirror/Pods-MagicMirror.debug.xcconfig"; sourceTree = "<group>"; };
+		3820099DA9EB03F9C018284B /* Pods-MagicMirror.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MagicMirror.release.xcconfig"; path = "Target Support Files/Pods-MagicMirror/Pods-MagicMirror.release.xcconfig"; sourceTree = "<group>"; };
+		980739A432732B5B789227F4 /* libPods-MagicMirror.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MagicMirror.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A15E371F598A4B8498262D05 /* Pods-MagicMirror.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MagicMirror.debug.xcconfig"; path = "Target Support Files/Pods-MagicMirror/Pods-MagicMirror.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = MagicMirror/SplashScreen.storyboard; sourceTree = "<group>"; };
+		ADDEDAB52E412B9302A2EF87 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MagicMirror/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		DE82A0D23F821D72201691BE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = MagicMirror/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = MagicMirror/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* MagicMirror-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "MagicMirror-Bridging-Header.h"; path = "MagicMirror/MagicMirror-Bridging-Header.h"; sourceTree = "<group>"; };
-		FD81A0ACF09E23F4A04D68AD /* libPods-MagicMirror.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MagicMirror.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,13 +37,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B49953618C0C818D33E72FCF /* libPods-MagicMirror.a in Frameworks */,
+				806BDEA08AD25671A4D99371 /* libPods-MagicMirror.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0C122688DA7E1340D3DAAD60 /* MagicMirror */ = {
+			isa = PBXGroup;
+			children = (
+				ADDEDAB52E412B9302A2EF87 /* ExpoModulesProvider.swift */,
+			);
+			name = MagicMirror;
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* MagicMirror */ = {
 			isa = PBXGroup;
 			children = (
@@ -53,7 +61,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				17049A67FF4509F7CD14E088 /* PrivacyInfo.xcprivacy */,
+				DE82A0D23F821D72201691BE /* PrivacyInfo.xcprivacy */,
 			);
 			name = MagicMirror;
 			sourceTree = "<group>";
@@ -62,17 +70,9 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				FD81A0ACF09E23F4A04D68AD /* libPods-MagicMirror.a */,
+				980739A432732B5B789227F4 /* libPods-MagicMirror.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		6694DC96B84033B4621898E7 /* MagicMirror */ = {
-			isa = PBXGroup;
-			children = (
-				736A072E6D6733826A7C603C /* ExpoModulesProvider.swift */,
-			);
-			name = MagicMirror;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -89,8 +89,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				E780ECAEBE7946C2C263DBC4 /* Pods */,
-				BFCE016E1BF0F62712307963 /* ExpoModulesProviders */,
+				E5905CE4FB27ECFF4F3916B5 /* Pods */,
+				8B0BCB6D63C64D6DD24CBB23 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -105,6 +105,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		8B0BCB6D63C64D6DD24CBB23 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				0C122688DA7E1340D3DAAD60 /* MagicMirror */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -114,21 +122,12 @@
 			path = MagicMirror/Supporting;
 			sourceTree = "<group>";
 		};
-		BFCE016E1BF0F62712307963 /* ExpoModulesProviders */ = {
+		E5905CE4FB27ECFF4F3916B5 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				6694DC96B84033B4621898E7 /* MagicMirror */,
+				A15E371F598A4B8498262D05 /* Pods-MagicMirror.debug.xcconfig */,
+				3820099DA9EB03F9C018284B /* Pods-MagicMirror.release.xcconfig */,
 			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
-		E780ECAEBE7946C2C263DBC4 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				A4C7093B55F91C7CC06F3A25 /* Pods-MagicMirror.debug.xcconfig */,
-				3C4C5B0796305362DC3F0A67 /* Pods-MagicMirror.release.xcconfig */,
-			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -140,13 +139,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "MagicMirror" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				65D94CC8174B28A3E64C1322 /* [Expo] Configure project */,
+				D780B1338443221A87A66739 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				5EB5D943908900B3CA474637 /* [CP] Embed Pods Frameworks */,
+				C3F880058AFEBB99C4A4F744 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +195,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				A443C41182D3594B8A3D2CA7 /* PrivacyInfo.xcprivacy in Resources */,
+				4734C1B808F6BEE14E44FA5C /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -239,43 +238,6 @@
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
-		};
-		5EB5D943908900B3CA474637 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-MagicMirror/Pods-MagicMirror-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MagicMirror/Pods-MagicMirror-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		65D94CC8174B28A3E64C1322 /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-MagicMirror/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -325,6 +287,43 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MagicMirror/Pods-MagicMirror-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		C3F880058AFEBB99C4A4F744 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MagicMirror/Pods-MagicMirror-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MagicMirror/Pods-MagicMirror-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		D780B1338443221A87A66739 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-MagicMirror/expo-configure-project.sh\"\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -333,7 +332,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				0AC0AB2E7F18275F33B37EB6 /* ExpoModulesProvider.swift in Sources */,
+				637A257731D13374692E371A /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -342,12 +341,13 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A4C7093B55F91C7CC06F3A25 /* Pods-MagicMirror.debug.xcconfig */;
+			baseConfigurationReference = A15E371F598A4B8498262D05 /* Pods-MagicMirror.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MagicMirror/MagicMirror.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 25;
+				DEVELOPMENT_TEAM = ZDGG93H7R5;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -378,12 +378,13 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 3C4C5B0796305362DC3F0A67 /* Pods-MagicMirror.release.xcconfig */;
+			baseConfigurationReference = 3820099DA9EB03F9C018284B /* Pods-MagicMirror.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MagicMirror/MagicMirror.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 25;
+				DEVELOPMENT_TEAM = ZDGG93H7R5;
 				INFOPLIST_FILE = MagicMirror/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (

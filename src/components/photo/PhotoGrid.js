@@ -75,6 +75,8 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
   }, [photos.length]);
   */
 
+  console.log('🔵 photos from PhotoGrid:', photos);
+
   // Only scroll when new photos are added (scrollToEnd should work for non-inverted)
   useEffect(() => {
     const currentPhotoCount = photos?.length || 0;

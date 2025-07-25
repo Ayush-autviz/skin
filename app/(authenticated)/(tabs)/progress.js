@@ -69,6 +69,8 @@ export default function ProgressTab() {
     }
   };
 
+  console.log('🔵 photos from ProgressTab:', photos);
+
   const handleRefresh = () => {
     fetchComparisonData(true);
   };
@@ -136,6 +138,8 @@ export default function ProgressTab() {
       </View>
     </View>
   );
+
+  console.log('🔵 analyzedPhotos from ProgressTab:', analyzedPhotos);
 
   return (
     <View style={styles.container}>

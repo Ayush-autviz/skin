@@ -48,9 +48,21 @@ export default function SignUp() {
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
 
+  // Email validation function
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSignUp = async () => {
     if (!name || !email || !password || !confirmPassword) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address');
       return;
     }
     
@@ -126,7 +138,7 @@ export default function SignUp() {
                     {error}
                   </Text>
                 </View>
-              ) : null}
+              ) : <View style={{height: 65}} />}
 
               {/* Name */}
               <View style={styles.inputContainer}>
@@ -301,18 +313,18 @@ const styles = StyleSheet.create({
   formContainer: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 30,
-    paddingTop: 5,
+    // paddingTop: 2,
     paddingBottom: 50,
   },
   formHeader: {
-    marginBottom: 25,
+    marginBottom: 20,
     alignItems: 'flex-start',
   },
   title: {
     fontSize: 32,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   titleUnderline: {
     width: 60,
@@ -321,7 +333,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   errorContainer: {
-    marginBottom: 20,
+    marginBottom: 10,
     backgroundColor: '#FFE5E5',
     borderRadius: 8,
     padding: 12,
@@ -335,20 +347,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   label: {
     fontSize: 16,
     fontWeight: '500',
     color: '#6B7280',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: PRIMARY_COLOR,
-    paddingBottom: 8,
+    paddingBottom: 4,
     minHeight: 44,
   },
   inputIcon: {
@@ -373,7 +385,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingVertical: 16,
     marginTop: 10,
-    marginBottom: 24,
+    marginBottom: 10,
     minHeight: 56,
     justifyContent: 'center',
     alignItems: 'center',

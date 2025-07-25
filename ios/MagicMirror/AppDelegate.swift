@@ -5,18 +5,22 @@ import ReactAppDependencyProvider
 @UIApplicationMain
 public class AppDelegate: ExpoAppDelegate {
   var window: UIWindow?
-
-  var reactNativeDelegate: ExpoReactNativeFactoryDelegate?
-  var reactNativeFactory: RCTReactNativeFactory?
+  var reactNativeDelegate: ReactNativeDelegate?
+  var reactNativeFactory: ExpoReactNativeFactory?
 
   public override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
-    let delegate = ReactNativeDelegate()
-    let factory = ExpoReactNativeFactory(delegate: delegate)
+    // Initialize delegates
+    let reactDelegate = ExpoReactDelegate(handlers: ExpoAppDelegateSubscriberRepository.reactDelegateHandlers)
+    let delegate = ReactNativeDelegate(reactDelegate: reactDelegate)
+    let factory = ExpoReactNativeFactory(delegate: delegate) // Removed reactDelegate parameter
+
+    // Set dependency provider
     delegate.dependencyProvider = RCTAppDependencyProvider()
 
+    // Store references
     reactNativeDelegate = delegate
     reactNativeFactory = factory
     bindReactNativeFactory(factory)
@@ -26,7 +30,8 @@ public class AppDelegate: ExpoAppDelegate {
     factory.startReactNative(
       withModuleName: "main",
       in: window,
-      launchOptions: launchOptions)
+      launchOptions: launchOptions
+    )
 #endif
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -38,7 +43,8 @@ public class AppDelegate: ExpoAppDelegate {
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
-    return super.application(app, open: url, options: options) || RCTLinkingManager.application(app, open: url, options: options)
+    return super.application(app, open: url, options: options) ||
+      RCTLinkingManager.application(app, open: url, options: options)
   }
 
   // Universal Links
@@ -47,22 +53,35 @@ public class AppDelegate: ExpoAppDelegate {
     continue userActivity: NSUserActivity,
     restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
   ) -> Bool {
-    let result = RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
-    return super.application(application, continue: userActivity, restorationHandler: restorationHandler) || result
+    let result = RCTLinkingManager.application(
+      application,
+      continue: userActivity,
+      restorationHandler: restorationHandler
+    )
+    return super.application(
+      application,
+      continue: userActivity,
+      restorationHandler: restorationHandler
+    ) || result
   }
 }
 
 class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
-  // Extension point for config-plugins
+  private let reactDelegate: ExpoReactDelegate?
+
+  public override init(reactDelegate: ExpoReactDelegate? = nil) {
+    self.reactDelegate = reactDelegate
+    super.init()
+  }
 
   override func sourceURL(for bridge: RCTBridge) -> URL? {
-    // needed to return the correct URL for expo-dev-client.
     bridge.bundleURL ?? bundleURL()
   }
 
   override func bundleURL() -> URL? {
 #if DEBUG
-    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry")
+    return RCTBundleURLProvider.sharedSettings()
+      .jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry")
 #else
     return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif

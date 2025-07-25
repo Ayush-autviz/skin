@@ -911,7 +911,7 @@ export const transformComparisonData = (comparisonData) => {
           analyzing: false,
           metrics: metrics,
           hautUploadData: {
-            imageId: photoId,
+            imageId: image.image_id,
           },
           apiData: photoData,
         };

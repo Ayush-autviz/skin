@@ -13,6 +13,7 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "newArchEnabled":true,
       "supportsTablet": false,
       "bundleIdentifier": "com.mirrorbase.mirror",
       "icon": "./assets/images/icon.png",
@@ -22,6 +23,7 @@
       }
     },
     "android": {
+      "newArchEnabled":true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon-pmm.png",
         "backgroundColor": "#74696F"

@@ -209,12 +209,6 @@ export default function AiChatScreen() {
     }
   };
 
-  // const scrollToBottom = useCallback(() => {
-  //   if (flatListRef.current && messages.length > 0) {
-  //     flatListRef.current.scrollToEnd({ animated: true });
-  //   }
-  // }, [messages.length]);
-
   const scrollToBottom = useCallback(() => {
     if (flatListRef.current && messages.length > 0) {
       // Add a small delay to ensure FlatList has rendered
@@ -225,9 +219,7 @@ export default function AiChatScreen() {
   }, [messages.length]);
 
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+
 
   const renderMessage = ({ item }) => (
     <MessageBubble message={item} />
@@ -289,7 +281,11 @@ export default function AiChatScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
       {/* Header */}
@@ -309,46 +305,43 @@ export default function AiChatScreen() {
       {/* Messages */}
       <Animated.View style={[styles.messagesContainer, { opacity: fadeAnim }]}>
         <FlatList
-          // ref={flatListRef}
-          inverted={true}
-          data={messages.reverse()}
+          ref={flatListRef}
+          data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesList}
           showsVerticalScrollIndicator={false}
+          // initialScrollIndex={messages.length - 1}
+          onContentSizeChange={scrollToBottom}
+          onLayout={scrollToBottom}
         />
       </Animated.View>
 
       {/* Input */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
-        <View style={styles.inputContainer}>
-          <TextInput
-            ref={inputRef}
-            style={styles.textInput}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Ask me anything about your skin..."
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            maxLength={500}
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
-            onPress={sendMessage}
-            disabled={!inputText.trim() || isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color={colors.textOnPrimary} />
-            ) : (
-              <Ionicons name="send" size={20} color={colors.textOnPrimary} />
-            )}
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </View>
+      <View style={styles.inputContainer}>
+        <TextInput
+          ref={inputRef}
+          style={styles.textInput}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder="Ask me anything about your skin..."
+          placeholderTextColor={colors.textSecondary}
+          multiline
+          maxLength={500}
+        />
+        <TouchableOpacity
+          style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
+          onPress={sendMessage}
+          disabled={!inputText.trim() || isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={colors.textOnPrimary} />
+          ) : (
+            <Ionicons name="send" size={20} color={colors.textOnPrimary} />
+          )}
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -507,7 +500,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.border,

@@ -25,16 +25,15 @@ import {
   Text, 
   StyleSheet, 
   ActivityIndicator, 
-  ScrollView, 
   TextInput, 
   TouchableOpacity, 
-  KeyboardAvoidingView, 
   Platform,
   StatusBar,
   Image,
   SafeAreaView,
   Alert
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -224,7 +223,17 @@ export default function Profile() {
   };
 
   return (
-    <View style={styles.container}>
+    // <View style={styles.container}>
+    <KeyboardAwareScrollView
+    style={styles.container}
+    contentContainerStyle={styles.scrollContent}
+    keyboardShouldPersistTaps="handled"
+    showsVerticalScrollIndicator={false}
+    bounces={false}
+    enableOnAndroid={true}
+    extraScrollHeight={20}
+    enableResetScrollToCoords={false}
+  >
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
       
       {/* Header illustration */}
@@ -258,219 +267,221 @@ export default function Profile() {
       </View>
 
       <SafeAreaView style={styles.safeAreaBottom}>
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
-            <View style={styles.formContainer}>
-              {/* Title */}
-              <View style={styles.formHeader}>
-                <Text style={styles.title}>
-                  {isEditing ? 'Edit Profile' : 'Profile'}
+        {/* <KeyboardAwareScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          enableOnAndroid={true}
+          extraScrollHeight={20}
+          enableResetScrollToCoords={false}
+        > */}
+          <View style={styles.formContainer}>
+            {/* Title */}
+            <View style={styles.formHeader}>
+              <Text style={styles.title}>
+                {isEditing ? 'Edit Profile' : 'Profile'}
+              </Text>
+              <View style={styles.titleUnderline} />
+            </View>
+
+            {/* Success message */}
+            {success ? (
+              <View style={styles.successContainer}>
+                <Text style={styles.successText} accessibilityRole="status">
+                  {success}
                 </Text>
-                <View style={styles.titleUnderline} />
               </View>
+            ) : null}
 
-              {/* Success message */}
-              {success ? (
-                <View style={styles.successContainer}>
-                  <Text style={styles.successText} accessibilityRole="status">
-                    {success}
-                  </Text>
-                </View>
-              ) : null}
+            {/* Error message */}
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText} accessibilityRole="alert">
+                  {error}
+                </Text>
+              </View>
+            ) : null}
 
-              {/* Error message */}
-              {error ? (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorText} accessibilityRole="alert">
-                    {error}
-                  </Text>
-                </View>
-              ) : null}
-
-              {isEditing ? (
-                // EDIT MODE
-                <>
-                  {/* Profile Image */}
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Profile Image</Text>
-                    <TouchableOpacity
-                      style={styles.imagePickerWrapper}
-                      onPress={handleImagePicker}
-                    >
-                      {editForm.profile_img ? (
-                        <Image
-                          source={{ uri: editForm.profile_img.uri }}
-                          style={styles.profileImage}
-                        />
-                      ) : profile?.profile_img ? (
-                        <Image
-                          source={{ uri: profile.profile_img }}
-                          style={styles.profileImage}
-                        />
-                      ) : (
-                        <View style={styles.imagePlaceholder}>
-                          <Camera size={40} color="#9CA3AF" />
-                          <Text style={styles.imagePlaceholderText}>
-                            Tap to change photo
-                          </Text>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Name */}
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Name</Text>
-                    <View style={styles.inputWrapper}>
-                      <User size={20} color="#9CA3AF" style={styles.inputIcon} />
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Enter your name"
-                        value={editForm.user_name}
-                        onChangeText={(text) => setEditForm(prev => ({ ...prev, user_name: text }))}
-                        autoCapitalize="words"
-                        placeholderTextColor="#9CA3AF"
-                        returnKeyType="next"
+            {isEditing ? (
+              // EDIT MODE
+              <>
+                {/* Profile Image */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Profile Image</Text>
+                  <TouchableOpacity
+                    style={styles.imagePickerWrapper}
+                    onPress={handleImagePicker}
+                  >
+                    {editForm.profile_img ? (
+                      <Image
+                        source={{ uri: editForm.profile_img.uri }}
+                        style={styles.profileImage}
                       />
-                    </View>
+                    ) : profile?.profile_img ? (
+                      <Image
+                        source={{ uri: profile.profile_img }}
+                        style={styles.profileImage}
+                      />
+                    ) : (
+                      <View style={styles.imagePlaceholder}>
+                        <Camera size={40} color="#9CA3AF" />
+                        <Text style={styles.imagePlaceholderText}>
+                          Tap to change photo
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {/* Name */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Name</Text>
+                  <View style={styles.inputWrapper}>
+                    <User size={20} color="#9CA3AF" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your name"
+                      value={editForm.user_name}
+                      onChangeText={(text) => setEditForm(prev => ({ ...prev, user_name: text }))}
+                      autoCapitalize="words"
+                      placeholderTextColor="#9CA3AF"
+                      returnKeyType="next"
+                    />
                   </View>
+                </View>
 
-                   {/* Birth Date */}
-                   <View style={styles.inputContainer}>
-                     <Text style={styles.label}>Birth Date</Text>
-                     <View style={styles.inputWrapper}>
-                       <Calendar size={20} color="#9CA3AF" style={styles.inputIcon} />
-                       <TouchableOpacity
-                         style={styles.dateInputButton}
-                         onPress={() => setShowDatePicker(true)}
-                       >
-                         <Text style={[styles.dateText, !editForm.birth_date && { color: '#9CA3AF' }]}>
-                           {editForm.birth_date ? editForm.birth_date.toDateString() : 'Select your birth date'}
-                         </Text>
-                       </TouchableOpacity>
-                     </View>
+                 {/* Birth Date */}
+                 <View style={styles.inputContainer}>
+                   <Text style={styles.label}>Birth Date</Text>
+                   <View style={styles.inputWrapper}>
+                     <Calendar size={20} color="#9CA3AF" style={styles.inputIcon} />
+                     <TouchableOpacity
+                       style={styles.dateInputButton}
+                       onPress={() => setShowDatePicker(true)}
+                     >
+                       <Text style={[styles.dateText, !editForm.birth_date && { color: '#9CA3AF' }]}>
+                         {editForm.birth_date ? editForm.birth_date.toDateString() : 'Select your birth date'}
+                       </Text>
+                     </TouchableOpacity>
                    </View>
+                 </View>
 
-                   {showDatePicker && (
+                 {showDatePicker && (
+                  //  <View style={styles.datePickerContainer}>
                      <DateTimePicker
                        value={editForm.birth_date || new Date()}
                        mode="date"
                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                        onChange={handleDateChange}
                        maximumDate={new Date()}
+                       textColor="#1F2937"
+                      //  style={Platform.OS === 'ios' ? { backgroundColor: '#FFFFFF' } : undefined}
+                       themeVariant="light"
                      />
-                   )}
+                  //  </View>
+                 )}
 
-                   {/* Action Buttons */}
-                  <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                      style={styles.cancelButton}
-                      onPress={handleCancel}
-                      accessibilityLabel="Cancel editing"
-                    >
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={styles.saveButton}
-                      onPress={handleSave}
-                      disabled={isUpdating}
-                      accessibilityLabel={isUpdating ? 'Saving...' : 'Save changes'}
-                    >
-                      <Text style={styles.saveButtonText}>
-                        {isUpdating ? 'Saving...' : 'Save'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              ) : (
-                // VIEW MODE
-                <>
-                  {/* Profile Image */}
-                  {profile?.profile_img && (
-                    <View style={styles.profileImageContainer}>
-                      <Image
-                        source={{ uri: profile.profile_img }}
-                        style={styles.profileImageLarge}
-                      />
-                    </View>
-                  )}
-
-                  {/* Profile Info Card */}
-                  <View style={styles.infoCard}>
-                    <View style={styles.infoRow}>
-                      <View style={styles.infoIconContainer}>
-                        <User size={20} color={PRIMARY_COLOR} />
-                      </View>
-                      <View style={styles.infoContent}>
-                        <Text style={styles.infoLabel}>Name</Text>
-                        <Text style={styles.infoValue}>{fullName}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.infoRow}>
-                      <View style={styles.infoIconContainer}>
-                        <Mail size={20} color={PRIMARY_COLOR} />
-                      </View>
-                      <View style={styles.infoContent}>
-                        <Text style={styles.infoLabel}>Email</Text>
-                        <Text style={styles.infoValue}>{user?.email}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.infoRow}>
-                      <View style={styles.infoIconContainer}>
-                        <Calendar size={20} color={PRIMARY_COLOR} />
-                      </View>
-                      <View style={styles.infoContent}>
-                        <Text style={styles.infoLabel}>Birth Date</Text>
-                        <Text style={styles.infoValue}>
-                          {formatBirthDate(profile?.birth_date)}
-                          {age && ` (${age} years old)`}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Edit Button */}
-                  {/* <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={() => setIsEditing(true)}
-                    accessibilityLabel="Edit profile"
-                  >
-                    <Edit3 size={20} color="#FFFFFF" style={styles.editButtonIcon} />
-                    <Text style={styles.editButtonText}>Edit Profile</Text>
-                  </TouchableOpacity> */}
-
-                  {/* Logout Button */}
+                 {/* Action Buttons */}
+                <View style={styles.buttonContainer}>
                   <TouchableOpacity
-                    style={styles.logoutButton}
-                    onPress={() => {
-                      const { logout } = useAuthStore.getState();
-                      logout();
-                      router.replace('/auth/sign-in');
-                    }}
-                    accessibilityLabel="Logout"
+                    style={styles.cancelButton}
+                    onPress={handleCancel}
+                    accessibilityLabel="Cancel editing"
                   >
-                    <Text style={styles.logoutButtonText}>Logout</Text>
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
-                </>
-              )}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </View>
+                  
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={handleSave}
+                    disabled={isUpdating}
+                    accessibilityLabel={isUpdating ? 'Saving...' : 'Save changes'}
+                  >
+                    <Text style={styles.saveButtonText}>
+                      {isUpdating ? 'Saving...' : 'Save'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              // VIEW MODE
+              <>
+                {/* Profile Image */}
+                {profile?.profile_img && (
+                  <View style={styles.profileImageContainer}>
+                    <Image
+                      source={{ uri: profile.profile_img }}
+                      style={styles.profileImageLarge}
+                    />
+                  </View>
+                )}
+
+                {/* Profile Info Card */}
+                <View style={styles.infoCard}>
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoIconContainer}>
+                      <User size={20} color={PRIMARY_COLOR} />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Name</Text>
+                      <Text style={styles.infoValue}>{fullName}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoIconContainer}>
+                      <Mail size={20} color={PRIMARY_COLOR} />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Email</Text>
+                      <Text style={styles.infoValue}>{user?.email}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoIconContainer}>
+                      <Calendar size={20} color={PRIMARY_COLOR} />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Birth Date</Text>
+                      <Text style={styles.infoValue}>
+                        {formatBirthDate(profile?.birth_date)}
+                        {age && ` (${age} years old)`}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Edit Button */}
+                {/* <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => setIsEditing(true)}
+                  accessibilityLabel="Edit profile"
+                >
+                  <Edit3 size={20} color="#FFFFFF" style={styles.editButtonIcon} />
+                  <Text style={styles.editButtonText}>Edit Profile</Text>
+                </TouchableOpacity> */}
+
+                {/* Logout Button */}
+                <TouchableOpacity
+                  style={styles.logoutButton}
+                  onPress={() => {
+                    const { logout } = useAuthStore.getState();
+                    logout();
+                    router.replace('/auth/sign-in');
+                  }}
+                  accessibilityLabel="Logout"
+                >
+                  <Text style={styles.logoutButtonText}>Logout</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </SafeAreaView>
+      </KeyboardAwareScrollView>
+    // </View>
   );
 }
 
@@ -520,12 +531,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  keyboardContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
   scrollView: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     flexGrow: 1,
@@ -614,10 +622,24 @@ const styles = StyleSheet.create({
      minHeight: 44,
      justifyContent: 'center',
    },
-   dateText: {
-     fontSize: 16,
-     color: '#1F2937',
-   },
+     dateText: {
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  datePickerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    marginTop: 8,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
   buttonContainer: {
     flexDirection: 'row',
     gap: 12,
