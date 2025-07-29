@@ -194,6 +194,10 @@ export default function NameScreen() {
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={handleDateChange}
                   maximumDate={new Date()}
+                  minimumDate={new Date(new Date().getFullYear() - 110, 0, 1)}
+                  textColor={Platform.OS === 'ios' ? '#1F2937' : '#FFFFFF'}
+                  style={Platform.OS === 'ios' ? { backgroundColor: '#FFFFFF' } : undefined}
+                  themeVariant="light"
                 />
               )}
 

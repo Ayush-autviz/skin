@@ -3,6 +3,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { View, TextInput, Text, StyleSheet } from 'react-native';
+import { colors } from '../../styles';
 
 // Internal conversion functions
 function dateToInputString(date) {
@@ -115,7 +116,7 @@ export default function CustomDateInput({
         value={day}
         onChangeText={handleDayChange}
         placeholder="DD"
-        placeholderTextColor="#bbb"
+        placeholderTextColor={colors.textTertiary}
         keyboardType="number-pad"
         maxLength={2}
         style={styles.input}
@@ -127,7 +128,7 @@ export default function CustomDateInput({
         value={month}
         onChangeText={handleMonthChange}
         placeholder="MM"
-        placeholderTextColor="#bbb"
+        placeholderTextColor={colors.textTertiary}
         keyboardType="number-pad"
         maxLength={2}
         style={styles.input}
@@ -139,7 +140,7 @@ export default function CustomDateInput({
         value={year}
         onChangeText={handleYearChange}
         placeholder="YYYY"
-        placeholderTextColor="#bbb"
+        placeholderTextColor={colors.textTertiary}
         keyboardType="number-pad"
         maxLength={4}
         style={styles.input}
@@ -154,22 +155,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   input: {
     fontSize: 16,
-    color: '#111',
+    color: colors.textPrimary,
     padding: 0,
     textAlign: 'center',
     minWidth: 30,
   },
   slash: {
     fontSize: 16,
-    color: '#bbb', // lighter grey
+    color: colors.textTertiary,
     marginHorizontal: 2,
     fontWeight: 'bold',
   },

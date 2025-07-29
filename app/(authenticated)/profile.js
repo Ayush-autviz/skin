@@ -369,18 +369,19 @@ export default function Profile() {
                  </View>
 
                  {showDatePicker && (
-                  //  <View style={styles.datePickerContainer}>
+                  
                      <DateTimePicker
                        value={editForm.birth_date || new Date()}
                        mode="date"
                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                        onChange={handleDateChange}
                        maximumDate={new Date()}
-                       textColor="#1F2937"
-                      //  style={Platform.OS === 'ios' ? { backgroundColor: '#FFFFFF' } : undefined}
+                       minimumDate={new Date(new Date().getFullYear() - 110, 0, 1)}
+                       textColor={Platform.OS === 'ios' ? '#1F2937' : '#FFFFFF'}
+                       style={Platform.OS === 'ios' ? { backgroundColor: '#FFFFFF' } : undefined}
                        themeVariant="light"
                      />
-                  //  </View>
+                   
                  )}
 
                  {/* Action Buttons */}
