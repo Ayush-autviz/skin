@@ -877,6 +877,7 @@ export const transformComparisonData = (comparisonData) => {
         const conditionMapping = {
           acne: "acneScore",
           age: "perceivedAge",
+          eyes_age: "eyeAge",
           eye_bags: "eyeAreaCondition",
           hydration: "hydrationScore",
           lines: "linesScore",
@@ -886,6 +887,9 @@ export const transformComparisonData = (comparisonData) => {
           translucency: "translucencyScore",
           uniformness: "uniformnessScore",
         };
+
+        console.log(conditions,'conditions from transformComparisonData');
+        console.log(photoData,'photoData from transformComparisonData');
 
         // Convert conditions array to metrics object
         conditions.forEach((condition) => {
@@ -925,6 +929,59 @@ export const transformComparisonData = (comparisonData) => {
   } catch (error) {
     console.error("🔴 transformComparisonData error:", error);
     return [];
+  }
+};
+
+/**
+ * Fetch skin trend scores for a specific condition
+ * @param {Object} params
+ * @param {string} params.skin_condition_name - One of ['hydration', 'uniformness', 'redness', 'translucency', 'lines', 'eye_bags', 'pores', 'skin_tone', 'pigmentation', 'acne', 'eyes_age', 'age']
+ * @param {string} params.sort_order - Sort order ('asc' or 'desc'), defaults to 'desc'
+ * @returns {Promise<Object>} Skin trend scores data
+ */
+export const getSkinTrendScores = async ({ skin_condition_name, sort_order = 'desc' }) => {
+  const allowedConditions = [
+    'hydration', 'uniformness', 'redness', 'translucency', 'lines', 
+    'eye_bags', 'pores', 'skin_tone', 'pigmentation', 'acne', 
+    'eyes_age', 'age'
+  ];
+  
+  if (!allowedConditions.includes(skin_condition_name)) {
+    throw new Error(
+      `Invalid skin_condition_name: ${skin_condition_name}. Must be one of ${allowedConditions.join(", ")}`
+    );
+  }
+  
+  if (!['asc', 'desc'].includes(sort_order)) {
+    throw new Error("sort_order must be 'asc' or 'desc'");
+  }
+  
+  try {
+    console.log("🔵 Fetching skin trend scores:", { skin_condition_name, sort_order });
+    const response = await apiClient.get("/haut_mask/skin-trend-scores", {
+      params: { skin_condition_name, sort_order },
+    });
+
+    console.log('🔵 response of getSkinTrendScores: in apiService', response.status);
+    
+    if (response.status === 200) {
+      console.log("✅ Skin trend scores fetched successfully");
+      return {
+        success: true,
+        data: response.data,
+      };
+    } else {
+      console.log("in else block of getSkinTrendScores");
+      
+      throw new Error(response.data.message || "Failed to fetch skin trend scores");
+    }
+  } catch (error) {
+    console.error("🔴 getSkinTrendScores error:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch skin trend scores"
+    );
   }
 };
 

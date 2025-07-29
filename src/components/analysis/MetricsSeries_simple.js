@@ -79,7 +79,8 @@ const MetricsSeries_simple = ({
     return photos
       .map(photo => {
         let dateValue;
-        const ts = photo.timestamp;
+        // const ts = photo.timestamp;
+        const ts = photo.created_at;
         if (ts?.seconds && typeof ts.seconds === 'number') {
             dateValue = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0));
         } else if (ts instanceof Date) {
@@ -92,10 +93,17 @@ const MetricsSeries_simple = ({
         if (!(dateValue instanceof Date && !isNaN(dateValue.getTime()))) {
           return null;
         }
+
+        
+        // return {
+        //   photoId: photo.id,
+        //   date: dateValue,
+        //   score: photo.metrics?.[metricKeyToDisplay] ?? null,
+        // };
         return {
-          photoId: photo.id,
+          photoId: photo.skin_result_id,
           date: dateValue,
-          score: photo.metrics?.[metricKeyToDisplay] ?? null,
+          score: photo.skin_condition_score ?? null,
         };
       })
       .filter(item => item !== null);
@@ -110,6 +118,10 @@ const MetricsSeries_simple = ({
       }, 100);
     }
   }, [scrollToEnd, processedData.length]);
+
+
+  console.log('🔵 photo in processedData of MetricsSeries_simple:', photos);
+
 
   if (!processedData.length) {
     return (

@@ -37,6 +37,7 @@ import ListItem from '../../src/components/ui/ListItem';
 import FloatingTooltip from '../../src/components/ui/FloatingTooltip';
 import { colors } from '../../src/styles';
 import useAuthStore from '../../src/stores/authStore';
+import { getSkinTrendScores } from '../../src/services/newApiService';
 
 // Import the JSON data
 import concernsData from '../../data/concerns.json';
@@ -55,6 +56,26 @@ const getConditionNameForMetric = (metricKey) => {
     'pigmentationScore': 'pigmentation',
     'uniformnessScore': 'uniformness',
     'eyeAreaCondition': 'eye_bags'
+  };
+  
+  return mapping[metricKey] || null;
+};
+
+// Helper function to map metric keys to skin condition names for trend API
+const getSkinConditionNameForMetric = (metricKey) => {
+  const mapping = {
+    'rednessScore': 'redness',
+    'hydrationScore': 'hydration', 
+    'eyeAge': 'eyes_age',
+    'poresScore': 'pores',
+    'acneScore': 'acne',
+    'linesScore': 'lines',
+    'translucencyScore': 'translucency',
+    'pigmentationScore': 'pigmentation',
+    'uniformnessScore': 'uniformness',
+    'eyeAreaCondition': 'eye_bags',
+    'perceivedAge': 'age',
+    'skinTone': 'skin_tone'
   };
   
   return mapping[metricKey] || null;
@@ -480,6 +501,7 @@ const sanitizeS3Uri = (uriString) => {
   // Only touch the query part – a cheap approach is just replacing "+" with
   // its percent-encoded form and ensuring no literal spaces remain.
   return uriString.replace(/\+/g, '%2B').replace(/ /g, '%20');
+  // return encodeURI(uriString);
 };
 
 export default function MetricDetailScreen() {
@@ -490,6 +512,8 @@ export default function MetricDetailScreen() {
   // Extract parameters from navigation
   const { metricKey, metricValue, photoData } = params || {};
   console.log('🔵 metricKey:', metricKey);
+
+  
   
   // Parse the photoData if it's a string
   const parsedPhotoData = typeof photoData === 'string' ? JSON.parse(photoData) : photoData;
@@ -502,6 +526,9 @@ export default function MetricDetailScreen() {
   const [currentConcernDetails, setCurrentConcernDetails] = useState(null);
   // State for tooltip
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, content: {} });
+  // State for skin trend scores
+  const [trendScores, setTrendScores] = useState(null);
+  const [isLoadingTrends, setIsLoadingTrends] = useState(false);
   
   // Format the metric name for display (convert camelCase to Title Case)
   const formatMetricName = (key) => {
@@ -718,6 +745,41 @@ export default function MetricDetailScreen() {
       metricHelpers.getMetricDisplayInfo(metricKey, Number(metricValue), primaryMetric, currentConcernDetails)
     );
   }, [metricKey, metricValue, parsedPhotoData, currentConcernDetails]);
+
+  // useEffect to fetch skin trend scores
+  useEffect(() => {
+    const fetchTrendScores = async () => {
+      if (!metricKey) return;
+      
+      const skinConditionName = getSkinConditionNameForMetric(metricKey);
+      if (!skinConditionName) {
+        console.log('⚠️ No skin condition mapping found for metric:', metricKey);
+        return;
+      }
+
+      setIsLoadingTrends(true);
+      try {
+        console.log('🔵 Fetching trend scores for:', skinConditionName);
+        const response = await getSkinTrendScores({ 
+          skin_condition_name: skinConditionName 
+        });
+
+        console.log('🔵 response of getSkinTrendScores:', response);
+        
+        if (response.success) {
+          console.log('✅ Trend scores loaded:', response.data);
+          setTrendScores(response.data);
+        }
+      } catch (error) {
+        console.error('🔴 Error fetching trend scores:', error);
+        setTrendScores(null);
+      } finally {
+        setIsLoadingTrends(false);
+      }
+    };
+
+    fetchTrendScores();
+  }, [metricKey]);
 
   // Helper function to get smart context text using scoreLevels when available
   const getSmartContextText = (metricValue, metricKey, currentConcernDetails) => {
@@ -971,9 +1033,12 @@ export default function MetricDetailScreen() {
                   <View style={styles.maskImageContainer}>
                     <Image 
                       source={{ uri: sanitizeS3Uri(maskImageData.mask_img_url) }}
+                      // source={{ uri: maskImageData.mask_img_url}}
+
                       style={styles.maskImage}
                       resizeMode="contain"
                       onError={(error) => {
+                        
                         console.log('🔴 Error loading mask image:', error.nativeEvent.error);
                       }}
                       onLoad={() => {
@@ -995,9 +1060,9 @@ export default function MetricDetailScreen() {
         <View style={{ marginHorizontal: 16 }}>
           <Text style={styles.sectionTitle}>Trend</Text>
           <View style={styles.metricCard}>
-            {analyzedPhotos.length > 0 ? (
+            {trendScores && trendScores.length > 0 ? (
               <MetricsSeries_simple
-                photos={analyzedPhotos}
+                photos={trendScores}
                 metricKeyToDisplay={metricKey}
                 chartHeight={100}
                 pointsVisibleInWindow={5}
@@ -1601,5 +1666,42 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  // Trend scores styles
+  trendScoresContainer: {
+    marginTop: 12,
+  },
+  trendScoreItem: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+  },
+  trendScoreHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  trendScoreDate: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  trendScoreValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  trendScoreBar: {
+    height: 6,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  trendScoreBarFill: {
+    height: '100%',
+    backgroundColor: '#6E46FF',
+    borderRadius: 3,
   },
 });
