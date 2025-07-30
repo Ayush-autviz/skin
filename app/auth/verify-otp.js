@@ -103,9 +103,9 @@ export default function VerifyOtp() {
           // Auto-verify if all 4 digits are filled
           if (digits.length === 4) {
             console.log('🔵 All digits filled via paste/auto-suggestion, triggering verification');
-            // Small additional delay to ensure UI updates complete
+            // Pass the digits directly to avoid state timing issues
             setTimeout(() => {
-              handleVerifyOtp();
+              handleVerifyOtp(freshOtp);
             }, 100);
           }
         }
@@ -119,6 +119,16 @@ export default function VerifyOtp() {
       // Auto-focus next input if current field has a value
       if (numericText && index < 3) {
         inputRefs[index + 1].current?.focus();
+      } else if (numericText && index === 3) {
+        // If we just filled the last field, check if OTP is complete and auto-verify
+        const completedOtp = newOtp.filter(digit => digit !== '');
+        if (completedOtp.length === 4) {
+          console.log('🔵 Last digit entered, auto-verifying OTP');
+          inputRefs[3].current?.blur();
+          setTimeout(() => {
+            handleVerifyOtp(newOtp);
+          }, 100);
+        }
       }
     }
   };
@@ -130,8 +140,11 @@ export default function VerifyOtp() {
     }
   };
 
-  const handleVerifyOtp = async () => {
-    const otpCode = otp.join('');
+  const handleVerifyOtp = async (otpDigits = null) => {
+    // Use provided digits or current state
+    const otpCode = otpDigits ? otpDigits.join('') : otp.join('');
+    
+    console.log('🔵 Verifying OTP:', otpCode, 'Length:', otpCode.length);
     
     if (otpCode.length !== 4) {
       setError('Please enter the complete 4-digit OTP');
