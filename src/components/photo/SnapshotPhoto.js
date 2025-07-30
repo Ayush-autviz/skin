@@ -40,6 +40,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { SvgXml } from 'react-native-svg';
 import { sanitizeSvgString } from '../../utils/photoUtils';
+import { useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -118,7 +119,9 @@ const SnapshotPhoto = forwardRef(({
   minimizedSheetHeight = 0 // <-- New prop for when sheet is fully minimized during zoom
 }, ref) => {
 
-  console.log('🔵 uri in SnapshotPhoto:', uri);
+  console.log('🔵 photoData in SnapshotPhoto:', photoData);
+  
+  const router = useRouter();
   
   // Animated values for gestures
   const scale = useRef(new Animated.Value(1)).current;
@@ -334,7 +337,7 @@ const SnapshotPhoto = forwardRef(({
     }).start();
   }, [calculateTargetImageSize, imageContainerSizeAnim]);
 
-  // Handle single tap - for sheet management
+  // Handle single tap - for sheet management and mask viewer navigation
   const onSingleTap = useCallback((event) => {
     if (event.nativeEvent.state === State.ACTIVE) {
       console.log('🔍 SnapshotPhoto: Single tap detected, viewState:', viewState);
@@ -354,9 +357,21 @@ const SnapshotPhoto = forwardRef(({
         return;
       }
       
-      // In default view, single tap does nothing (double-tap handles zoom)
+      // In default view, navigate to mask viewer if we have photoData with mask images
+      if (viewState === 'default' && photoData && photoData.maskImages && photoData.maskImages.length > 0) {
+        console.log('🔍 SnapshotPhoto: Navigating to mask viewer');
+        router.push({
+          pathname: '/(authenticated)/maskViewer',
+          params: {
+            photoData: JSON.stringify(photoData)
+          }
+        });
+        return;
+      }
+      
+      // In default view without mask data, single tap does nothing (double-tap handles zoom)
     }
-  }, [viewState, resetZoom, onZoomStateChange, onViewStateChange]);
+  }, [viewState, resetZoom, onZoomStateChange, onViewStateChange, photoData, router]);
 
   return (
     <View style={styles.container}>
