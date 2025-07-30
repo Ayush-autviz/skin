@@ -4,11 +4,19 @@
 import { Tabs, router } from 'expo-router';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useState, useEffect } from 'react';
 import { colors, spacing } from '../../../src/styles';
 
 function CustomTabBar({ state, descriptors, navigation }) {
+  const [pressedTab, setPressedTab] = useState(null);
+
   const getActiveTab = () => {
-    const currentRoute = state.routes[state.index].name;
+    // Add null checks for navigation state
+    if (!state || !state.routes || state.index === undefined) {
+      return null;
+    }
+    
+    const currentRoute = state.routes[state.index]?.name;
     if (currentRoute === 'progress') return 'progress';
     if (currentRoute === 'routine') return 'routine';
     return null;
@@ -16,7 +24,17 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
   const activeTab = getActiveTab();
 
+  // Clear pressed state when navigation state catches up
+  useEffect(() => {
+    if (activeTab && pressedTab === activeTab) {
+      setPressedTab(null);
+    }
+  }, [activeTab, pressedTab]);
+
   const handleTabPress = (tab) => {
+    // Set pressed state for immediate visual feedback
+    setPressedTab(tab);
+    
     switch (tab) {
       case 'progress':
         navigation.navigate('progress');
@@ -28,7 +46,15 @@ function CustomTabBar({ state, descriptors, navigation }) {
   };
 
   const handleCameraPress = () => {
-    const currentRoute = state.routes[state.index].name;
+    // Add null checks for navigation state
+    if (!state || !state.routes || state.index === undefined) {
+      // If navigation state isn't ready, assume we're on index and go to camera
+      console.log('Navigation state not ready, assuming index screen');
+      router.push('/camera');
+      return;
+    }
+    
+    const currentRoute = state.routes[state.index]?.name;
     
     if (currentRoute === 'index') {
       // If on home screen, go to camera
@@ -39,6 +65,11 @@ function CustomTabBar({ state, descriptors, navigation }) {
     }
   };
 
+  // Determine if a tab should appear active (either actually active or just pressed)
+  const isTabActive = (tab) => {
+    return activeTab === tab || pressedTab === tab;
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.pillContainer}>
@@ -46,7 +77,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
         <TouchableOpacity 
           style={[
             styles.tabButton,
-            activeTab === 'progress' && styles.activeTabButton
+            isTabActive('progress') && styles.activeTabButton
           ]}
           onPress={() => handleTabPress('progress')}
         >
@@ -54,11 +85,11 @@ function CustomTabBar({ state, descriptors, navigation }) {
             <Feather 
               name="trending-up"
               size={20} 
-              color={activeTab === 'progress' ? colors.textOnPrimary : colors.textTertiary}
+              color={isTabActive('progress') ? colors.textOnPrimary : colors.textTertiary}
             />
             <Text style={[
               styles.tabText,
-              activeTab === 'progress' ? styles.activeTabText : styles.inactiveTabText
+              isTabActive('progress') ? styles.activeTabText : styles.inactiveTabText
             ]}>
               Progress
             </Text>
@@ -73,7 +104,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
         <TouchableOpacity 
           style={[
             styles.tabButton,
-            activeTab === 'routine' && styles.activeTabButton
+            isTabActive('routine') && styles.activeTabButton
           ]}
           onPress={() => handleTabPress('routine')}
         >
@@ -81,11 +112,11 @@ function CustomTabBar({ state, descriptors, navigation }) {
             <Feather 
               name="calendar"
               size={20} 
-              color={activeTab === 'routine' ? colors.textOnPrimary : colors.textTertiary}
+              color={isTabActive('routine') ? colors.textOnPrimary : colors.textTertiary}
             />
             <Text style={[
               styles.tabText,
-              activeTab === 'routine' ? styles.activeTabText : styles.inactiveTabText
+              isTabActive('routine') ? styles.activeTabText : styles.inactiveTabText
             ]}>
               Routine
             </Text>

@@ -69,14 +69,57 @@ export default function VerifyOtp() {
     const numericText = text.replace(/[^0-9]/g, '');
     
     const newOtp = [...otp];
-    newOtp[index] = numericText;
-    setOtp(newOtp);
     setError('');
     setSuccessMessage('');
 
-    // Auto-focus next input if current field has a value
-    if (numericText && index < 3) {
-      inputRefs[index + 1].current?.focus();
+    // Handle paste or auto-suggestion (multiple characters)
+    if (numericText.length > 1) {
+      console.log('🔵 Multi-character input detected:', numericText);
+      
+      // Split the text and take only first 4 digits
+      const digits = numericText.slice(0, 4).split('');
+      
+      // Clear all fields first, then fill from the beginning
+      const freshOtp = ['', '', '', ''];
+      
+      // Fill boxes from the beginning
+      for (let i = 0; i < digits.length && i < 4; i++) {
+        freshOtp[i] = digits[i];
+      }
+      
+      setOtp(freshOtp);
+      
+      // Calculate which input to focus next
+      const nextFocusIndex = Math.min(digits.length, 3);
+      
+      // Small delay to ensure state update completes before focusing
+      setTimeout(() => {
+        if (nextFocusIndex < 4 && digits.length < 4) {
+          inputRefs[nextFocusIndex].current?.focus();
+        } else {
+          // If all fields are filled, blur the current input and auto-verify
+          inputRefs[3].current?.blur();
+          
+          // Auto-verify if all 4 digits are filled
+          if (digits.length === 4) {
+            console.log('🔵 All digits filled via paste/auto-suggestion, triggering verification');
+            // Small additional delay to ensure UI updates complete
+            setTimeout(() => {
+              handleVerifyOtp();
+            }, 100);
+          }
+        }
+      }, 10);
+      
+    } else {
+      // Handle single character input (normal typing)
+      newOtp[index] = numericText;
+      setOtp(newOtp);
+
+      // Auto-focus next input if current field has a value
+      if (numericText && index < 3) {
+        inputRefs[index + 1].current?.focus();
+      }
     }
   };
 
@@ -248,10 +291,20 @@ export default function VerifyOtp() {
                       value={digit}
                       onChangeText={(text) => handleOtpChange(text, index)}
                       onKeyPress={(e) => handleKeyPress(e, index)}
-                      keyboardType="numeric"
-                      maxLength={1}
+                      onFocus={() => {
+                        // Clear the current field when focused (better UX for editing)
+                        if (digit) {
+                          const newOtp = [...otp];
+                          newOtp[index] = '';
+                          setOtp(newOtp);
+                        }
+                      }}
+                      keyboardType="number-pad"
+                      maxLength={6} // Allow longer input for paste operations
                       textAlign="center"
                       selectTextOnFocus
+                      autoComplete={index === 0 ? "sms-otp" : "off"} // Enable auto-suggestion on first field
+                      textContentType={index === 0 ? "oneTimeCode" : "none"} // iOS auto-suggestion
                       accessibilityLabel={`OTP digit ${index + 1}`}
                       accessibilityHint={`Enter digit ${index + 1} of the verification code`}
                     />

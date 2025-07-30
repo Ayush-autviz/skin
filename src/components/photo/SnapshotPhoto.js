@@ -117,6 +117,8 @@ const SnapshotPhoto = forwardRef(({
   peekSheetHeight = 0, // <-- New prop from snapshot.js
   minimizedSheetHeight = 0 // <-- New prop for when sheet is fully minimized during zoom
 }, ref) => {
+
+  console.log('🔵 uri in SnapshotPhoto:', uri);
   
   // Animated values for gestures
   const scale = useRef(new Animated.Value(1)).current;

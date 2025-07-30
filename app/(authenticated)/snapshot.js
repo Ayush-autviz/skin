@@ -324,12 +324,14 @@ export default function SnapshotScreen() {
   
   // Contexts
   const { selectedSnapshot, setSelectedSnapshot, refreshPhotos } = usePhotoContext();
+
+  console.log('🔵 selectedSnapshot from snapshot screen:', selectedSnapshot);
   
   // State management
   const [viewState, setViewState] = useState('default');
   const [uiState, setUiState] = useState('loading');
   const [loadingMicrocopy, setLoadingMicrocopy] = useState('Loading...');
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(true);
   const [photoData, setPhotoData] = useState(null);
   
   // Haut.ai API state
@@ -605,7 +607,7 @@ export default function SnapshotScreen() {
   };
   
   const handleImageLoad = () => {
-    setIsImageLoaded(true);
+   setIsImageLoaded(true);
   };
   
   const handleImageError = (error) => {
@@ -808,6 +810,8 @@ export default function SnapshotScreen() {
               onClose={handleClose} 
             />;
   }
+
+  console.log('🔵 imageUri:', imageUri);
 
   
   return (
