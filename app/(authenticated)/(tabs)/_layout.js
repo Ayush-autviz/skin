@@ -4,37 +4,18 @@
 import { Tabs, router } from 'expo-router';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
 import { colors, spacing } from '../../../src/styles';
 
 function CustomTabBar({ state, descriptors, navigation }) {
-  const [pressedTab, setPressedTab] = useState(null);
-
-  const getActiveTab = () => {
-    // Add null checks for navigation state
+  // More robust active tab detection
+  const getCurrentRoute = () => {
     if (!state || !state.routes || state.index === undefined) {
       return null;
     }
-    
-    const currentRoute = state.routes[state.index]?.name;
-    if (currentRoute === 'progress') return 'progress';
-    if (currentRoute === 'routine') return 'routine';
-    return null;
+    return state.routes[state.index]?.name;
   };
 
-  const activeTab = getActiveTab();
-
-  // Clear pressed state when navigation state catches up
-  useEffect(() => {
-    if (activeTab && pressedTab === activeTab) {
-      setPressedTab(null);
-    }
-  }, [activeTab, pressedTab]);
-
   const handleTabPress = (tab) => {
-    // Set pressed state for immediate visual feedback
-    setPressedTab(tab);
-    
     switch (tab) {
       case 'progress':
         navigation.navigate('progress');
@@ -46,28 +27,27 @@ function CustomTabBar({ state, descriptors, navigation }) {
   };
 
   const handleCameraPress = () => {
-    // Add null checks for navigation state
-    if (!state || !state.routes || state.index === undefined) {
-      // If navigation state isn't ready, assume we're on index and go to camera
+    const currentRoute = getCurrentRoute();
+    
+    if (!currentRoute) {
       console.log('Navigation state not ready, assuming index screen');
       router.push('/camera');
       return;
     }
     
-    const currentRoute = state.routes[state.index]?.name;
-    
     if (currentRoute === 'index') {
-      // If on home screen, go to camera
       router.push('/camera');
     } else {
-      // If on any other screen, go to home screen
       navigation.navigate('index');
     }
   };
 
-  // Determine if a tab should appear active (either actually active or just pressed)
+  // Direct route comparison - more reliable
   const isTabActive = (tab) => {
-    return activeTab === tab || pressedTab === tab;
+    const currentRoute = getCurrentRoute();
+    const isActive = currentRoute === tab;
+    console.log(`🔵 Tab ${tab} active state:`, isActive, 'Current route:', currentRoute);
+    return isActive;
   };
 
   return (
@@ -80,6 +60,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
             isTabActive('progress') && styles.activeTabButton
           ]}
           onPress={() => handleTabPress('progress')}
+          activeOpacity={1} // Disable opacity change on press
         >
           <View style={styles.tabContent}>
             <Feather 
@@ -107,6 +88,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
             isTabActive('routine') && styles.activeTabButton
           ]}
           onPress={() => handleTabPress('routine')}
+          activeOpacity={1} // Disable opacity change on press
         >
           <View style={styles.tabContent}>
             <Feather 
@@ -201,9 +183,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 26,
     flex: 1,
+    backgroundColor: 'transparent', // Explicitly set transparent background
+    opacity: 1, // Ensure no opacity issues
   },
   activeTabButton: {
     backgroundColor: colors.primary,
+    opacity: 1, // Ensure full opacity
   },
   centerSpace: {
     width: 60,
