@@ -357,15 +357,10 @@ const SnapshotPhoto = forwardRef(({
         return;
       }
       
-      // In default view, navigate to mask viewer if we have photoData with mask images
+      // In default view, only navigate to mask viewer if we have photoData with mask images AND no button is shown
+      // (Since we now have a dedicated button, we don't need tap-to-navigate)
       if (viewState === 'default' && photoData && photoData.maskImages && photoData.maskImages.length > 0) {
-        console.log('🔍 SnapshotPhoto: Navigating to mask viewer');
-        router.push({
-          pathname: '/(authenticated)/maskViewer',
-          params: {
-            photoData: JSON.stringify(photoData)
-          }
-        });
+        console.log('🔍 SnapshotPhoto: Single tap in default view - no action (button handles navigation)');
         return;
       }
       

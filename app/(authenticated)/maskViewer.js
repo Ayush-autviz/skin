@@ -244,39 +244,7 @@ const ZoomableMaskImage = ({ photoUri, maskUri, conditionName, isActive }) => {
         </PanGestureHandler>
       </GestureHandlerRootView>
 
-      {/* Zoom controls */}
-      <Animated.View style={[styles.zoomControls, { opacity: isActive ? 1 : 0 }]}>
-        <TouchableOpacity
-          style={styles.zoomButton}
-          onPress={() => {
-            const newScale = Math.max(MIN_SCALE, scale.value - 0.5);
-            scale.value = withSpring(newScale, springConfig);
-            if (newScale === MIN_SCALE) {
-              translateX.value = withSpring(0, springConfig);
-              translateY.value = withSpring(0, springConfig);
-            }
-          }}
-        >
-          <ZoomOut size={18} color="white" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.zoomButton}
-          onPress={resetZoom}
-        >
-          <RotateCcw size={18} color="white" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.zoomButton}
-          onPress={() => {
-            const newScale = Math.min(MAX_SCALE, scale.value + 0.5);
-            scale.value = withSpring(newScale, springConfig);
-          }}
-        >
-          <ZoomIn size={18} color="white" />
-        </TouchableOpacity>
-      </Animated.View>
+
     </View>
   );
 };
@@ -372,6 +340,41 @@ export default function MaskViewerScreen() {
                 conditionName={maskOption.skin_condition_name}
                 isActive={index === activeIndex}
               />
+              
+              {/* Zoom controls - positioned just below the image */}
+              <View style={styles.zoomControlsContainer}>
+                <Animated.View style={[styles.zoomControls, { opacity: index === activeIndex ? 1 : 0 }]}>
+                  <TouchableOpacity
+                    style={styles.zoomButton}
+                    onPress={() => {
+                      // Zoom out functionality would need to be passed down or managed differently
+                      console.log('Zoom out');
+                    }}
+                  >
+                    <ZoomOut size={18} color="white" />
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={styles.zoomButton}
+                    onPress={() => {
+                      // Reset zoom functionality
+                      console.log('Reset zoom');
+                    }}
+                  >
+                    <RotateCcw size={18} color="white" />
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={styles.zoomButton}
+                    onPress={() => {
+                      // Zoom in functionality
+                      console.log('Zoom in');
+                    }}
+                  >
+                    <ZoomIn size={18} color="white" />
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
             </View>
           ))}
         </Animated.ScrollView>
@@ -534,12 +537,13 @@ const styles = StyleSheet.create({
     opacity: 1,
     zIndex: 100,
   },
+  zoomControlsContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
   zoomControls: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    flexDirection: 'column',
-    gap: 8,
+    flexDirection: 'row',
+    gap: 12,
   },
   zoomButton: {
     width: 40,
