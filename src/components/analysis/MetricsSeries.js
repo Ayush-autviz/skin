@@ -123,30 +123,28 @@ const DATE_CARD_MARGIN = 3;  // 8 / 2 = 4
 
 const METRIC_KEYS = [
   'acneScore',
-  'eyeAge',
-  'eyeAreaCondition', 
-  'hydrationScore',
+  'rednessScore',
+  'eyeAreaCondition',
   'linesScore',
-  'perceivedAge',
   'pigmentationScore',
   'poresScore',
-  'rednessScore',
-  'translucencyScore',
-  'uniformnessScore'
+  'hydrationScore',
+  'uniformnessScore',
+  'eyeAge',
+  'perceivedAge'
 ];
 
 const METRIC_LABELS = {
-  acneScore: 'Acne',
-  eyeAge: 'Eye Age',
-  eyeAreaCondition: 'Eyes',
-  hydrationScore: 'Hydration',
-  linesScore: 'Wrinkles',
-  perceivedAge: 'Perceived Age',
+  acneScore: 'Breakouts',
+  rednessScore: 'Redness',
+  eyeAreaCondition: 'Eye Area Condition',
+  linesScore: 'Lines',
   pigmentationScore: 'Pigmentation',
   poresScore: 'Pores',
-  rednessScore: 'Redness',
-  translucencyScore: 'Translucency',
-  uniformnessScore: 'Texture'
+  hydrationScore: 'Hydration',
+  uniformnessScore: 'Evenness',
+  eyeAge: 'Eye Age',
+  perceivedAge: 'Perceived Age'
 };
 
 const IMAGE_QUALITY_KEYS = [

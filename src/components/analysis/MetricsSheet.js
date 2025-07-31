@@ -215,6 +215,23 @@ const MetricsSheet = forwardRef(({
 
   // Update the helper function to format metric key names
   const formatMetricName = (key, inScoresSection = false) => {
+    // Custom mapping for specific metric names
+    const customNames = {
+      'acneScore': 'Breakouts',
+      'rednessScore': 'Redness',
+      'eyeAreaCondition': 'Eye Area Condition',
+      'linesScore': 'Lines',
+      'pigmentationScore': 'Pigmentation',
+      'poresScore': 'Pores',
+      'hydrationScore': 'Hydration',
+      'uniformnessScore': 'Evenness'
+    };
+    
+    // Return custom name if it exists
+    if (customNames[key]) {
+      return customNames[key];
+    }
+    
     // First convert camelCase to space-separated words
     const formattedName = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
     
@@ -314,6 +331,35 @@ const MetricsSheet = forwardRef(({
                       <Text style={styles.metricGroupTitle}>SKIN SCORES</Text>
                       {Object.entries(metrics)
                         .filter(([key, value]) => !isStandaloneMetric(key) && typeof value === 'number')
+                        .sort(([keyA], [keyB]) => {
+                          // Define the desired order
+                          const order = [
+                            'acneScore',      // Breakouts
+                            'rednessScore',   // Redness
+                            'eyeAreaCondition', // Eye Area Condition
+                            'linesScore',     // Lines
+                            'pigmentationScore', // Pigmentation
+                            'poresScore',     // Pores
+                            'hydrationScore', // Hydration
+                            'uniformnessScore' // Evenness
+                          ];
+                          
+                          const indexA = order.indexOf(keyA);
+                          const indexB = order.indexOf(keyB);
+                          
+                          // If both are in the order array, sort by their position
+                          if (indexA !== -1 && indexB !== -1) {
+                            return indexA - indexB;
+                          }
+                          
+                          // If only one is in the order array, prioritize it
+                          if (indexA !== -1) return -1;
+                          if (indexB !== -1) return 1;
+                          
+                          // If neither is in the order array, sort alphabetically
+                          return keyA.localeCompare(keyB);
+                        })
+                        .filter(([key]) => key !== 'translucencyScore') // Remove Translucency
                         .map(([key, value], index, array) => {
                            const { tag, color, bg } = getMetricTag(value);
                            const formattedKey = formatMetricName(key, true);
