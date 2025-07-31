@@ -1,47 +1,63 @@
-// maskViewer.js
-// Full-screen mask viewer with scrollable mask images and zoom functionality
-
-/* ------------------------------------------------------
-WHAT IT DOES
-- Displays all available mask images for a photo in a scrollable view
-- Shows background photo with SVG mask overlays
-- Provides zoom functionality for each mask
-- Includes navigation indicators at the bottom
-- Allows users to swipe between different mask types
-
-DATA USED
-- photoData: Full photo document with mask images and original photo
-- maskImages: Array of mask image data with skin condition names and URLs
-
-DEVELOPMENT HISTORY
-- Created for enhanced mask visualization experience
-------------------------------------------------------*/
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
-  ScrollView, 
   TouchableOpacity, 
-  SafeAreaView,
   StatusBar,
   Image,
   Dimensions,
-  PanGestureHandler,
-  PinchGestureHandler,
-  Animated
+  ActivityIndicator
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import SvgUri from 'react-native-svg-uri';
-import { 
-  PinchGestureHandler as RNGHPinchGestureHandler, 
-  PanGestureHandler as RNGHPanGestureHandler, 
-  State 
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { X, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedScrollHandler,
+  useAnimatedGestureHandler,
+  withSpring,
+  withTiming,
+  interpolate,
+  runOnJS,
+  useDerivedValue,
+  interpolateColor
+} from 'react-native-reanimated';
+import {
+  PinchGestureHandler,
+  PanGestureHandler,
+  TapGestureHandler,
+  GestureHandlerRootView
 } from 'react-native-gesture-handler';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const IMAGE_SIZE = SCREEN_WIDTH - 40;
+const TAB_HEIGHT = 50;
+const MIN_SCALE = 1;
+const MAX_SCALE = 4;
+
+// App colors (from auth screens)
+const colors = {
+  primary: '#8B7355',
+  background: '#FFFFFF',
+  textPrimary: '#1F2937',
+  textSecondary: '#6B7280',
+  textTertiary: '#9CA3AF',
+  error: '#FF6B6B',
+};
+
+// Enhanced spring config for smooth animations
+const springConfig = {
+  damping: 15,
+  stiffness: 150,
+  mass: 1,
+  overshootClamping: false,
+  restDisplacementThreshold: 0.01,
+  restSpeedThreshold: 0.01,
+};
 
 // Sanitize S3 URI function
 const sanitizeS3Uri = (uriString) => {
@@ -51,15 +67,16 @@ const sanitizeS3Uri = (uriString) => {
 
 // Helper function to format mask condition names for display
 const formatConditionName = (conditionName) => {
-  if (!conditionName) return 'None';
+  if (!conditionName) return 'Original';
   
   const nameMap = {
+    'none': 'Original',
     'redness': 'Redness',
     'hydration': 'Hydration', 
     'eye_bags': 'Eye Bags',
     'pores': 'Pores',
     'acne': 'Acne',
-    'lines': 'Lines',
+    'lines': 'Fine Lines',
     'translucency': 'Translucency',
     'pigmentation': 'Pigmentation',
     'uniformness': 'Uniformness'
@@ -68,140 +85,184 @@ const formatConditionName = (conditionName) => {
   return nameMap[conditionName] || conditionName.charAt(0).toUpperCase() + conditionName.slice(1);
 };
 
-// Individual mask image component with zoom functionality
-const ZoomableMaskImage = ({ photoUri, maskUri, conditionName }) => {
-  const scale = useRef(new Animated.Value(1)).current;
-  const translateX = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(0)).current;
-  
-  const baseScale = useRef(1);
-  const baseTranslateX = useRef(0);
-  const baseTranslateY = useRef(0);
-  
-  const [currentScale, setCurrentScale] = useState(1);
-  
-  const pinchRef = useRef(null);
-  const panRef = useRef(null);
-  
-  // Reset zoom
+// Enhanced zoomable mask image component
+const ZoomableMaskImage = ({ photoUri, maskUri, conditionName, isActive }) => {
+  const scale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [maskLoaded, setMaskLoaded] = useState(!maskUri);
+
+  const pinchRef = useRef();
+  const panRef = useRef();
+  const doubleTapRef = useRef();
+
+  // Reset zoom when switching images
+  useEffect(() => {
+    if (!isActive) {
+      scale.value = withSpring(1, springConfig);
+      translateX.value = withSpring(0, springConfig);
+      translateY.value = withSpring(0, springConfig);
+    }
+  }, [isActive]);
+
+  // Pinch gesture handler
+  const pinchGestureHandler = useAnimatedGestureHandler({
+    onStart: (_, context) => {
+      context.startScale = scale.value;
+    },
+    onActive: (event, context) => {
+      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, context.startScale * event.scale));
+      scale.value = newScale;
+    },
+    onEnd: () => {
+      if (scale.value < MIN_SCALE) {
+        scale.value = withSpring(MIN_SCALE, springConfig);
+        translateX.value = withSpring(0, springConfig);
+        translateY.value = withSpring(0, springConfig);
+      } else if (scale.value > MAX_SCALE) {
+        scale.value = withSpring(MAX_SCALE, springConfig);
+      }
+    },
+  });
+
+  // Pan gesture handler
+  const panGestureHandler = useAnimatedGestureHandler({
+    onStart: (_, context) => {
+      context.startX = translateX.value;
+      context.startY = translateY.value;
+    },
+    onActive: (event, context) => {
+      if (scale.value > 1) {
+        const maxTranslate = (scale.value - 1) * (IMAGE_SIZE / 2);
+        translateX.value = Math.max(-maxTranslate, Math.min(maxTranslate, context.startX + event.translationX));
+        translateY.value = Math.max(-maxTranslate, Math.min(maxTranslate, context.startY + event.translationY));
+      }
+    },
+    onEnd: () => {
+      if (scale.value <= 1) {
+        translateX.value = withSpring(0, springConfig);
+        translateY.value = withSpring(0, springConfig);
+      }
+    },
+  });
+
+  // Double tap to zoom
+  const doubleTapGestureHandler = useAnimatedGestureHandler({
+    onActive: () => {
+      if (scale.value > 1) {
+        scale.value = withSpring(1, springConfig);
+        translateX.value = withSpring(0, springConfig);
+        translateY.value = withSpring(0, springConfig);
+      } else {
+        scale.value = withSpring(2, springConfig);
+      }
+    },
+  });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: scale.value },
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+    ],
+  }));
+
   const resetZoom = () => {
-    baseScale.current = 1;
-    baseTranslateX.current = 0;
-    baseTranslateY.current = 0;
-    
-    Animated.parallel([
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
-      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
-      Animated.spring(translateY, { toValue: 0, useNativeDriver: true })
-    ]).start();
-    
-    setCurrentScale(1);
+    scale.value = withSpring(1, springConfig);
+    translateX.value = withSpring(0, springConfig);
+    translateY.value = withSpring(0, springConfig);
   };
-  
-  // Handle pinch gesture
-  const onPinchEvent = Animated.event(
-    [{ nativeEvent: { scale: scale } }],
-    { useNativeDriver: false }
-  );
-  
-  const onPinchStateChange = (event) => {
-    if (event.nativeEvent.oldState === State.ACTIVE) {
-      const newScale = Math.max(1, Math.min(3, baseScale.current * event.nativeEvent.scale));
-      baseScale.current = newScale;
-      setCurrentScale(newScale);
-      scale.setValue(newScale);
-    }
-  };
-  
-  // Handle pan gesture
-  const onPanEvent = Animated.event(
-    [{ nativeEvent: { translationX: translateX, translationY: translateY } }],
-    { useNativeDriver: false }
-  );
-  
-  const onPanStateChange = (event) => {
-    if (event.nativeEvent.oldState === State.ACTIVE) {
-      baseTranslateX.current += event.nativeEvent.translationX;
-      baseTranslateY.current += event.nativeEvent.translationY;
-      
-      const maxTranslate = (currentScale - 1) * 100;
-      baseTranslateX.current = Math.max(-maxTranslate, Math.min(maxTranslate, baseTranslateX.current));
-      baseTranslateY.current = Math.max(-maxTranslate, Math.min(maxTranslate, baseTranslateY.current));
-      
-      translateX.setValue(baseTranslateX.current);
-      translateY.setValue(baseTranslateY.current);
-    }
-  };
-  
+
+  const isLoading = !imageLoaded || !maskLoaded;
+
   return (
     <View style={styles.maskImageContainer}>
-      <RNGHPinchGestureHandler
-        ref={pinchRef}
-        onGestureEvent={onPinchEvent}
-        onHandlerStateChange={onPinchStateChange}
-        simultaneousHandlers={[panRef]}
-      >
-        <RNGHPanGestureHandler
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      )}
+      
+      <GestureHandlerRootView style={styles.gestureContainer}>
+        <PanGestureHandler
           ref={panRef}
-          onGestureEvent={onPanEvent}
-          onHandlerStateChange={onPanStateChange}
-          enabled={currentScale > 1}
+          onGestureEvent={panGestureHandler}
           simultaneousHandlers={[pinchRef]}
+          minPointers={1}
+          maxPointers={1}
+          avgTouches
         >
-          <Animated.View style={styles.zoomContainer}>
-            {/* Background Image */}
-            <Animated.Image
-              source={{ uri: sanitizeS3Uri(photoUri) }}
-              style={[
-                styles.backgroundImage,
-                {
-                  transform: [
-                    { scale: scale },
-                    { translateX: translateX },
-                    { translateY: translateY }
-                  ]
-                }
-              ]}
-              resizeMode="cover"
-            />
-            
-            {/* SVG Overlay */}
-            {maskUri && (
-              <Animated.View 
-                style={[
-                  styles.svgOverlay,
-                  {
-                    transform: [
-                      { scale: scale },
-                      { translateX: translateX },
-                      { translateY: translateY }
-                    ]
-                  }
-                ]}
-              >
-                <SvgUri
-                  width="100%"
-                  height="100%"
-                  source={{ uri: sanitizeS3Uri(maskUri) }}
-                  onError={(error) => {
-                    console.log('🔴 Error loading SVG mask:', error);
-                  }}
-                />
+          <Animated.View style={styles.gestureWrapper}>
+            <PinchGestureHandler
+              ref={pinchRef}
+              onGestureEvent={pinchGestureHandler}
+              simultaneousHandlers={[panRef]}
+            >
+              <Animated.View style={styles.gestureWrapper}>
+                <TapGestureHandler
+                  ref={doubleTapRef}
+                  onGestureEvent={doubleTapGestureHandler}
+                  numberOfTaps={2}
+                >
+                  <Animated.View style={[styles.imageWrapper, animatedStyle]}>
+                    <Image
+                      source={{ uri: sanitizeS3Uri(photoUri) }}
+                      style={styles.backgroundImage}
+                      resizeMode="cover"
+                      onLoad={() => setImageLoaded(true)}
+                    />
+                    
+                    {maskUri && (
+                      <Image
+                        source={{ uri: sanitizeS3Uri(maskUri) }}
+                        style={styles.maskOverlay}
+                        resizeMode="cover"
+                        onLoad={() => setMaskLoaded(true)}
+                      />
+                    )}
+                  </Animated.View>
+                </TapGestureHandler>
               </Animated.View>
-            )}
-            
-            {/* Reset zoom button */}
-            {currentScale > 1 && (
-              <TouchableOpacity
-                style={styles.resetZoomButton}
-                onPress={resetZoom}
-              >
-                <Feather name="minimize-2" size={20} color="white" />
-              </TouchableOpacity>
-            )}
+            </PinchGestureHandler>
           </Animated.View>
-        </RNGHPanGestureHandler>
-      </RNGHPinchGestureHandler>
+        </PanGestureHandler>
+      </GestureHandlerRootView>
+
+      {/* Zoom controls */}
+      <Animated.View style={[styles.zoomControls, { opacity: isActive ? 1 : 0 }]}>
+        <TouchableOpacity
+          style={styles.zoomButton}
+          onPress={() => {
+            const newScale = Math.max(MIN_SCALE, scale.value - 0.5);
+            scale.value = withSpring(newScale, springConfig);
+            if (newScale === MIN_SCALE) {
+              translateX.value = withSpring(0, springConfig);
+              translateY.value = withSpring(0, springConfig);
+            }
+          }}
+        >
+          <ZoomOut size={18} color="white" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.zoomButton}
+          onPress={resetZoom}
+        >
+          <RotateCcw size={18} color="white" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.zoomButton}
+          onPress={() => {
+            const newScale = Math.min(MAX_SCALE, scale.value + 0.5);
+            scale.value = withSpring(newScale, springConfig);
+          }}
+        >
+          <ZoomIn size={18} color="white" />
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 };
@@ -210,103 +271,167 @@ export default function MaskViewerScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   
-  // Parse the photoData
   const parsedPhotoData = typeof params.photoData === 'string' 
     ? JSON.parse(params.photoData) 
     : params.photoData;
-  
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const scrollViewRef = useRef(null);
-  
-  // Prepare mask data - add "None" option at the beginning
+
+  const scrollX = useSharedValue(0);
+  const currentIndex = useSharedValue(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // Prepare mask data
   const maskOptions = [
-    { skin_condition_name: 'none', mask_img_url: null, displayName: 'None' },
-    ...(parsedPhotoData?.maskImages || []).map(mask => ({
+    { skin_condition_name: 'none', mask_img_url: null, displayName: 'Original' },
+    ...(parsedPhotoData?.maskImages || []).map((mask) => ({
       ...mask,
       displayName: formatConditionName(mask.skin_condition_name)
     }))
   ];
-  
-  console.log('🔵 MaskViewer - Available masks:', maskOptions.length);
-  console.log('🔵 MaskViewer - Photo URI:', parsedPhotoData?.storageUrl);
-  
-  // Handle scroll to specific mask
-  const scrollToMask = (index) => {
-    setCurrentIndex(index);
-    scrollViewRef.current?.scrollTo({
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+      const index = Math.round(event.contentOffset.x / SCREEN_WIDTH);
+      if (index !== currentIndex.value) {
+        currentIndex.value = index;
+        runOnJS(setActiveIndex)(index);
+      }
+    },
+  });
+
+  const scrollToIndex = (index) => {
+    scrollRef.current?.scrollTo({
       x: index * SCREEN_WIDTH,
       animated: true
     });
   };
-  
-  // Handle scroll end
-  const handleScrollEnd = (event) => {
-    const contentOffset = event.nativeEvent.contentOffset;
-    const index = Math.round(contentOffset.x / SCREEN_WIDTH);
-    setCurrentIndex(index);
-  };
-  
+
+  const scrollRef = useRef();
+
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+    <GestureHandlerRootView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {/* Header with close button */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.closeButton}
-          onPress={() => router.back()}
-        >
-          <Feather name="x" size={24} color="white" />
-        </TouchableOpacity>
-      </View>
-      
-      {/* Main scrollable content */}
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleScrollEnd}
-        style={styles.scrollView}
-      >
-        {maskOptions.map((maskOption, index) => (
-          <View key={index} style={styles.maskPage}>
-            <ZoomableMaskImage
-              photoUri={parsedPhotoData?.storageUrl}
-              maskUri={maskOption.mask_img_url}
-              conditionName={maskOption.skin_condition_name}
-            />
+      {/* Header */}
+      <SafeAreaView  style={styles.headerContainer}>
+        <BlurView intensity={20} style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Skin Analysis</Text>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => router.back()}
+            >
+              <X size={24} color="white" />
+            </TouchableOpacity>
           </View>
-        ))}
-      </ScrollView>
-      
-      {/* Bottom navigation indicators */}
-      <View style={styles.bottomNavigation}>
-        <ScrollView 
-          horizontal 
+        </BlurView>
+      </SafeAreaView>
+
+      {/* Main content */}
+      <View style={styles.mainContent}>
+        <Animated.ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.navigationContent}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          decelerationRate="fast"
+          snapToInterval={SCREEN_WIDTH}
+          snapToAlignment="center"
         >
           {maskOptions.map((maskOption, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.navigationItem,
-                index === currentIndex && styles.navigationItemActive
-              ]}
-              onPress={() => scrollToMask(index)}
-            >
-              <Text style={[
-                styles.navigationText,
-                index === currentIndex && styles.navigationTextActive
-              ]}>
-                {maskOption.displayName}
-              </Text>
-              {index === currentIndex && <View style={styles.activeIndicator} />}
-            </TouchableOpacity>
+            <View key={index} style={styles.maskPage}>
+              <ZoomableMaskImage
+                photoUri={parsedPhotoData?.storageUrl}
+                maskUri={maskOption.mask_img_url}
+                conditionName={maskOption.skin_condition_name}
+                isActive={index === activeIndex}
+              />
+            </View>
           ))}
-        </ScrollView>
+        </Animated.ScrollView>
+
+        {/* Current mask label */}
+        <View style={styles.currentLabelContainer}>
+          <BlurView intensity={40} style={styles.currentLabel}>
+            <Text style={styles.currentLabelText}>
+              {maskOptions[activeIndex]?.displayName}
+            </Text>
+            <View style={styles.currentLabelIndicator} />
+          </BlurView>
+        </View>
       </View>
+
+      {/* Bottom navigation */}
+      <View style={styles.bottomContainer}>
+        <LinearGradient
+          colors={['transparent', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.8)']}
+          style={styles.bottomGradient}
+        >
+          <BlurView intensity={30} style={styles.bottomNavigation}>
+            <Animated.ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.navigationContent}
+              style={styles.navigationScroll}
+            >
+              {maskOptions.map((maskOption, index) => {
+                const animatedTabStyle = useAnimatedStyle(() => {
+                  const isActive = index === currentIndex.value;
+                  const scale = interpolate(
+                    Math.abs(index - currentIndex.value),
+                    [0, 1],
+                    [1, 0.9]
+                  );
+                  
+                  const opacity = interpolate(
+                    Math.abs(index - currentIndex.value),
+                    [0, 1, 2],
+                    [1, 0.7, 0.4]
+                  );
+
+                  return {
+                    transform: [{ scale }],
+                    opacity,
+                  };
+                });
+
+                const animatedTextStyle = useAnimatedStyle(() => {
+                  const color = interpolateColor(
+                    Math.abs(index - currentIndex.value),
+                    [0, 1],
+                    ['#FFFFFF', '#FFFFFF80']
+                  );
+
+                  return { color };
+                });
+
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => scrollToIndex(index)}
+                    activeOpacity={0.7}
+                  >
+                    <Animated.View style={[styles.navigationTab, animatedTabStyle]}>
+                      <Animated.Text style={[styles.navigationTabText, animatedTextStyle]}>
+                        {maskOption.displayName}
+                      </Animated.Text>
+                      {index === activeIndex && (
+                        <View style={styles.activeTabIndicator} />
+                      )}
+                    </Animated.View>
+                  </TouchableOpacity>
+                );
+              })}
+            </Animated.ScrollView>
+          </BlurView>
+        </LinearGradient>
+      </View>
+    </GestureHandlerRootView>
     </SafeAreaView>
   );
 }
@@ -316,116 +441,194 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  header: {
+  headerContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 100,
     zIndex: 100,
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-    paddingRight: 20,
-    paddingBottom: 10,
+  },
+  header: {
+    paddingTop: 10,
+    paddingBottom: 15,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: 'white',
   },
   closeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  mainContent: {
+    flex: 1,
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
   },
-  maskPage: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
-    justifyContent: 'center',
+  scrollContent: {
     alignItems: 'center',
   },
+  maskPage: {
+    width: SCREEN_WIDTH,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
   maskImageContainer: {
-    width: SCREEN_WIDTH - 40,
-    height: SCREEN_WIDTH - 40,
+    width: IMAGE_SIZE,
+    height: IMAGE_SIZE,
     borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: '#111',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 15,
   },
-  zoomContainer: {
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    zIndex: 10,
+  },
+  loadingText: {
+    color: 'white',
+    marginTop: 10,
+    fontSize: 16,
+  },
+  gestureContainer: {
+    flex: 1,
+  },
+  gestureWrapper: {
+    flex: 1,
+  },
+  imageWrapper: {
     flex: 1,
     position: 'relative',
   },
   backgroundImage: {
+    width: '100%',
+    height: '100%',
+  },
+  maskOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
     height: '100%',
+    opacity: 0.8,
   },
-  svgOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    zIndex: 10,
-  },
-  resetZoomButton: {
+  zoomControls: {
     position: 'absolute',
     top: 20,
     right: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  zoomButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  bottomNavigation: {
+  currentLabelContainer: {
+    position: 'absolute',
+    bottom: 120,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  currentLabel: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    alignItems: 'center',
+    minWidth: 120,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  currentLabelText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  currentLabelIndicator: {
+    width: 30,
+    height: 3,
+    backgroundColor: colors.primary,
+    borderRadius: 1.5,
+  },
+  bottomContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 100,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
+  },
+  bottomGradient: {
+    paddingBottom: 40,
+    paddingTop: 20,
+  },
+  bottomNavigation: {
+    paddingVertical: 10,
+  },
+  navigationScroll: {
+    maxHeight: TAB_HEIGHT,
   },
   navigationContent: {
     paddingHorizontal: 20,
     alignItems: 'center',
+    gap: 8,
   },
-  navigationItem: {
+  navigationTab: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginHorizontal: 4,
-    borderRadius: 20,
-    minWidth: 80,
+    paddingVertical: 10,
     alignItems: 'center',
+    minWidth: 80,
     position: 'relative',
   },
-  navigationItemActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  navigationText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+  navigationTabText: {
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
+    marginBottom: 6,
   },
-  navigationTextActive: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  activeIndicator: {
+  activeTabIndicator: {
     position: 'absolute',
-    bottom: 4,
-    left: '50%',
-    marginLeft: -15,
+    bottom: 0,
     width: 30,
-    height: 2,
-    backgroundColor: 'white',
-    borderRadius: 1,
+    height: 3,
+    backgroundColor: colors.primary,
+    borderRadius: 1.5,
   },
 }); 
