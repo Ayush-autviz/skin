@@ -457,6 +457,29 @@ const SnapshotPhoto = forwardRef(({
                       />
                     </Animated.View>
                   )}
+
+                  {/* Analyze with images button - positioned relative to image */}
+                  {isLoaded && viewState === 'default' && photoData && photoData.maskImages && photoData.maskImages.length > 0 && (
+                    <View style={styles.analyzeButtonContainer}>
+                      <TouchableOpacity
+                        style={styles.analyzeButton}
+                        onPress={() => {
+                          console.log('🔍 SnapshotPhoto: Navigating to mask viewer from button');
+                          router.push({
+                            pathname: '/(authenticated)/maskViewer',
+                            params: {
+                              photoData: JSON.stringify(photoData)
+                            }
+                          });
+                        }}
+                      >
+                        <View style={styles.analyzeButtonContent}>
+                          <Feather name="image" size={16} color="white" />
+                          <Text style={styles.analyzeButtonText}>Analyze with images</Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </Animated.View>
               </TapGestureHandler>
             </TapGestureHandler>
@@ -576,6 +599,40 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '500',
+  },
+  // Fancy analyze button styles
+  analyzeButtonContainer: {
+    position: 'absolute',
+    bottom: 60,
+    right: 80,
+    zIndex: 100,
+  },
+  analyzeButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    // Add shadow for depth
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+    // Add border for extra fancy look
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  analyzeButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  analyzeButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+    letterSpacing: 0.5,
   },
   // Style for the SVG container
   svgContainer: {
