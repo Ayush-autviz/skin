@@ -32,6 +32,7 @@ import {
 } from 'react-native';
 import SvgUri from 'react-native-svg-uri';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { ConditionalImage } from '../../src/utils/imageUtils';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { usePhotoContext } from '../../src/contexts/PhotoContext';
 import ListItem from '../../src/components/ui/ListItem';
@@ -512,7 +513,7 @@ export default function MetricDetailScreen() {
   
   // Extract parameters from navigation
   const { metricKey, metricValue, photoData } = params || {};
-  console.log('🔵 metricKey:', metricKey);
+  console.log('🔵 metricKey:', params);
 
   
   
@@ -1035,7 +1036,7 @@ export default function MetricDetailScreen() {
                   <View style={styles.maskImageContainer}>
                     {/* Background Image */}
                     <Image
-                      source={{ uri: sanitizeS3Uri('https://storage.googleapis.com/36fe4aba-9e1e-4ff8-a22f-5f93036c5ae7/subjects/d648bf08-7a70-4691-8fd3-9652e592784e/batches/3e4a334a-0967-4e35-bb14-210b1241ba51/images/b79569db-c489-4061-bf59-78eaeeb8a89e/selfie/selfie_front_face_restored_rgba?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=saas-core%40sasuke-core-prd.iam.gserviceaccount.com%2F20250730%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250730T104710Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=host&X-Goog-Signature=ba5490804b5c57860af554e3f0171de1d964a25e750e742494197fe0f368637c77bef014759a6c6709926e0fdcacb5f05c20c5ad633614ff123110887ff9e43198a223369c7d2bd81dbbf6368b7cc1abff8029fb5d8723566500ae7042cb41a3eda539e6972da03f0a2f6cd16ecbb5685803554a0451798127a5c2044afc4c825d080c46ed4155dd8e465193eebfba27a4cebb059e185232f9073d7f42c648dfbcfbb3323bf7987e47e798e83e427130fa36dd6cc0ca00169601076a9d105f0b6d080d023f0538a65b50a32b1c618dc734b5385d718703e3d16ce49aea6387f2daffbe08988afc94dcab26e7867e1cb78a160b84f44b4e6288d878ed3a5ff942') }}
+                      source={{ uri: sanitizeS3Uri(maskImageData?.image_url) }}
                       style={styles.backgroundImage}
                       resizeMode="cover"
                       onError={(error) => {
@@ -1046,17 +1047,18 @@ export default function MetricDetailScreen() {
                       }}
                     />
                     
-                    {/* SVG Overlay */}
+                    {/* Conditional Image Overlay (SVG or regular image) */}
                     <View style={styles.svgOverlay}>
-                      <SvgUri
+                      <ConditionalImage
+                        source={{ uri: sanitizeS3Uri(maskImageData.mask_img_url) }}
+                        style={styles.svgOverlay}
                         width="100%"
                         height="100%"
-                        source={{ uri: sanitizeS3Uri(maskImageData.mask_img_url) }}
                         onError={(error) => {
-                          console.log('🔴 Error loading SVG mask image:', error);
+                          console.log('🔴 Error loading mask image:', error);
                         }}
                         onLoad={() => {
-                          console.log('✅ SVG mask image loaded successfully for:', conditionName);
+                          console.log('✅ Mask image loaded successfully for:', conditionName);
                         }}
                       />
                     </View>

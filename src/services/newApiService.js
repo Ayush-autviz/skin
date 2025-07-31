@@ -1075,4 +1075,166 @@ export const postChatMessage = async (body) => {
 // END COMPARISON/PROGRESS API FUNCTIONS
 // -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+// ROUTINE API FUNCTIONS
+// -----------------------------------------------------------------------------
+
+/**
+ * Get user's routine items
+ * @returns {Promise<Object>} Routine items data
+ */
+export const getRoutineItems = async () => {
+  try {
+    console.log("🔵 Fetching routine items...");
+
+    const response = await apiClient.get("/routine/");
+
+    if (response.data.status === 200) {
+      console.log("✅ Routine items fetched successfully");
+      return {
+        success: true,
+        data: response.data.data || [],
+      };
+    } else {
+      throw new Error(response.data.message || "Failed to fetch routine items");
+    }
+  } catch (error) {
+    console.error("🔴 getRoutineItems error:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch routine items"
+    );
+  }
+};
+
+/**
+ * Create a new routine item
+ * @param {Object} itemData - Routine item data
+ * @param {string} itemData.name - Item name
+ * @param {string} itemData.type - Item type (product, activity, nutrition)
+ * @param {string} itemData.usage - Usage time (am, pm, both)
+ * @param {string} itemData.frequency - Frequency (daily, weekly, as_needed)
+ * @param {Object} [itemData.extra] - Additional data (optional)
+ * @returns {Promise<Object>} Created item response
+ */
+export const createRoutineItem = async (itemData) => {
+  try {
+    console.log("🔵 Creating routine item:", itemData);
+
+    // Create form data as API expects application/x-www-form-urlencoded
+    const formData = new URLSearchParams();
+    formData.append("name", itemData.name);
+    formData.append("type", itemData.type.toLowerCase());
+    formData.append("usage", itemData.usage.toLowerCase());
+    formData.append("frequency", itemData.frequency.toLowerCase().replace(" ", "_"));
+    formData.append("extra", JSON.stringify(itemData.extra || {}));
+
+    const response = await apiClient.post("/routine/", formData, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+
+    if (response.data.status === 201 || response.data.status === 200) {
+      console.log("✅ Routine item created successfully");
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } else {
+      throw new Error(response.data.message || "Failed to create routine item");
+    }
+  } catch (error) {
+    console.error("🔴 createRoutineItem error:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to create routine item"
+    );
+  }
+};
+
+/**
+ * Update a routine item
+ * @param {string} itemId - Item ID
+ * @param {Object} itemData - Updated item data
+ * @param {string} itemData.name - Item name
+ * @param {string} itemData.type - Item type (product, activity, nutrition)
+ * @param {string} itemData.usage - Usage time (am, pm, both)
+ * @param {string} itemData.frequency - Frequency (daily, weekly, as_needed)
+ * @param {Object} [itemData.extra] - Additional data (optional)
+ * @returns {Promise<Object>} Updated item response
+ */
+export const updateRoutineItem = async (itemId, itemData) => {
+  try {
+    console.log("🔵 Updating routine item:", itemId, itemData);
+
+    // Create form data as API expects application/x-www-form-urlencoded
+    const formData = new URLSearchParams();
+    formData.append("name", itemData.name);
+    formData.append("type", itemData.type.toLowerCase());
+    formData.append("usage", itemData.usage.toLowerCase());
+    formData.append("frequency", itemData.frequency.toLowerCase().replace(" ", "_"));
+    formData.append("extra", JSON.stringify(itemData.extra || {}));
+
+    const response = await apiClient.put(`/routine/${itemId}`, formData, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+
+    if (response.data.status === 200) {
+      console.log("✅ Routine item updated successfully");
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } else {
+      throw new Error(response.data.message || "Failed to update routine item");
+    }
+  } catch (error) {
+    console.error("🔴 updateRoutineItem error:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to update routine item"
+    );
+  }
+};
+
+/**
+ * Delete a routine item
+ * @param {string} itemId - Item ID to delete
+ * @returns {Promise<Object>} Delete response
+ */
+export const deleteRoutineItem = async (itemId) => {
+  try {
+    console.log("🔵 Deleting routine item:", itemId);
+
+    const response = await apiClient.delete(`/routine/${itemId}`);
+
+    if (response.data.status === 200) {
+      console.log("✅ Routine item deleted successfully");
+      return {
+        success: true,
+        message: response.data.message || "Item deleted successfully",
+      };
+    } else {
+      throw new Error(response.data.message || "Failed to delete routine item");
+    }
+  } catch (error) {
+    console.error("🔴 deleteRoutineItem error:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to delete routine item"
+    );
+  }
+};
+
+// -----------------------------------------------------------------------------
+// END ROUTINE API FUNCTIONS
+// -----------------------------------------------------------------------------
+
 export default apiClient;

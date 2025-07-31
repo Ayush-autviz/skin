@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   },
   microcopyContainer: {
     paddingBottom: spacing.md,
-    paddingHorizontal: spacing.lg,
+  // paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
   microcopyText: {
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   itemsContainer: {
-    marginHorizontal: 16,
+  //  marginHorizontal: 16,
   },
   showMoreButton: {
     paddingVertical: 12,

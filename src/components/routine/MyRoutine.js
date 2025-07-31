@@ -2,16 +2,36 @@
 // Component to display and manage the user's routine items
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, SectionList, ActivityIndicator, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, SectionList, ActivityIndicator, StyleSheet, TouchableOpacity, TextInput, Alert, Platform } from 'react-native';
 import { colors, spacing, typography, palette } from '../../styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import Chip from '../ui/Chip';
 import ModalBottomSheet from '../layout/ModalBottomSheet';
-import CustomDateInput from '../ui/CustomDateInput';
 import AiMessageCard from '../chat/AiMessageCard';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ListItem from '../ui/ListItem';
+import { 
+  FlaskConical, 
+  Dumbbell, 
+  Apple, 
+  Sun, 
+  Moon, 
+  Calendar, 
+  CalendarX,
+  CheckCircle,
+  CalendarDays,
+  HelpCircle,
+  X,
+  Plus
+} from 'lucide-react-native';
+import { 
+  getRoutineItems, 
+  createRoutineItem, 
+  updateRoutineItem, 
+  deleteRoutineItem 
+} from '../../services/newApiService';
 
 // Define static messages based on routine size
 const staticAiMessages = [
@@ -92,66 +112,71 @@ export default function MyRoutine() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // State for the Date Picker Modal
-  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
-  const [editingDateField, setEditingDateField] = useState(null); // 'start' or 'stop'
+  // State for Date Pickers
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showStopDatePicker, setShowStopDatePicker] = useState(false);
 
   const insets = useSafeAreaInsets();
   const [fixedCardHeight, setFixedCardHeight] = useState(150);
 
-  // TODO: Replace with API calls
-  useEffect(() => {
-    // Simulate API call to fetch routine items
-    const fetchRoutineItems = async () => {
-      try {
-        setLoading(true);
-        // TODO: Replace with actual API call
-        // const response = await getRoutineItems();
-        // setRoutineItems(response.data);
-        
-        // Mock data for now
-        setTimeout(() => {
-          setRoutineItems([
-            {
-              id: '1',
-              name: 'Vitamin C Serum',
-              type: 'Product',
-              usage: 'AM',
-              frequency: 'Daily',
-              dateStarted: new Date('2024-01-15'),
-              dateStopped: null,
-              dateCreated: new Date('2024-01-15')
-            },
-            {
-              id: '2',
-              name: 'Retinol Cream',
-              type: 'Product',
-              usage: 'PM',
-              frequency: 'Daily',
-              dateStarted: new Date('2024-02-01'),
-              dateStopped: null,
-              dateCreated: new Date('2024-02-01')
-            },
-            {
-              id: '3',
-              name: 'Face Mask',
-              type: 'Activity',
-              usage: 'PM',
-              frequency: 'Weekly',
-              dateStarted: new Date('2024-01-20'),
-              dateStopped: null,
-              dateCreated: new Date('2024-01-20')
-            }
-          ]);
-          setLoading(false);
-        }, 1000);
-      } catch (err) {
-        console.error('🔴 MyRoutine: Error fetching routine items:', err);
-        setError('Failed to load routine items.');
-        setLoading(false);
-      }
+  // Transform API data to component format
+  const transformApiItem = (apiItem) => {
+    // Normalize API values to component expected format
+    const typeMap = {
+      'product': 'Product',
+      'activity': 'Activity', 
+      'nutrition': 'Nutrition'
+    };
+    
+    const usageMap = {
+      'am': 'AM',
+      'pm': 'PM',
+      'both': 'Both'
+    };
+    
+    const frequencyMap = {
+      'daily': 'Daily',
+      'weekly': 'Weekly',
+      'as_needed': 'As Needed'
     };
 
+    return {
+      id: apiItem.id,
+      name: apiItem.name,
+      type: typeMap[apiItem.type] || apiItem.type,
+      usage: usageMap[apiItem.usage] || apiItem.usage,
+      frequency: frequencyMap[apiItem.frequency] || apiItem.frequency,
+      dateStarted: apiItem.extra?.dateStarted ? new Date(apiItem.extra.dateStarted) : null,
+      dateStopped: apiItem.extra?.dateStopped ? new Date(apiItem.extra.dateStopped) : null,
+      dateCreated: apiItem.extra?.dateCreated ? new Date(apiItem.extra.dateCreated) : new Date(),
+      extra: apiItem.extra || {}
+    };
+  };
+
+  // Fetch routine items from API
+  const fetchRoutineItems = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await getRoutineItems();
+      
+      if (response.success && response.data) {
+        const transformedItems = response.data.map(transformApiItem);
+        setRoutineItems(transformedItems);
+      } else {
+        setRoutineItems([]);
+      }
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('🔴 MyRoutine: Error fetching routine items:', err);
+      setError(err.message || 'Failed to load routine items.');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRoutineItems();
   }, []);
 
@@ -169,25 +194,21 @@ export default function MyRoutine() {
     });
   };
 
-  // --- Date Picker Handlers ---
-  const showDatePicker = (field) => {
-    setEditingDateField(field);
-    setDatePickerVisibility(true); 
-  };
-
-  const hideDatePicker = () => {
-    setDatePickerVisibility(false);
-    setEditingDateField(null);
-  };
-
-  const handleConfirmDate = (date) => {
-    const formattedDate = date.toLocaleDateString();
-    if (editingDateField === 'start') {
-      setNewItemDateStarted(date);
-    } else if (editingDateField === 'stop') {
-      setNewItemDateStopped(date);
+  // Date picker handlers
+  const handleStartDateChange = (event, selectedDate) => {
+    setShowStartDatePicker(false);
+    if (event.type === 'dismissed') return;
+    if (selectedDate) {
+      setNewItemDateStarted(selectedDate);
     }
-    hideDatePicker();
+  };
+
+  const handleStopDateChange = (event, selectedDate) => {
+    setShowStopDatePicker(false);
+    if (event.type === 'dismissed') return;
+    if (selectedDate) {
+      setNewItemDateStopped(selectedDate);
+    }
   };
 
   // Handler for navigating to the chat screen for routine discussion
@@ -228,13 +249,18 @@ export default function MyRoutine() {
   // Combined Add/Update handler
   const handleSaveItem = async () => {
     if (!newItemName.trim()) {
-      alert('Please enter an item name.');
+      Alert.alert('Error', 'Please enter an item name.');
+      return;
+    }
+
+    if (!newItemType.trim()) {
+      Alert.alert('Error', 'Please select an item type.');
       return;
     }
 
     // Validate dates if both are present
     if (newItemDateStarted && newItemDateStopped && newItemDateStopped < newItemDateStarted) {
-      alert('Stop date cannot be before start date.');
+      Alert.alert('Error', 'Stop date cannot be before start date.');
       return;
     }
 
@@ -245,47 +271,46 @@ export default function MyRoutine() {
     else if (includesPM) finalUsage = 'PM';
     else if (includesAM) finalUsage = 'AM';
 
-    const itemData = {
+    // Prepare data for API (with extra field for additional info)
+    const apiItemData = {
       name: newItemName.trim(),
       type: newItemType,
       usage: finalUsage,
       frequency: newItemFrequency,
-      dateStarted: newItemDateStarted,
-      dateStopped: newItemDateStopped,
+      extra: {
+        dateStarted: newItemDateStarted?.toISOString(),
+        dateStopped: newItemDateStopped?.toISOString(),
+        dateCreated: editingItem?.dateCreated?.toISOString() || new Date().toISOString()
+      }
     };
 
     setIsSaving(true);
     try {
       if (editingItem) {
-        // TODO: Replace with actual API call
-        // await updateRoutineItem(userId, { ...itemData, id: editingItem.id });
-        console.log('Updating routine item:', { ...itemData, id: editingItem.id });
+        // Update existing item
+        const response = await updateRoutineItem(editingItem.id, apiItemData);
+        console.log('🟡 MyRoutine: Update response:', response);
         
-        // Update local state for now
-        setRoutineItems(prev => 
-          prev.map(item => 
-            item.id === editingItem.id 
-              ? { ...item, ...itemData }
-              : item
-          )
-        );
+        if (response.success) {
+          // Refetch all routine items to ensure consistency
+          await fetchRoutineItems();
+          Alert.alert('Success', 'Item updated successfully');
+        }
       } else {
-        // TODO: Replace with actual API call
-        // await addRoutineItem(userId, itemData);
-        console.log('Adding routine item:', itemData);
+        // Create new item
+        const response = await createRoutineItem(apiItemData);
+        console.log('🟡 MyRoutine: Create response:', response);
         
-        // Add to local state for now
-        const newItem = {
-          ...itemData,
-          id: Date.now().toString(),
-          dateCreated: new Date()
-        };
-        setRoutineItems(prev => [...prev, newItem]);
+        if (response.success) {
+          // Refetch all routine items to ensure consistency
+          await fetchRoutineItems();
+          Alert.alert('Success', 'Item added successfully');
+        }
       }
       closeModal();
     } catch (err) {
       console.error('🔴 MyRoutine: Error saving item:', err);
-      alert('Failed to save item. Please try again.');
+      Alert.alert('Error', err.message || 'Failed to save item. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -306,25 +331,25 @@ export default function MyRoutine() {
       chips.push({ label: displayUsage, type: 'default' });
     }
     if (isNotUsing) {
-      chips.push({ label: 'Stopped', type: 'default' });
+      chips.push({ label: 'Stopped', type: 'stopped' });
     }
     if (item.frequency && item.frequency !== 'Daily') {
-      chips.push({ label: item.frequency, type: 'default' });
+      chips.push({ label: item.frequency, type: 'frequency' });
     }
+
+    console.log('item', item);
     
     return (
-      <View style={{ marginBottom: 12, marginHorizontal: 16 }}>
         <ListItem
           title={item.name}
           subtitle={usageDuration || 'Recently added'}
-          description={item.type === 'Product' ? `${item.type} for daily routine` : item.type}
-          icon={item.type === 'Product' ? 'bottle-tonic-outline' : 'shower-head'}
-          iconColor={item.type === 'Product' ? colors.primary : '#009688'}
+          description={item.type}
+          icon={item.type === 'Product' ? 'bottle-tonic-outline' : item.type === 'Activity' ? 'yoga' : 'food-apple-outline'}
+          iconColor={item.type === 'Product' ? colors.primary : item.type === 'Activity' ? '#009688' : '#FF6B35'}
           chips={chips}
           showChevron={false}
           onPress={() => handleEditItem(item)}
         />
-      </View>
     );
   };
 
@@ -345,16 +370,17 @@ export default function MyRoutine() {
           onPress: async () => {
             setIsDeleting(true);
             try {
-              // TODO: Replace with actual API call
-              // await deleteRoutineItem(userId, itemToDelete.id);
-              console.log('Deleting routine item:', itemToDelete.id);
+              const response = await deleteRoutineItem(itemToDelete.id);
               
-              // Update local state for now
-              setRoutineItems(prev => prev.filter(item => item.id !== itemToDelete.id));
-              closeModal();
+              if (response.success) {
+                // Refetch all routine items to ensure consistency
+                await fetchRoutineItems();
+                closeModal();
+                Alert.alert("Success", "Item deleted successfully");
+              }
             } catch (error) {
               console.error('🔴 MyRoutine: Error deleting item:', error);
-              Alert.alert("Error", "Could not delete the routine item.");
+              Alert.alert("Error", error.message || "Could not delete the routine item.");
             } finally {
               setIsDeleting(false);
             }
@@ -451,7 +477,7 @@ export default function MyRoutine() {
     setIsModalVisible(false);
     setEditingItem(null);
     setNewItemName('');
-    setNewItemType('Product');
+    setNewItemType('Product'); // Set default type to avoid validation error
     setNewItemUsage(['AM']);
     setNewItemFrequency('Daily');
     setNewItemDateStarted(null); 
@@ -482,7 +508,7 @@ export default function MyRoutine() {
 
     // Reset all fields to defaults
     setNewItemName('');
-    setNewItemType(''); // Remove default 'Product' - let user choose
+    setNewItemType('Product'); // Set default type
     setNewItemUsage(['AM']);
     setNewItemFrequency(mappedFrequency); // Use mapped frequency
     setNewItemDateStarted(null);
@@ -496,7 +522,7 @@ export default function MyRoutine() {
     setIsModalVisible(true);
 
     setNewItemName('');
-    setNewItemType(''); // Remove default 'Product' here too
+    setNewItemType('Product'); // Set default type
     setNewItemUsage(['AM']);
     setNewItemFrequency('Daily');
     setNewItemDateStarted(null);
@@ -507,35 +533,25 @@ export default function MyRoutine() {
   const renderSectionHeader = ({ section: { title } }) => (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionHeaderContent}>
-        <Text style={styles.sectionHeaderText}>{title.toUpperCase()}</Text>
+        <View style={styles.sectionHeaderLeft}>
+          <Text style={styles.sectionHeaderText}>{title}</Text>
+          <View style={styles.sectionHeaderLine} />
+        </View>
         <TouchableOpacity
           style={styles.sectionAddButton}
           onPress={() => openAddModalWithFrequency(title)}
         >
           <MaterialCommunityIcons 
             name="plus" 
-            size={12} 
-            color={colors.primary} 
+            size={16} 
+            color={"#fff"} 
           />
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  // Function to get the initial date for the picker
-  const getPickerInitialDate = () => {
-    const dateString = editingDateField === 'start' ? newItemDateStarted : newItemDateStopped;
-    if (dateString) {
-      try {
-        const parsedDate = new Date(dateString);
-        if (!isNaN(parsedDate.getTime())) {
-          return parsedDate;
-        }
-      } catch (e) { /* Ignore parsing error, default below */ }
-    }
-    // Default to today if no valid date string or parsing fails
-    return new Date(); 
-  };
+
 
   // --- Select Static Message for AiMessageCard ---
   const getStaticRoutineMessage = (count) => {
@@ -641,7 +657,7 @@ export default function MyRoutine() {
       <ModalBottomSheet
         isVisible={isModalVisible}
         onClose={closeModal}
-        title={editingItem ? "Edit Routine Item" : "Add to your routine"}
+      //  title={editingItem ? "Edit Routine Item" : "Add to your routine"}
         primaryActionLabel={editingItem ? "Update" : "Save"}
         onPrimaryAction={handleSaveItem}
         isPrimaryActionLoading={isSaving}
@@ -651,97 +667,216 @@ export default function MyRoutine() {
         onDestructiveAction={editingItem ? () => handleDeleteItemRequest(editingItem) : undefined}
       >
         <View style={styles.modalInputContainer}>
+          {/* Header with icon */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalHeaderIcon}>
+              <FlaskConical size={24} color="#8B7355" />
+            </View>
+            <Text style={styles.modalHeaderTitle}>
+              {editingItem ? "Edit Routine Item" : "Add to your routine"}
+            </Text>
+            {/* <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+              <X size={20} color="#6B7280" />
+            </TouchableOpacity> */}
+          </View>
 
-          {/* Item Name Input */}
-          <TextInput
-            style={styles.input}
-            placeholder="What do you use or do?"
-            value={newItemName}
-            onChangeText={setNewItemName}
-            placeholderTextColor={colors.textSecondary}
-            autoFocus={true}
-          />
+          {/* Item Name Input with Icon */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Item Name</Text>
+            <View style={styles.inputWrapper}>
+              <FlaskConical 
+                size={20} 
+                color="#6B7280" 
+                style={styles.inputIcon} 
+              />
+              <TextInput
+                style={styles.textInput}
+                placeholder="What do you use or do?"
+                value={newItemName}
+                onChangeText={setNewItemName}
+                placeholderTextColor="#9CA3AF"
+                autoFocus={true}
+                returnKeyType="next"
+              />
+            </View>
+          </View>
 
-          {/* Item Type Selector - Using same pattern as AM/PM */}
-          <Text style={styles.typeLabel}>What kind of thing do you do?</Text>
-          <View style={styles.typeSelectorContainer}>
-            {['Product', 'Activity', 'Nutrition'].map((typeName) => {
-              const isActive = newItemType === typeName;
-              return (
+          {/* Item Type Selector */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Category</Text>
+            <View style={styles.chipSelectorContainer}>
+              {[
+                { name: 'Product', icon: FlaskConical, color: '#8B7355' },
+                { name: 'Activity', icon: Dumbbell, color: '#009688' },
+                { name: 'Nutrition', icon: Apple, color: '#FF6B35' }
+              ].map(({ name, icon: Icon, color }) => {
+                const isActive = newItemType === name;
+                
+                return (
+                  <TouchableOpacity
+                    key={name}
+                    style={[
+                      styles.chipButton,
+                      isActive && styles.chipButtonActive
+                    ]}
+                    onPress={() => setNewItemType(name)}
+                  >
+                    <Icon 
+                      size={20} 
+                      color={isActive ? '#FFFFFF' : '#6B7280'} 
+                    />
+                    <Text style={[
+                      styles.chipButtonText,
+                      isActive && styles.chipButtonTextActive
+                    ]}>
+                      {name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+                      {/* Usage Time Selector */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Time of Day</Text>
+              <View style={styles.chipSelectorContainer}>
+                {[
+                  { name: 'AM', icon: Sun, color: '#F59E0B' },
+                  { name: 'PM', icon: Moon, color: '#6366F1' }
+                ].map(({ name, icon: Icon, color }) => {
+                  const isActive = newItemUsage.includes(name);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={name}
+                      style={[
+                        styles.chipButton,
+                        isActive && styles.chipButtonActive
+                      ]}
+                      onPress={() => handleUsageToggle(name)}
+                    >
+                      <Icon 
+                        size={20} 
+                        color={isActive ? '#FFFFFF' : '#6B7280'} 
+                      />
+                      <Text style={[
+                        styles.chipButtonText,
+                        isActive && styles.chipButtonTextActive
+                      ]}>
+                        {name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+                      {/* Frequency Selector */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Frequency</Text>
+              <View style={styles.chipSelectorContainer}>
+                {[
+                  { name: 'Daily', icon: CheckCircle, color: '#10B981' },
+                  { name: 'Weekly', icon: CalendarDays, color: '#3B82F6' },
+                  { name: 'As Needed', icon: HelpCircle, color: '#8B5CF6' }
+                ].map(({ name, icon: Icon, color }) => {
+                  const isActive = newItemFrequency === name;
+                  
+                  return (
+                    <TouchableOpacity
+                      key={name}
+                      style={[
+                        styles.chipButton,
+                        isActive && styles.chipButtonActive
+                      ]}
+                      onPress={() => setNewItemFrequency(name)}
+                    >
+                      <Icon 
+                        size={20} 
+                        color={isActive ? '#FFFFFF' : '#6B7280'} 
+                      />
+                      <Text style={[
+                        styles.chipButtonText,
+                        isActive && styles.chipButtonTextActive
+                      ]}>
+                        {name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+                      {/* Start Date Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Start Date (Optional)</Text>
+              <View style={styles.inputWrapper}>
+                <Calendar 
+                  size={20} 
+                  color="#6B7280" 
+                  style={styles.inputIcon} 
+                />
                 <TouchableOpacity
-                  key={typeName}
-                  style={styles.chipTouchable}
-                  onPress={() => setNewItemType(typeName)}
+                  style={styles.dateInputButton}
+                  onPress={() => setShowStartDatePicker(true)}
                 >
-                  <Chip 
-                    label={typeName} 
-                    type="default" 
-                    styleVariant={isActive ? 'bold' : 'normal'} 
-                  />
+                  <Text style={[styles.dateText, !newItemDateStarted && styles.dateTextPlaceholder]}>
+                    {newItemDateStarted ? newItemDateStarted.toDateString() : 'Select start date'}
+                  </Text>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
+              </View>
+            </View>
 
-          {/* Item Usage Selector - Checkbox style */}
-          <Text style={styles.typeLabel}>What time of day?</Text>
-          <View style={styles.typeSelectorContainer}>
-            {['AM', 'PM'].map((usageName) => {
-              const isActive = newItemUsage.includes(usageName);
-              return (
+          {showStartDatePicker && (
+            <DateTimePicker
+              value={newItemDateStarted || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleStartDateChange}
+              maximumDate={new Date()}
+              minimumDate={new Date(new Date().getFullYear() - 10, 0, 1)}
+              textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
+              style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
+              themeVariant="light"
+            />
+          )}
+
+                      {/* Stop Date Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Stop Date (Optional)</Text>
+              <View style={styles.inputWrapper}>
+                <CalendarX 
+                  size={20} 
+                  color="#6B7280" 
+                  style={styles.inputIcon} 
+                />
                 <TouchableOpacity
-                  key={usageName}
-                  style={styles.chipTouchable}
-                  onPress={() => handleUsageToggle(usageName)}
+                  style={styles.dateInputButton}
+                  onPress={() => setShowStopDatePicker(true)}
                 >
-                  <Chip 
-                    label={usageName} 
-                    type="default" 
-                    styleVariant={isActive ? 'bold' : 'normal'} 
-                  />
+                  <Text style={[styles.dateText, !newItemDateStopped && styles.dateTextPlaceholder]}>
+                    {newItemDateStopped ? newItemDateStopped.toDateString() : 'Select stop date'}
+                  </Text>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
+              </View>
+            </View>
 
-          {/* Item Frequency Selector - Using same pattern as AM/PM */}
-          <Text style={styles.typeLabel}>How often?</Text>
-          <View style={styles.typeSelectorContainer}>
-            {['Daily', 'Weekly', 'As Needed'].map((freq) => {
-              const isActive = newItemFrequency === freq;
-              return (
-                <TouchableOpacity
-                  key={freq}
-                  style={styles.chipTouchable}
-                  onPress={() => setNewItemFrequency(freq)}
-                >
-                  <Chip 
-                    label={freq} 
-                    type="default" 
-                    styleVariant={isActive ? 'bold' : 'normal'} 
-                  />
-        </TouchableOpacity>
-              );
-            })}
-          </View>
+          {showStopDatePicker && (
+            <DateTimePicker
+              value={newItemDateStopped || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleStopDateChange}
+              maximumDate={new Date()}
+              minimumDate={newItemDateStarted || new Date(new Date().getFullYear() - 10, 0, 1)}
+              textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
+              style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
+              themeVariant="light"
+            />
+          )}
 
-          {/* Custom Date Input for Start Date */}
-          <Text style={styles.typeLabel}>Start Date (Optional)</Text>
-           <CustomDateInput
-             value={newItemDateStarted}
-             onChange={setNewItemDateStarted}
-             placeholder="DD/MM/YYYY"
-             style={{ marginBottom: 12 }}
-           />
-
-          {/* Custom Date Input for Stop Date */}
-          <Text style={styles.typeLabel}>Stop Date (Optional)</Text>
-           <CustomDateInput
-             value={newItemDateStopped}
-             onChange={setNewItemDateStopped}
-             placeholder="DD/MM/YYYY"
-           />
-      </View>
+        </View>
       </ModalBottomSheet>
     </View>
   );
@@ -750,15 +885,15 @@ export default function MyRoutine() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#fff',
   },
   sectionsList: {
     flex: 1,
   },
   listContentContainerBase: {
-    paddingTop: spacing.md,
-    paddingBottom: 150 + spacing.xl,
-    padddingHorizontal: spacing.md
+    paddingTop: spacing.lg,
+    paddingBottom: 200,
+    paddingHorizontal: 0,
   },
   emptyListTopContainer: {
     paddingTop: 24,
@@ -777,35 +912,46 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   sectionHeader: {
-    paddingTop: spacing.xl,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.md,
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFF',
   },
   sectionHeaderContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   sectionHeaderText: {
-    ...typography.overline,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    ...typography.h3,
+    color: colors.textPrimary,
+    fontWeight: '700',
+    fontSize: 18,
     marginRight: spacing.sm,
   },
+  sectionHeaderLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginLeft: spacing.sm,
+  },
   sectionAddButton: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: colors.white,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   routineItem: {
     flexDirection: 'row',
@@ -864,163 +1010,170 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   modalInputContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingHorizontal: 30,
+    paddingBottom: 50,
+    backgroundColor: '#FFFFFF',
   },
-  typeLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 32,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  input: {
-    ...typography.body,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.white,
-    marginBottom: spacing.sm,
-    width: '100%',
-    color: colors.textPrimary,
+  modalHeaderIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
-  typeSelectorContainer: {
+  modalHeaderTitle: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inputContainer: {
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#8B7355',
+    paddingBottom: 8,
+    minHeight: 44,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+    paddingVertical: 4,
+    minHeight: 44,
+  },
+  chipSelectorContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
+    gap: 12,
   },
-  chipTouchable: {},
-  dateInputTouchable: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.white,
-    marginBottom: spacing.sm,
-    minHeight: 40,
-    justifyContent: 'center',
-    width: '100%',
-  },
-  dateInputText: {
-    ...typography.body,
-    color: colors.textPrimary,
-  },
-  dateInputPlaceholder: {
-    color: colors.textPlaceholder,
-  },
-  modalActions: {
+  chipButton: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: spacing.xl,
-    width: '100%',
-    gap: spacing.md,
-  },
-  modalButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 8,
-    justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 80,
-  },
-  modalButtonText: {
-    ...typography.button,
-    color: colors.white,
-  },
-  saveButton: {
-    backgroundColor: colors.primary,
-  },
-  deleteButton: {
-    backgroundColor: colors.error,
-    marginRight: 'auto',
-  },
-  addButton: {
-    position: 'absolute',
-    bottom: 150 + spacing.lg,
-    right: spacing.lg,
-    backgroundColor: colors.primary,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    minHeight: 48,
+    gap: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  chipButtonActive: {
+    backgroundColor: '#8B7355',
+    borderColor: '#8B7355',
+    shadowColor: '#8B7355',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    zIndex: 10,
+    elevation: 3,
   },
+  chipButtonText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  chipButtonTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  dateInputButton: {
+    flex: 1,
+    paddingVertical: 4,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  dateText: {
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  dateTextPlaceholder: {
+    color: '#9CA3AF',
+  },
+  routineItemContainer: {
+    marginBottom: 12, 
+    marginHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+
   fixedCardWrapper: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    minHeight: 150, // Use constant here too
+    minHeight: 150,
+    backgroundColor: 'transparent',
   },
-  inputLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  usageSelectorContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  usageChip: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-  },
-  usageChipSelected: {
-    backgroundColor: colors.primary,
-  },
-  usageChipText: {
-    ...typography.body,
-    color: colors.textPrimary,
-  },
-  usageChipTextSelected: {
-    fontWeight: '600',
-  },
-  snapshotCard: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    padding: spacing.md,
-    margin: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  snapshotCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  snapshotCardText: {
-    ...typography.body,
-    color: colors.textPrimary,
-  },
-  snapshotCardChevron: {
-    marginLeft: spacing.md,
-  },
+
   motivationalCard: {
-    backgroundColor: '#f8f8f8',
+    backgroundColor: colors.white,
     marginHorizontal: 16,
     marginBottom: 10,
     marginTop: 5,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 50,
+    minHeight: 60,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   avatarCircle: {
     backgroundColor: colors.primary,

@@ -114,7 +114,7 @@ const ModalBottomSheet = (props) => {
             <View style={styles.modalContent}>
               <View style={styles.handleIndicator} />
 
-              <Text style={styles.title}>{title || ''}</Text>
+              {/* <Text style={styles.title}>{title || ''}</Text> */}
               
               <ScrollView 
                 style={styles.scrollViewStyle} 

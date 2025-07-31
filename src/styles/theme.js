@@ -19,6 +19,7 @@ const colors = {
   // Brand Colors - Updated to match auth screens
   primary: '#8B7355', // Brownish/gold color from auth screens
   secondary: '#8B7355',
+  white: '#FFFFFF',
   
   // UI Colors
   background: '#FFFFFF', // Pure white to match auth screens

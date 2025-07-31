@@ -32,6 +32,7 @@ import {
   GestureHandlerRootView
 } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ConditionalImage } from '../../src/utils/imageUtils';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_SIZE = SCREEN_WIDTH - 40;
@@ -91,7 +92,7 @@ const ZoomableMaskImage = ({ photoUri, maskUri, conditionName, isActive }) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [maskLoaded, setMaskLoaded] = useState(!maskUri);
+  const [maskLoaded, setMaskLoaded] = useState(true);
 
   const pinchRef = useRef();
   const panRef = useRef();
@@ -207,19 +208,31 @@ const ZoomableMaskImage = ({ photoUri, maskUri, conditionName, isActive }) => {
                   numberOfTaps={2}
                 >
                   <Animated.View style={[styles.imageWrapper, animatedStyle]}>
-                    <Image
+                    {/* <ConditionalImage
                       source={{ uri: sanitizeS3Uri(photoUri) }}
                       style={styles.backgroundImage}
                       resizeMode="cover"
                       onLoad={() => setImageLoaded(true)}
+                    /> */}
+                    <Image
+                      source={{ uri: sanitizeS3Uri(photoUri) }}
+                      style={styles.backgroundImage}
+                      resizeMode="cover"
+                      onError={(error) => {
+                        console.log('🔴 Error loading background image:', error.nativeEvent.error);
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Background image loaded successfully');
+                      }}
                     />
                     
                     {maskUri && (
-                      <Image
+                      <ConditionalImage
                         source={{ uri: sanitizeS3Uri(maskUri) }}
                         style={styles.maskOverlay}
                         resizeMode="cover"
                         onLoad={() => setMaskLoaded(true)}
+
                       />
                     )}
                   </Animated.View>
@@ -281,12 +294,14 @@ export default function MaskViewerScreen() {
 
   // Prepare mask data
   const maskOptions = [
-    { skin_condition_name: 'none', mask_img_url: null, displayName: 'Original' },
+    { skin_condition_name: 'none', mask_img_url: null, displayName: 'Original', image_url: parsedPhotoData?.maskImages[0]?.image_url },
     ...(parsedPhotoData?.maskImages || []).map((mask) => ({
       ...mask,
       displayName: formatConditionName(mask.skin_condition_name)
     }))
   ];
+
+  console.log('🔵 maskOptions:', maskOptions);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -304,9 +319,14 @@ export default function MaskViewerScreen() {
       x: index * SCREEN_WIDTH,
       animated: true
     });
+    // navigationScrollRef.current?.scrollTo({
+    //   x: index * 60,
+    //   animated: true
+    // });
   };
 
   const scrollRef = useRef();
+  const navigationScrollRef = useRef();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -346,7 +366,7 @@ export default function MaskViewerScreen() {
           {maskOptions.map((maskOption, index) => (
             <View key={index} style={styles.maskPage}>
               <ZoomableMaskImage
-                photoUri={parsedPhotoData?.storageUrl}
+                photoUri={maskOption?.image_url}
                 maskUri={maskOption.mask_img_url}
                 conditionName={maskOption.skin_condition_name}
                 isActive={index === activeIndex}
@@ -378,52 +398,23 @@ export default function MaskViewerScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.navigationContent}
               style={styles.navigationScroll}
-            >
+              ref={navigationScrollRef}
+            > 
               {maskOptions.map((maskOption, index) => {
-                const animatedTabStyle = useAnimatedStyle(() => {
-                  const isActive = index === currentIndex.value;
-                  const scale = interpolate(
-                    Math.abs(index - currentIndex.value),
-                    [0, 1],
-                    [1, 0.9]
-                  );
-                  
-                  const opacity = interpolate(
-                    Math.abs(index - currentIndex.value),
-                    [0, 1, 2],
-                    [1, 0.7, 0.4]
-                  );
-
-                  return {
-                    transform: [{ scale }],
-                    opacity,
-                  };
-                });
-
-                const animatedTextStyle = useAnimatedStyle(() => {
-                  const color = interpolateColor(
-                    Math.abs(index - currentIndex.value),
-                    [0, 1],
-                    ['#FFFFFF', '#FFFFFF80']
-                  );
-
-                  return { color };
-                });
-
                 return (
                   <TouchableOpacity
                     key={index}
                     onPress={() => scrollToIndex(index)}
                     activeOpacity={0.7}
                   >
-                    <Animated.View style={[styles.navigationTab, animatedTabStyle]}>
-                      <Animated.Text style={[styles.navigationTabText, animatedTextStyle]}>
+                    <View style={[styles.navigationTab]}>
+                      <Animated.Text style={[styles.navigationTabText, {color: '#FFF'}]}>
                         {maskOption.displayName}
                       </Animated.Text>
                       {index === activeIndex && (
                         <View style={styles.activeTabIndicator} />
                       )}
-                    </Animated.View>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -526,8 +517,12 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
     width: '100%',
     height: '100%',
+    borderRadius: 12,
   },
   maskOverlay: {
     position: 'absolute',
@@ -535,7 +530,8 @@ const styles = StyleSheet.create({
     left: 0,
     width: '100%',
     height: '100%',
-    opacity: 0.8,
+    opacity: 1,
+    zIndex: 100,
   },
   zoomControls: {
     position: 'absolute',

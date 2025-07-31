@@ -99,7 +99,7 @@ export default function Chip({
 
 const styles = StyleSheet.create({
   chipBase: {
-    borderRadius: 6,
+    borderRadius: 999,
     borderWidth: 1,
     alignSelf: 'flex-start',
     alignItems: 'center',
