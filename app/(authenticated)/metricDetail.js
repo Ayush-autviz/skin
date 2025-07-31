@@ -1153,13 +1153,10 @@ export default function MetricDetailScreen() {
                       const firstName = profile?.user_name || user?.user_name || 'there';
                       
                       router.push({
-                        pathname: '/(authenticated)/aiChat',
+                        pathname: '/(authenticated)/threadChat',
                         params: {
-                          chatType: 'routine_check',
-                          initialMessage: initialMessage,
-                          firstName: firstName,
-                          skinConcerns: JSON.stringify([]),
-                          skinType: 'normal'
+                          chatType: 'general_chat',
+                          initialMessage: initialMessage
                         }
                       });
                     }}
@@ -1198,13 +1195,10 @@ export default function MetricDetailScreen() {
                         const firstName = profile?.user_name || user?.user_name || 'there';
                         
                         router.push({
-                          pathname: '/(authenticated)/aiChat',
+                          pathname: '/(authenticated)/threadChat',
                           params: {
-                            chatType: 'product_recommendation',
-                            initialMessage: message,
-                            firstName: firstName,
-                            skinConcerns: JSON.stringify([]),
-                            skinType: 'normal'
+                            chatType: 'general_chat',
+                            initialMessage: message
                           }
                         });
                       }}

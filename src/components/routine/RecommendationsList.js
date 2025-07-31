@@ -112,16 +112,13 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
     const firstName = profile?.user_name || user?.user_name || 'there';
     console.log('🎯 [RecommendationsList] First name:', firstName);
 
-    // Navigate to AI chat with recommendation context
+    // Navigate to thread-based chat with recommendation context
     const message = recommendation.initialChatMessage || `Tell me more about ${recommendation.text.toLowerCase()} and how it can help my skin.`;
     router.push({
-      pathname: '/(authenticated)/aiChat',
+      pathname: '/(authenticated)/threadChat',
       params: {
-        chatType: 'product_recommendation',
-        initialMessage: message,
-        firstName: firstName,
-        skinConcerns: JSON.stringify([]),
-        skinType: 'normal'
+        chatType: 'general_chat',
+        initialMessage: message
       }
     });
   };

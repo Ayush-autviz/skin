@@ -1076,6 +1076,110 @@ export const postChatMessage = async (body) => {
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
+// THREAD-BASED CHAT API FUNCTIONS
+// -----------------------------------------------------------------------------
+
+/**
+ * Send initial message to create a new thread
+ * @param {Object} messageData - Message data
+ * @param {string} messageData.content - Message content
+ * @param {string} messageData.role - Message role (user/assistant)
+ * @param {string} messageData.thread_type - Thread type (general_chat, routine_add_discussion, snapshot_feedback)
+ * @returns {Promise<Object>} Thread creation response
+ */
+export const createThread = async (messageData) => {
+  try {
+    console.log("🔵 Creating new thread:", messageData);
+    
+    const response = await apiClient.post("/thread/message", messageData);
+    
+    if (response.data.status === 200) {
+      console.log("✅ Thread created successfully");
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } else {
+      throw new Error(response.data.message || "Failed to create thread");
+    }
+  } catch (error) {
+    console.error("🔴 createThread error:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to create thread"
+    );
+  }
+};
+
+/**
+ * Send message to existing thread
+ * @param {string} threadId - Thread ID
+ * @param {Object} messageData - Message data
+ * @param {string} messageData.content - Message content
+ * @param {string} messageData.role - Message role (user/assistant)
+ * @param {string} messageData.thread_type - Thread type
+ * @returns {Promise<Object>} Message response
+ */
+export const sendThreadMessage = async (threadId, messageData) => {
+  try {
+    console.log("🔵 Sending thread message:", { threadId, messageData });
+    
+    const response = await apiClient.post(`/thread/message/${threadId}`, messageData);
+    
+    if (response.data.status === 200) {
+      console.log("✅ Thread message sent successfully");
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } else {
+      throw new Error(response.data.message || "Failed to send thread message");
+    }
+  } catch (error) {
+    console.error("🔴 sendThreadMessage error:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to send thread message"
+    );
+  }
+};
+
+/**
+ * Confirm pending item in thread
+ * @param {string} threadId - Thread ID
+ * @param {Object} item - Item to confirm
+ * @returns {Promise<Object>} Confirmation response
+ */
+export const confirmThreadItem = async (threadId, item) => {
+  try {
+    console.log("🔵 Confirming thread item:", { threadId, item });
+    
+    const response = await apiClient.post(`/thread/thread/${threadId}/confirm-item`, {
+      item
+    });
+    
+    if (response.data.status === 200) {
+      console.log("✅ Thread item confirmed successfully");
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } else {
+      throw new Error(response.data.message || "Failed to confirm thread item");
+    }
+  } catch (error) {
+    console.error("🔴 confirmThreadItem error:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to confirm thread item"
+    );
+  }
+};
+
+// -----------------------------------------------------------------------------
 // ROUTINE API FUNCTIONS
 // -----------------------------------------------------------------------------
 

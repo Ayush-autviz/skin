@@ -232,13 +232,13 @@ export default function MyRoutine() {
       //     initialMessageContent: initialMessage
       // });
 
-      // For now, navigate directly to chat
-    router.push({
-      pathname: '/(authenticated)/aiChat',
-      params: {
-              chatType: 'routine_discussion',
-              initialMessage: initialMessage
-          } 
+      // Navigate to thread-based chat
+      router.push({
+        pathname: '/(authenticated)/threadChat',
+        params: {
+          chatType: 'routine_add_discussion',
+          initialMessage: initialMessage
+        } 
       });
     } catch (error) {
         console.error("MyRoutine: Error creating or navigating to routine chat:", error);

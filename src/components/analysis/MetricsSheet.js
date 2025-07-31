@@ -446,15 +446,11 @@ const MetricsSheet = forwardRef(({
               const firstName = profile?.user_name || user?.user_name || 'there';
               
               router.push({
-                pathname: '/(authenticated)/aiChat',
+                pathname: '/(authenticated)/threadChat',
                 params: {
                   chatType: 'snapshot_feedback',
                   imageId: photoData?.id || photoData?.image_id,
-                  initialMessage: 'Analyze my score',
-                  firstName: firstName,
-                  metrics: JSON.stringify(metrics),
-                  skinConcerns: JSON.stringify([]),
-                  skinType: 'normal'
+                  initialMessage: 'Analyze my score'
                 }
               });
             }
