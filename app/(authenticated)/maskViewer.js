@@ -223,6 +223,7 @@ const ZoomableMaskImage = ({ photoUri, maskUri, conditionName, isActive }) => {
                       }}
                       onLoad={() => {
                         console.log('✅ Background image loaded successfully');
+                        setImageLoaded(true)
                       }}
                     />
                     

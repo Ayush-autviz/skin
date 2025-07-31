@@ -86,30 +86,16 @@ export default function ThreadChatScreen() {
       if (response.success) {
         setThreadId(response.data.thread_id);
         
-        // Add user message
-        const userMessage = {
-          id: `user-${Date.now()}`,
-          content: initialMessage,
-          role: 'user',
-          timestamp: new Date()
-        };
+        // Only use the response messages array to display chat messages
+        const responseMessages = response.data.messages || [];
+        const formattedMessages = responseMessages.map((msg, index) => ({
+          id: `${msg.role}-${Date.now()}-${index}`,
+          content: msg.content,
+          role: msg.role,
+          timestamp: new Date(msg.timestamp)
+        }));
 
-        // Add AI response (last message from the response)
-        const aiMessages = response.data.messages || [];
-        const lastAiMessage = aiMessages[aiMessages.length - 1];
-        
-        if (lastAiMessage && lastAiMessage.role === 'assistant') {
-          const aiMessage = {
-            id: `ai-${Date.now()}`,
-            content: lastAiMessage.content,
-            role: 'assistant',
-            timestamp: new Date(lastAiMessage.timestamp)
-          };
-
-          setMessages([userMessage, aiMessage]);
-        } else {
-          setMessages([userMessage]);
-        }
+        setMessages(formattedMessages);
 
         // Check for pending item
         if (response.data.pendingAddItem && response.data.pendingAddItem.length > 0) {
@@ -125,20 +111,26 @@ export default function ThreadChatScreen() {
   const sendMessage = async () => {
     if (!inputText.trim() || !threadId) return;
 
+    const messageToSend = inputText.trim();
+    
     const userMessage = {
       id: `user-${Date.now()}`,
-      content: inputText.trim(),
+      content: messageToSend,
       role: 'user',
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
+    // Ensure the input ref is also cleared
+    if (inputRef.current) {
+      inputRef.current.clear();
+    }
     setIsLoading(true);
 
     try {
       const messageData = {
-        content: inputText.trim(),
+        content: messageToSend,
         role: 'user',
         thread_type: chatType
       };
