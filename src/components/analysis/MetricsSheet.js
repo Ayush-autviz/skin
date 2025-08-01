@@ -36,6 +36,7 @@ import { usePhotoContext } from '../../contexts/PhotoContext';
 import AiMessageCard from '../chat/AiMessageCard'; // Import AiMessageCard
 import palette from '../../styles/palette'; // Import palette for consistent colors
 import useAuthStore from '../../stores/authStore';
+import { getImageChatSummary } from '../../services/chatApiService';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -58,6 +59,8 @@ const MetricsSheet = forwardRef(({
   const photoContext = usePhotoContext();
   const selectedSnapshot = photoContext?.selectedSnapshot; // Get snapshot for threadId
   const { user, profile } = useAuthStore();
+  const [summary, setSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   
   // --- Guard Check (Only for threadId, metrics come from props) ---
   if (!selectedSnapshot) {
@@ -79,6 +82,38 @@ const MetricsSheet = forwardRef(({
       console.log('🔵 MetricsSheet - Available mask conditions:', Object.keys(photoData.maskImages));
     }
   }, [currentSnapPoint, viewState, photoData]);
+
+  // Fetch summary when photoData changes
+  useEffect(() => {
+    if (photoData && uiState === 'complete') {
+      const imageId = photoData.id || photoData.image_id;
+      
+      if (imageId) {
+        setSummaryLoading(true);
+        getImageChatSummary(imageId)
+          .then(response => {
+            if (response.success) {
+              setSummary(response.summary);
+            } else {
+              setSummary(null);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching summary:', error);
+            setSummary(null);
+          })
+          .finally(() => {
+            setSummaryLoading(false);
+          });
+      } else {
+        setSummary(null);
+        setSummaryLoading(false);
+      }
+    } else {
+      setSummary(null);
+      setSummaryLoading(false);
+    }
+  }, [photoData, uiState]);
   
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -506,9 +541,13 @@ const MetricsSheet = forwardRef(({
             <Text style={styles.aiAvatarText}>a</Text>
           </View> */}
           <View style={styles.aiMessageContent}>
-            <Text style={styles.aiMessageText}>Analyze my score</Text>
+            <Text style={styles.aiMessageText}>
+              {summary ? summary : (summaryLoading ? "Loading summary..." : "Analyze my score")}
+            </Text>
             <View style={styles.aiMessageFooter}>
-              <Text style={styles.aiMessageTime}>Tap to chat</Text>
+              <Text style={styles.aiMessageTime}>
+                {summary ? "Tap to chat more" : "Tap to chat"}
+              </Text>
             </View>
           </View>
         </TouchableOpacity>

@@ -182,3 +182,32 @@ export const transformUserMessage = (query, id = null) => {
     timestamp: new Date()
   };
 };
+
+/**
+ * Get chat summary for a specific image
+ * @param {string} image_id - Image ID
+ * @returns {Promise<Object>} Summary response
+ */
+export const getImageChatSummary = async (image_id) => {
+  try {
+    console.log('🔵 Fetching image chat summary:', { image_id });
+    
+    const response = await apiClient.get(`/thread/get-image-chat-summary?image_id=${image_id}`);
+
+    console.log('🔵 Response of getImageChatSummary:', response);
+
+    if (response.data.status === 200) {
+      console.log('✅ Image chat summary fetched successfully');
+      return {
+        success: true,
+        summary: response.data.data.result?.summary || null,
+        data: response.data
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch image chat summary');
+    }
+  } catch (error) {
+    console.error('🔴 Error fetching image chat summary:', error);
+    throw error;
+  }
+};

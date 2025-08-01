@@ -115,6 +115,8 @@ import { Image as ExpoImage } from 'expo-image';
 import { useThreadContext } from '../../contexts/ThreadContext'; // Import thread context
 import { usePhotoContext } from '../../contexts/PhotoContext'; // Import photo context
 import { useRouter } from 'expo-router'; // Import router
+import { getImageChatSummary } from '../../services/chatApiService';
+import { colors } from '../../styles';
 
 const { width } = Dimensions.get('window');
 const DATE_CARD_WIDTH = 115;  // 100 * 1.15 = 115 (15% increase)
@@ -371,9 +373,9 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
           }}
         />
         {/* Note text INSIDE the grey container, below the FlatList */}
-        {/* <Text style={styles.noteInsideCarouselArea}>
+        <Text style={styles.noteInsideCarouselArea}>
           {noteText || ' '}
-        </Text> */}
+        </Text>
       </View>
       
       {/* Shadow layers remain visually below the grey container */}
@@ -661,6 +663,8 @@ const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScr
 
 const MetricsSeries = ({ photos }) => {
   const [selectedIndex, setSelectedIndex] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   // Removed showContent state - loading is now handled by parent component
   const { metrics, timestamps } = processPhotoMetrics(photos);
   const timeSelectorRef = useRef(null);
@@ -827,6 +831,41 @@ const MetricsSeries = ({ photos }) => {
     }
   }, [photos, timestamps]); // Removed showContent dependency since content always renders
 
+  // Fetch summary when selectedIndex changes
+  useEffect(() => {
+    if (selectedIndex !== null && photos[selectedIndex]) {
+      const selectedPhoto = photos[selectedIndex];
+      console.log("🔵 selectedPhoto: in MetricsSeries", selectedPhoto);
+      const imageId = selectedPhoto.hautUploadData?.imageId || selectedPhoto.id;
+      
+      if (imageId) {
+        setSummaryLoading(true);
+        getImageChatSummary(imageId)
+          .then(response => {
+            console.log("🔵 response of getImageChatSummary: in MetricsSeries", response);
+            if (response.success) {
+              setSummary(response.summary);
+            } else {
+              setSummary(null);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching summary:', error);
+            setSummary(null);
+          })
+          .finally(() => {
+            setSummaryLoading(false);
+          });
+      } else {
+        setSummary(null);
+        setSummaryLoading(false);
+      }
+    } else {
+      setSummary(null);
+      setSummaryLoading(false);
+    }
+  }, [selectedIndex, photos]);
+
   // Safety check - ensure we have photos before rendering
   if (!photos || photos.length === 0) {
     return (
@@ -848,7 +887,7 @@ const MetricsSeries = ({ photos }) => {
   }
 
   // Determine the note text based on the current thread summary
-  const noteText = " " || (selectedIndex !== null ? " " : " ");
+  const noteText = summary || (summaryLoading ? "Loading summary..." : "");
 
   return (
     <View style={styles.container}>
@@ -1139,7 +1178,7 @@ const styles = StyleSheet.create({
   // Renamed style for the note text INSIDE the carousel area
   noteInsideCarouselArea: {
     fontSize: 12,
-    color: '#ffffff', // Changed to white for dark background
+    color: colors.primary, // Changed to white for dark background
     textAlign: 'center',
     paddingHorizontal: 16, // Horizontal padding
     paddingTop: 4,       // Requested top padding (pushes note down from thumbs)
