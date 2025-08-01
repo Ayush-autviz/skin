@@ -288,7 +288,7 @@ export default function MaskViewerScreen() {
 
   // Prepare mask data
   const maskOptions = [
-    { skin_condition_name: 'none', mask_img_url: null, displayName: 'Original', image_url: parsedPhotoData?.maskImages[0]?.image_url },
+    { skin_condition_name: 'none', mask_img_url: parsedPhotoData?.storageUrl, displayName: 'Original', image_url: parsedPhotoData?.maskImages[0]?.image_url },
     ...(parsedPhotoData?.maskImages || []).map((mask) => ({
       ...mask,
       displayName: formatConditionName(mask.skin_condition_name)
