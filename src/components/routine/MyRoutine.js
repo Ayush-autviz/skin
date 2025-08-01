@@ -345,6 +345,18 @@ const MyRoutine = forwardRef((props, ref) => {
       chips.push({ label: item.frequency, type: 'frequency' });
     }
 
+    // Format date info
+    let dateInfo = null;
+    if (item.dateStarted) {
+      const startDate = new Date(item.dateStarted);
+      const formattedDate = startDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      dateInfo = `You are using this product since ${formattedDate}`;
+    }
+
     console.log('item', item);
     
     return (
@@ -357,6 +369,7 @@ const MyRoutine = forwardRef((props, ref) => {
           chips={chips}
           showChevron={false}
           onPress={() => handleEditItem(item)}
+          dateInfo={dateInfo}
         />
     );
   };

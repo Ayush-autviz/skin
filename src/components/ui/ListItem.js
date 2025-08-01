@@ -46,6 +46,7 @@ export default function ListItem({
   priority = 'normal', // 'low', 'normal', 'high' - affects visual prominence
   isNew = false, // Shows "NEW" badge
   rightElement = null, // Custom right-side content
+  dateInfo = null, // New prop for date information
 }) {
   const IconComponent = iconLibrary === 'Feather' ? Feather : MaterialCommunityIcons;
   
@@ -168,6 +169,13 @@ export default function ListItem({
                 />
               ))}
             </View>
+          )}
+          
+          {/* Date Information */}
+          {dateInfo && (
+            <Text style={styles.dateInfo}>
+              {dateInfo}
+            </Text>
           )}
         </View>
       </View>
@@ -323,6 +331,12 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
     marginTop: 4,
+  },
+  dateInfo: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   newBadge: {
     backgroundColor: colors.success,

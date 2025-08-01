@@ -470,7 +470,7 @@ const SnapshotPhoto = forwardRef(({
                       >
                         <View style={styles.analyzeButtonContent}>
                           <Feather name="image" size={16} color="white" />
-                          <Text style={styles.analyzeButtonText}>Analyze with images</Text>
+                          <Text style={styles.analyzeButtonText}>Zoom & Masks</Text>
                         </View>
                       </TouchableOpacity>
                     </View>
