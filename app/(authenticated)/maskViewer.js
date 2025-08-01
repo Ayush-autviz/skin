@@ -208,32 +208,57 @@ const ZoomableMaskImage = ({ photoUri, maskUri, conditionName, isActive }) => {
                   numberOfTaps={2}
                 >
                   <Animated.View style={[styles.imageWrapper, animatedStyle]}>
-                    {/* <ConditionalImage
-                      source={{ uri: sanitizeS3Uri(photoUri) }}
-                      style={styles.backgroundImage}
-                      resizeMode="cover"
-                      onLoad={() => setImageLoaded(true)}
-                    /> */}
-                    <Image
-                      source={{ uri: sanitizeS3Uri(photoUri) }}
-                      style={styles.backgroundImage}
-                      resizeMode="cover"
-                      onError={(error) => {
-                        console.log('🔴 Error loading background image:', error.nativeEvent.error);
-                      }}
-                      onLoad={() => {
-                        console.log('✅ Background image loaded successfully');
-                        setImageLoaded(true)
-                      }}
-                    />
-                    
-                    {maskUri && (
-                      <ConditionalImage
+                    {/* Check if maskUri is SVG or regular image */}
+                    {maskUri && maskUri.toLowerCase().includes('.svg') ? (
+                      // For SVG masks, show background image with mask overlay
+                      <>
+                        <Image
+                          source={{ uri: sanitizeS3Uri(photoUri) }}
+                          style={styles.backgroundImage}
+                          resizeMode="cover"
+                          onError={(error) => {
+                            console.log('🔴 Error loading background image:', error.nativeEvent.error);
+                          }}
+                          onLoad={() => {
+                            console.log('✅ Background image loaded successfully');
+                            setImageLoaded(true)
+                          }}
+                        />
+                        
+                        <ConditionalImage
+                          source={{ uri: sanitizeS3Uri(maskUri) }}
+                          style={styles.maskOverlay}
+                          resizeMode="cover"
+                          onLoad={() => setMaskLoaded(true)}
+                        />
+                      </>
+                    ) : maskUri ? (
+                      // For non-SVG masks, show only the mask image
+                      <Image
                         source={{ uri: sanitizeS3Uri(maskUri) }}
-                        style={styles.maskOverlay}
+                        style={styles.backgroundImage}
                         resizeMode="cover"
-                        onLoad={() => setMaskLoaded(true)}
-
+                        onError={(error) => {
+                          console.log('🔴 Error loading mask image:', error.nativeEvent.error);
+                        }}
+                        onLoad={() => {
+                          console.log('✅ Mask image loaded successfully');
+                          setImageLoaded(true)
+                        }}
+                      />
+                    ) : (
+                      // For original (no mask), show background image
+                      <Image
+                        source={{ uri: sanitizeS3Uri(photoUri) }}
+                        style={styles.backgroundImage}
+                        resizeMode="cover"
+                        onError={(error) => {
+                          console.log('🔴 Error loading background image:', error.nativeEvent.error);
+                        }}
+                        onLoad={() => {
+                          console.log('✅ Background image loaded successfully');
+                          setImageLoaded(true)
+                        }}
                       />
                     )}
                   </Animated.View>
