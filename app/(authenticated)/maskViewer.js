@@ -286,13 +286,15 @@ export default function MaskViewerScreen() {
   const currentIndex = useSharedValue(0);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Prepare mask data
+  // Prepare mask data - filter out options with "Unknown" mask_img_url
   const maskOptions = [
     { skin_condition_name: 'none', mask_img_url: parsedPhotoData?.storageUrl, displayName: 'Original', image_url: parsedPhotoData?.maskImages[0]?.image_url },
-    ...(parsedPhotoData?.maskImages || []).map((mask) => ({
-      ...mask,
-      displayName: formatConditionName(mask.skin_condition_name)
-    }))
+    ...(parsedPhotoData?.maskImages || [])
+      .filter(mask => mask.mask_img_url !== "Unknown")
+      .map((mask) => ({
+        ...mask,
+        displayName: formatConditionName(mask.skin_condition_name)
+      }))
   ];
 
   console.log('🔵 maskOptions:', maskOptions);

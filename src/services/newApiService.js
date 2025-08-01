@@ -1325,7 +1325,7 @@ export const updateRoutineItem = async (itemId, itemData) => {
     formData.append("frequency", itemData.frequency.toLowerCase().replace(" ", "_"));
     formData.append("extra", JSON.stringify(itemData.extra || {}));
 
-    const response = await apiClient.put(`/routine/${itemId}`, formData, {
+    const response = await apiClient.patch(`/routine/${itemId}`, formData, {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
