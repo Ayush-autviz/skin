@@ -158,16 +158,23 @@ const IMAGE_QUALITY_KEYS = [
 const processPhotoMetrics = (photos) => {
   if (!photos?.length) return { metrics: [], timestamps: [] };
 
-  // Refined timestamp extraction
+  // Refined timestamp extraction - prioritize created_at field from API
   const timestamps = photos.map(photo => {
     let dateValue;
-    const ts = photo.timestamp;
-    if (ts?.seconds && typeof ts.seconds === 'number') { // Firestore Timestamp
-        dateValue = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0));
-    } else if (ts instanceof Date) { // Already a JS Date
-        dateValue = ts;
-    } else { // Attempt conversion from string/number
-        dateValue = new Date(ts);
+    
+    // Prioritize created_at field from API response
+    if (photo.created_at) {
+      dateValue = new Date(photo.created_at);
+    } else {
+      // Fallback to timestamp for backward compatibility
+      const ts = photo.timestamp;
+      if (ts?.seconds && typeof ts.seconds === 'number') { // Firestore Timestamp
+          dateValue = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0));
+      } else if (ts instanceof Date) { // Already a JS Date
+          dateValue = ts;
+      } else { // Attempt conversion from string/number
+          dateValue = new Date(ts);
+      }
     }
     return dateValue; // Return the Date object (or Invalid Date)
   }).filter(date => date instanceof Date && !isNaN(date.getTime())); // Filter out invalid dates
@@ -176,15 +183,22 @@ const processPhotoMetrics = (photos) => {
   const processedMetrics = METRIC_KEYS.map(metricKey => ({
     metricName: metricKey,
     scores: photos.map(photo => {
-      // Use the same robust conversion for score timestamp
+      // Use the same robust conversion for score timestamp - prioritize created_at
       let timestamp;
-      const ts = photo.timestamp;
-      if (ts?.seconds && typeof ts.seconds === 'number') {
-          timestamp = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0));
-      } else if (ts instanceof Date) {
-          timestamp = ts;
+      
+      // Prioritize created_at field from API response
+      if (photo.created_at) {
+        timestamp = new Date(photo.created_at);
       } else {
-          timestamp = new Date(ts);
+        // Fallback to timestamp for backward compatibility
+        const ts = photo.timestamp;
+        if (ts?.seconds && typeof ts.seconds === 'number') {
+            timestamp = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0));
+        } else if (ts instanceof Date) {
+            timestamp = ts;
+        } else {
+            timestamp = new Date(ts);
+        }
       }
 
       // Format the date only if it's valid
@@ -229,12 +243,22 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onLongPress }) =
     }).start();
   }, [isSelected, scaleAnim]);
 
-  // Date formatting (ensure it uses item's timestamp)
+  // Date formatting - use created_at field from API response
   let date;
-  const ts = photo.timestamp;
-  if (ts?.seconds && typeof ts.seconds === 'number') { date = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0)); } 
-  else if (ts instanceof Date) { date = ts; } 
-  else { date = new Date(ts); }
+  if (photo.created_at) {
+    // Use the created_at field from the API response
+    date = new Date(photo.created_at);
+  } else {
+    // Fallback to timestamp for backward compatibility
+    const ts = photo.timestamp;
+    if (ts?.seconds && typeof ts.seconds === 'number') { 
+      date = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0)); 
+    } else if (ts instanceof Date) { 
+      date = ts; 
+    } else { 
+      date = new Date(ts); 
+    }
+  }
   
   // Verify we have a valid date before rendering
   if (!(date instanceof Date && !isNaN(date.getTime()))) {

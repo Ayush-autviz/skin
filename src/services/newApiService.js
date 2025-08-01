@@ -899,18 +899,15 @@ export const transformComparisonData = (comparisonData) => {
           }
         });
 
-        // Generate sequential timestamps (spaced 1 day apart for timeline display)
-        // Since API doesn't provide timestamps, create artificial timeline
-        const baseDate = new Date();
-        baseDate.setDate(
-          baseDate.getDate() - (Object.keys(score_img_data).length - 1 - index)
-        );
-
+        // Use the actual created_at field from the API response
+        const createdDate = new Date(image.created_at);
+        
         // Create photo object in expected format
         return {
           id: photoId,
           storageUrl: image.front_image,
-          timestamp: baseDate,
+          timestamp: createdDate,
+          created_at: image.created_at, // Keep the original created_at field
           analyzed: true,
           analyzing: false,
           metrics: metrics,
