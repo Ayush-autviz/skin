@@ -15,7 +15,8 @@ import { colors, typography, spacing, shadows } from '../../src/styles';
 import {
   createThread,
   sendThreadMessage,
-  confirmThreadItem
+  confirmThreadItem,
+  getChatHistoryByImageId
 } from '../../src/services/newApiService';
 
 const { width } = Dimensions.get('window');
@@ -53,8 +54,11 @@ export default function ThreadChatScreen() {
       setIsInitializing(true);
       setError(null);
 
-      // Send initial message to create thread
-      if (initialMessage) {
+      // Special handling for snapshot_feedback type
+      if (chatType === 'snapshot_feedback' && imageId) {
+        await loadExistingChatHistory();
+      } else if (initialMessage) {
+        // Send initial message to create thread for other chat types
         await sendInitialMessage();
       }
 
@@ -73,13 +77,51 @@ export default function ThreadChatScreen() {
     }
   };
 
+  const loadExistingChatHistory = async () => {
+    try {
+      console.log('🔵 Loading existing chat history for image_id:', imageId);
+      
+      const response = await getChatHistoryByImageId(imageId);
+      
+      if (response.success && response.data.result) {
+        const threadData = response.data.result;
+        setThreadId(threadData.id);
+        
+        // Format existing messages
+        const existingMessages = threadData.messages || [];
+        const formattedMessages = existingMessages.map((msg, index) => ({
+          id: `${msg.role}-${Date.now()}-${index}`,
+          content: msg.content,
+          role: msg.role,
+          timestamp: new Date(msg.created_at)
+        }));
+        
+        setMessages(formattedMessages);
+        console.log('✅ Loaded existing chat history:', formattedMessages.length, 'messages');
+      } else {
+        // If no existing chat history, create a new thread
+        console.log('🔵 No existing chat history found, creating new thread');
+        await sendInitialMessage();
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+      // If loading fails, try to create a new thread
+      await sendInitialMessage();
+    }
+  };
+
   const sendInitialMessage = async () => {
     try {
       const messageData = {
-        content: initialMessage,
+        content: initialMessage || 'Analyze my score',
         role: 'user',
         thread_type: chatType
       };
+
+      // Add image_id for snapshot_feedback type
+      if (chatType === 'snapshot_feedback' && imageId) {
+        messageData.image_id = imageId;
+      }
 
       const response = await createThread(messageData);
 
@@ -134,6 +176,11 @@ export default function ThreadChatScreen() {
         role: 'user',
         thread_type: chatType
       };
+
+      // Add image_id for snapshot_feedback type
+      if (chatType === 'snapshot_feedback' && imageId) {
+        messageData.image_id = imageId;
+      }
 
       const response = await sendThreadMessage(threadId, messageData);
 

@@ -1091,7 +1091,13 @@ export const createThread = async (messageData) => {
   try {
     console.log("🔵 Creating new thread:", messageData);
     
-    const response = await apiClient.post("/thread/message", messageData);
+    // For snapshot_feedback type, include image_id if provided
+    const requestData = { ...messageData };
+    if (messageData.thread_type === 'snapshot_feedback' && messageData.image_id) {
+      requestData.image_id = messageData.image_id;
+    }
+    
+    const response = await apiClient.post("/thread/message", requestData);
     
     if (response.data.status === 200) {
       console.log("✅ Thread created successfully");
@@ -1124,11 +1130,21 @@ export const createThread = async (messageData) => {
 export const sendThreadMessage = async (threadId, messageData) => {
   try {
     console.log("🔵 Sending thread message:", { threadId, messageData });
+    console.log("🔵 threadId:", threadId);
+    console.log("🔵 messageData:", messageData);
     
-    const response = await apiClient.post(`/thread/message/${threadId}`, messageData);
+    // For snapshot_feedback type, include image_id if provided
+    const requestData = { ...messageData };
+    if (messageData.thread_type === 'snapshot_feedback' && messageData.image_id) {
+      requestData.image_id = messageData.image_id;
+    }
+    
+    const response = await apiClient.post(`/thread/message/${threadId}`, requestData);
+    console.log("🔵 response of sendThreadMessage: in apiService", response);
     
     if (response.data.status === 200) {
       console.log("✅ Thread message sent successfully");
+      console.log("🔵 response of sendThreadMessage: in apiService", response.data);
       return {
         success: true,
         data: response.data.data,
@@ -1175,6 +1191,36 @@ export const confirmThreadItem = async (threadId, item) => {
       error.response?.data?.message ||
         error.message ||
         "Failed to confirm thread item"
+    );
+  }
+};
+
+/**
+ * Get chat history by image_id for snapshot_feedback type
+ * @param {string} imageId - Image ID
+ * @returns {Promise<Object>} Chat history data
+ */
+export const getChatHistoryByImageId = async (imageId) => {
+  try {
+    console.log("🔵 Fetching chat history for image_id:", imageId);
+    
+    const response = await apiClient.get(`/thread/get-latest-chat?image_id=${imageId}`);
+    
+    if (response.data.status === 200) {
+      console.log("✅ Chat history fetched successfully");
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } else {
+      throw new Error(response.data.message || "Failed to fetch chat history");
+    }
+  } catch (error) {
+    console.error("🔴 getChatHistoryByImageId error:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch chat history"
     );
   }
 };
