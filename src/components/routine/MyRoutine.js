@@ -1,7 +1,7 @@
 // MyRoutine.js
 // Component to display and manage the user's routine items
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { View, Text, SectionList, ActivityIndicator, StyleSheet, TouchableOpacity, TextInput, Alert, Platform } from 'react-native';
 import { colors, spacing, typography, palette } from '../../styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -96,7 +96,7 @@ const calculateUsageDuration = (dateStarted) => {
   }
 };
 
-export default function MyRoutine() {
+const MyRoutine = forwardRef((props, ref) => {
   const router = useRouter();
   const [routineItems, setRoutineItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -175,6 +175,14 @@ export default function MyRoutine() {
       setLoading(false);
     }
   };
+
+  // Expose refetchRoutines method to parent component
+  useImperativeHandle(ref, () => ({
+    refetchRoutines: () => {
+      console.log('🔄 MyRoutine: Refetching routines from parent');
+      fetchRoutineItems();
+    }
+  }));
 
   useEffect(() => {
     fetchRoutineItems();
@@ -880,7 +888,9 @@ export default function MyRoutine() {
       </ModalBottomSheet>
     </View>
   );
-}
+});
+
+export default MyRoutine;
 
 const styles = StyleSheet.create({
   container: {

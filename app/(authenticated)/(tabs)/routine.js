@@ -13,10 +13,11 @@ DEV PRINCIPLES
 - Consistent styling
 ------------------------------------------------------*/
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import TabHeader from '../../../src/components/ui/TabHeader';
 import SettingsDrawer from '../../../src/components/layout/SettingsDrawer';
 
@@ -27,10 +28,22 @@ import { colors, spacing, typography } from '../../../src/styles';
 export default function RoutineTab() {
   const [activeTab, setActiveTab] = useState('recommendations');
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
+  const myRoutineRef = useRef(null);
   
   useEffect(() => {
     console.log('🧴 Routine tab loaded');
   }, []);
+
+  // Refetch routines when screen comes into focus (e.g., returning from thread chat)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🧴 Routine tab focused - refetching routines');
+      // Trigger refetch in MyRoutine component
+      if (myRoutineRef.current && myRoutineRef.current.refetchRoutines) {
+        myRoutineRef.current.refetchRoutines();
+      }
+    }, [])
+  );
 
   const handleMenuPress = () => {
     setIsSettingsVisible(true);
@@ -68,7 +81,7 @@ export default function RoutineTab() {
 
         {/* Tab Content */}
         <View style={styles.tabContentContainer}>
-          {activeTab === 'myRoutine' && <MyRoutine />}
+          {activeTab === 'myRoutine' && <MyRoutine ref={myRoutineRef} />}
           {activeTab === 'recommendations' && <RecommendationsList />}
         </View>
       </View>
