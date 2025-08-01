@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView,
-  StatusBar, Animated, Dimensions, Alert
+  StatusBar, Animated, Dimensions, Alert, Keyboard
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -39,6 +39,7 @@ export default function ThreadChatScreen() {
   const [error, setError] = useState(null);
   const [threadId, setThreadId] = useState(null);
   const [pendingItem, setPendingItem] = useState(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const flatListRef = useRef(null);
   const inputRef = useRef(null);
@@ -47,6 +48,31 @@ export default function ThreadChatScreen() {
   // Initialize chat
   useEffect(() => {
     initializeChat();
+  }, []);
+
+  // Keyboard listeners
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        // Scroll to bottom when keyboard appears
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
   }, []);
 
   const initializeChat = async () => {
@@ -168,6 +194,12 @@ export default function ThreadChatScreen() {
     if (inputRef.current) {
       inputRef.current.clear();
     }
+    
+    // Scroll to bottom after adding user message
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+    
     setIsLoading(true);
 
     try {
@@ -197,6 +229,11 @@ export default function ThreadChatScreen() {
             timestamp: new Date(lastAiMessage.timestamp)
           };
           setMessages(prev => [...prev, aiMessage]);
+          
+          // Scroll to bottom after adding AI message
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
         }
 
         // Check for pending item
@@ -409,52 +446,76 @@ export default function ThreadChatScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
-      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-        {/* Messages */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          style={styles.messagesList}
-          contentContainerStyle={styles.messagesContainer}
-          showsVerticalScrollIndicator={false}
-        />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+          {/* Messages */}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={(item) => item.id}
+            style={styles.messagesList}
+            contentContainerStyle={[
+              styles.messagesContainer,
+              { paddingBottom: keyboardHeight > 0 ? 20 : 0 }
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            onContentSizeChange={() => {
+              if (messages.length > 0) {
+                flatListRef.current?.scrollToEnd({ animated: true });
+              }
+            }}
+            onLayout={() => {
+              if (messages.length > 0) {
+                flatListRef.current?.scrollToEnd({ animated: false });
+              }
+            }}
+          />
 
-        {/* Pending Item Card */}
-        <PendingItemCard />
+          {/* Pending Item Card */}
+          <PendingItemCard />
 
-        {/* Input Area */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.inputContainer}
-        >
-          <View style={styles.inputWrapper}>
-            <TextInput
-              ref={inputRef}
-              style={styles.textInput}
-              placeholder="Type your message..."
-              placeholderTextColor={colors.textSecondary}
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              maxLength={500}
-              editable={!isLoading}
-            />
-            <TouchableOpacity
-              style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
-              onPress={sendMessage}
-              disabled={!inputText.trim() || isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Feather name="send" size={20} color="#FFFFFF" />
-              )}
-            </TouchableOpacity>
+          {/* Input Area */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                ref={inputRef}
+                style={styles.textInput}
+                placeholder="Type your message..."
+                placeholderTextColor={colors.textSecondary}
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+                maxLength={500}
+                editable={!isLoading}
+                onFocus={() => {
+                  // Scroll to bottom when input is focused
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToEnd({ animated: true });
+                  }, 100);
+                }}
+              />
+              <TouchableOpacity
+                style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+                onPress={sendMessage}
+                disabled={!inputText.trim() || isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Feather name="send" size={20} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-        </KeyboardAvoidingView>
-      </Animated.View>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -652,5 +713,8 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: '#D1D5DB',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
 }); 
