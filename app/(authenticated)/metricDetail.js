@@ -28,7 +28,8 @@ import {
   TouchableOpacity, 
   SafeAreaView,
   StatusBar,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import SvgUri from 'react-native-svg-uri';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -514,6 +515,9 @@ export default function MetricDetailScreen() {
   // Extract parameters from navigation
   const { metricKey, metricValue, photoData } = params || {};
   console.log('🔵 metricKey:', params);
+
+  const [backgroundImageLoading, setBackgroundImageLoading] = useState(true);
+  const [maskImageLoading, setMaskImageLoading] = useState(true);
 
   
   
@@ -1035,7 +1039,21 @@ export default function MetricDetailScreen() {
                   </Text>
                   <View style={styles.maskImageContainer}>
                     {/* Background Image */}
-                    <Image
+                    {
+                      backgroundImageLoading && maskImageLoading ? (
+                        <View style={styles.loadingContainer}>
+                          <ActivityIndicator size="large" color={colors.primary} />
+                        </View>
+                      ) : (
+                           <>
+                           </>
+  
+                      )
+                    }
+
+<>
+
+                                            <Image
                       source={{ uri: sanitizeS3Uri(maskImageData?.image_url) }}
                       style={styles.backgroundImage}
                       resizeMode="cover"
@@ -1044,6 +1062,7 @@ export default function MetricDetailScreen() {
                       }}
                       onLoad={() => {
                         console.log('✅ Background image loaded successfully');
+                        setBackgroundImageLoading(false);
                       }}
                     />
                     
@@ -1059,9 +1078,13 @@ export default function MetricDetailScreen() {
                         }}
                         onLoad={() => {
                           console.log('✅ Mask image loaded successfully for:', conditionName);
+                          setMaskImageLoading(false);
                         }}
                       />
                     </View>
+                        </>
+
+
                   </View>
                   <Text style={styles.maskImageNote}>
                     Highlighted areas indicate regions where {formatMetricName(metricKey).toLowerCase()} was detected and analyzed.
@@ -1735,5 +1758,11 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#6E46FF',
     borderRadius: 3,
+  },
+  loadingContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -321,6 +321,7 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated, onLoadMore, isLoadingMore, 
         )}
         contentContainerStyle={styles.grid}
         showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.1}
         ListFooterComponent={renderFooter}
