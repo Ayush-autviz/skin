@@ -52,6 +52,8 @@ import * as FileSystem from 'expo-file-system';
 import { Image as ExpoImage } from 'expo-image'; // Much better performance than RN Image
 import useAuthStore from '../../stores/authStore';
 import { format } from 'date-fns';
+import { colors } from '../../styles';
+
 
 const PhotoGrid = ({ photos, onRefresh, lastUpdated, onLoadMore, isLoadingMore, hasMore, isLoading }) => {
   const [refreshing, setRefreshing] = useState(false);
@@ -242,7 +244,7 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated, onLoadMore, isLoadingMore, 
     
     return (
       <View style={styles.loadingFooter}>
-        <ActivityIndicator size="small" color="#007AFF" />
+        <ActivityIndicator size="small" color={colors.primary} />
         <Text style={styles.loadingFooterText}>Loading more photos...</Text>
       </View>
     );
@@ -445,7 +447,7 @@ const styles = StyleSheet.create({
   loadingFooterText: {
     marginTop: 8,
     fontSize: 14,
-    color: '#666',
+    color: colors.primary,
   },
 });
 
