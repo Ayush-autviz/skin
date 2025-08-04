@@ -689,17 +689,17 @@ const MyRoutine = forwardRef((props, ref) => {
       >
         <View style={styles.modalInputContainer}>
           {/* Header with icon */}
-          <View style={styles.modalHeader}>
-            <View style={styles.modalHeaderIcon}>
+          {/* <View style={styles.modalHeader}> */}
+            {/* <View style={styles.modalHeaderIcon}>
               <FlaskConical size={24} color="#8B7355" />
             </View>
             <Text style={styles.modalHeaderTitle}>
               {editingItem ? "Edit Routine Item" : "Add to your routine"}
-            </Text>
+            </Text> */}
             {/* <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
               <X size={20} color="#6B7280" />
             </TouchableOpacity> */}
-          </View>
+          {/* </View> */}
 
           {/* Item Name Input with Icon */}
           <View style={styles.inputContainer}>
@@ -1033,8 +1033,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   modalInputContainer: {
-    paddingHorizontal: 30,
-    paddingBottom: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 20,
     backgroundColor: '#FFFFFF',
   },
   modalHeader: {
@@ -1105,7 +1106,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 999,
     borderWidth: 1.5,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',

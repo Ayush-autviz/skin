@@ -741,10 +741,10 @@ export const transformHautResults = (hautResults) => {
  * Fetches all photos of the authenticated user.
  * User ID is inferred from access token; no params required.
  */
-export const getUserPhotos = async () => {
+export const getUserPhotos = async (page = 1, limit = 10) => {
   try {
-    console.log("🔵 Fetching user photos");
-    const response = await apiClient.get("/haut_process/");
+    console.log("🔵 Fetching user photos - page:", page, "limit:", limit);
+    const response = await apiClient.get(`/haut_process/?page=${page}&limit=${limit}`);
 
     if (response.data.status === 200) {
       const apiData = response.data.data;
@@ -754,10 +754,20 @@ export const getUserPhotos = async () => {
         apiData.result.length === 0
       ) {
         console.log("ℹ️ No photos found for user");
-        return [];
+        return {
+          photos: [],
+          pagination: {
+            total: 0,
+            page: page,
+            limit: limit,
+            pages: 0,
+            has_next: false,
+            has_prev: false
+          }
+        };
       }
 
-      return apiData.result.map((photo) => ({
+      const photos = apiData.result.map((photo) => ({
         id: photo.image_id,
         storageUrl: photo.front_image,
         timestamp: new Date(photo.created_at),
@@ -767,6 +777,18 @@ export const getUserPhotos = async () => {
         hautUploadData: { imageId: photo.image_id },
         apiData: { ...photo },
       }));
+
+      return {
+        photos,
+        pagination: apiData.pagination || {
+          total: photos.length,
+          page: page,
+          limit: limit,
+          pages: 1,
+          has_next: false,
+          has_prev: false
+        }
+      };
     }
 
     throw new Error(response.data.message || "Failed to fetch photos");

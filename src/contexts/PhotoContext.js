@@ -37,6 +37,17 @@ export function PhotoProvider({ children }) {
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [selectedSnapshot, setSelectedSnapshot] = useState(null);
+  
+  // Pagination state
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    pages: 0,
+    has_next: false,
+    has_prev: false
+  });
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // --- Logging Helper ---
   const logSnapshot = (location, snapshot) => {
@@ -108,17 +119,18 @@ export function PhotoProvider({ children }) {
   }, []);
 
   // Main fetch photos function
-  const fetchPhotos = useCallback(async (useCache = true) => {
+  const fetchPhotos = useCallback(async (useCache = true, page = 1) => {
     try {
       setIsLoading(true);
-      console.log('🔵 PHOTO_CONTEXT: Fetching photos from API');
+      console.log('🔵 PHOTO_CONTEXT: Fetching photos from API - page:', page);
       
-      // Load cached photos first if requested
-      if (useCache) {
+      // Load cached photos first if requested (only for first page)
+      if (useCache && page === 1) {
         await loadCachedPhotos();
       }
       
-      const apiPhotos = await getUserPhotos();
+      const result = await getUserPhotos(page, 5);
+      const apiPhotos = result.photos;
       
       // Sort the photos by timestamp (Oldest to Newest) 
       const sortedPhotos = [...apiPhotos].sort((a, b) => {
@@ -127,9 +139,20 @@ export function PhotoProvider({ children }) {
         return dateA.getTime() - dateB.getTime(); // Ascending sort (oldest first)
       });
       
-      setPhotos(sortedPhotos);
+      if (page === 1) {
+        // First page - replace all photos
+        setPhotos(sortedPhotos);
+        setPagination(result.pagination);
+      } else {
+        // Subsequent pages - append to existing photos
+        setPhotos(prevPhotos => [...prevPhotos, ...sortedPhotos]);
+        setPagination(result.pagination);
+      }
+      
       setLastUpdated(new Date());
-      await cachePhotos(sortedPhotos);
+      if (page === 1) {
+        await cachePhotos(sortedPhotos);
+      }
       
       console.log('✅ PHOTO_CONTEXT: Photos fetched and sorted successfully:', sortedPhotos.length);
     } catch (error) {
@@ -147,6 +170,14 @@ export function PhotoProvider({ children }) {
       setPhotos([]);
       setLastUpdated(null);
       setSelectedSnapshotWithLogging(null);
+      setPagination({
+        total: 0,
+        page: 1,
+        limit: 10,
+        pages: 0,
+        has_next: false,
+        has_prev: false
+      });
       return;
     }
 
@@ -173,8 +204,23 @@ export function PhotoProvider({ children }) {
   // Refresh photos function - force refresh without cache
   const refreshPhotos = useCallback(() => {
     console.log('🔵 PHOTO_CONTEXT: Refreshing photos...');
-    fetchPhotos(false); // Don't use cache when refreshing
+    fetchPhotos(false, 1); // Don't use cache when refreshing, start from page 1
   }, [fetchPhotos]);
+
+  // Load more photos function for pagination
+  const loadMorePhotos = useCallback(async () => {
+    if (isLoadingMore || !pagination.has_next) return;
+    
+    try {
+      setIsLoadingMore(true);
+      console.log('🔵 PHOTO_CONTEXT: Loading more photos - page:', pagination.page + 1);
+      await fetchPhotos(false, pagination.page + 1);
+    } catch (error) {
+      console.error('🔴 PHOTO_CONTEXT: Error loading more photos:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [fetchPhotos, isLoadingMore, pagination.has_next, pagination.page]);
 
   // Clear cache function
   const clearCache = useCallback(async () => {
@@ -196,6 +242,10 @@ export function PhotoProvider({ children }) {
     clearCache,
     selectedSnapshot,     // Provide the selected snapshot state
     setSelectedSnapshot: setSelectedSnapshotWithLogging,  // Provide the logging setter
+    // Pagination state
+    pagination,
+    isLoadingMore,
+    loadMorePhotos,
   };
 
   return <PhotoContext.Provider value={value}>{children}</PhotoContext.Provider>;

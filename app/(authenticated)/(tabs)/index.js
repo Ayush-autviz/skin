@@ -36,7 +36,7 @@ import { Camera } from 'expo-camera';
 export default function Home() {
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const { user } = useAuthStore();
-  const { photos, isLoading, refreshPhotos, lastUpdated } = usePhotoContext();
+  const { photos, isLoading, refreshPhotos, lastUpdated, pagination, isLoadingMore, loadMorePhotos } = usePhotoContext();
 
   console.log("isLoading", isLoading);
 
@@ -77,12 +77,7 @@ export default function Home() {
       />
       
       <View style={[styles.content, styles.photoGridContainer]}>
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading your photos...</Text>
-          </View>
-        ) : photos.length === 0 ? (
+        {photos.length === 0 && !isLoading ? (
           <View style={styles.emptyStateContainer}>
             <View style={styles.emptyIconWrapper}>
               <Feather name="camera" size={48} color={colors.primary} />
@@ -95,6 +90,10 @@ export default function Home() {
             photos={photos} 
             onRefresh={refreshPhotos}
             lastUpdated={lastUpdated}
+            onLoadMore={loadMorePhotos}
+            isLoadingMore={isLoadingMore}
+            hasMore={pagination.has_next}
+            isLoading={isLoading}
           />
         )}
       </View>

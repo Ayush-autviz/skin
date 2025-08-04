@@ -549,16 +549,16 @@ const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScr
         <Text style={styles.categoryText}>{METRIC_LABELS[metric.metricName] || metric.metricName}</Text>
         <View style={styles.metricStatsContainer}>
           {mockAverage !== null && (
-            <Text style={styles.averageText}>{mockAverage} Avg.</Text>
+            <Text style={styles.averageText}>Average Score:{mockAverage}</Text>
           )}
-          {percentChange !== null && (
+          {/* {percentChange !== null && (
             <Text style={[
               styles.percentChangeText,
               percentChange >= 0 ? styles.positiveChange : styles.negativeChange
             ]}>
               {percentChange >= 0 ? '+' : ''}{percentChange}%
             </Text>
-          )}
+          )} */}
         </View>
       </View>
       
@@ -1224,7 +1224,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: '#8B7355',
-    marginRight: 12,
+   // marginRight: 12,
     backgroundColor: '#8B735510',
     paddingHorizontal: 8,
     paddingVertical: 2,

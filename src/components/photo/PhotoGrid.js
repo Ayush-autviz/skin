@@ -53,7 +53,7 @@ import { Image as ExpoImage } from 'expo-image'; // Much better performance than
 import useAuthStore from '../../stores/authStore';
 import { format } from 'date-fns';
 
-const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
+const PhotoGrid = ({ photos, onRefresh, lastUpdated, onLoadMore, isLoadingMore, hasMore, isLoading }) => {
   const [refreshing, setRefreshing] = useState(false);
   const flatListRef = useRef(null);
   const [inverted, setInverted] = useState(true); // Control inversion state
@@ -118,6 +118,13 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
   //   setRefreshing(false);
   // };
 
+  // Handle end reached for infinite scrolling
+  const handleEndReached = () => {
+    if (hasMore && !isLoadingMore && onLoadMore) {
+      onLoadMore();
+    }
+  };
+
   const handlePhotoPress = (photo) => {
     // For API photos, use the image_id directly (no .jpg removal needed)
     const photoId = photo.id; 
@@ -173,15 +180,16 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
     return timestamp.toLocaleDateString();
   };
 
-  if (!photos) {
+  if (isLoading && photos.length === 0) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Loading your photos...</Text>
       </View>
     );
   }
 
-  if (photos.length === 0) {
+  if (!photos || photos.length === 0) {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.emptyText}>No photos yet</Text>
@@ -225,6 +233,18 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
           />
         </View>
       </TouchableOpacity>
+    );
+  };
+
+  // Render loading indicator for bottom
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+    
+    return (
+      <View style={styles.loadingFooter}>
+        <ActivityIndicator size="small" color="#007AFF" />
+        <Text style={styles.loadingFooterText}>Loading more photos...</Text>
+      </View>
     );
   };
 
@@ -299,6 +319,9 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated }) => {
         )}
         contentContainerStyle={styles.grid}
         showsVerticalScrollIndicator={false}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={renderFooter}
       />
     </View>
   );
@@ -362,6 +385,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 8,
+  },
   statusOverlay: {
     position: 'absolute',
     top: 8,
@@ -408,6 +436,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#8B7355',
+  },
+  loadingFooter: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingFooterText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
   },
 });
 
