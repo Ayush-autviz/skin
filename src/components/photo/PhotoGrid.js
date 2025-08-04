@@ -185,7 +185,7 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated, onLoadMore, isLoadingMore, 
   if (isLoading && photos.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading your photos...</Text>
       </View>
     );
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#888888',
   },
-  dateHeader: {
+    dateHeader: {
     width: '100%',
     paddingVertical: 8,
     paddingHorizontal: gutter * 1.5,
