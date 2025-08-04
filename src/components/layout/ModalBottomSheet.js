@@ -220,13 +220,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollViewContentContainer: {
-    paddingBottom: spacing.md,
+    paddingBottom: 0,
   },
   buttonContainer: {
     flexDirection: 'column',
     width: '100%',
     paddingHorizontal: spacing.sm,
-    marginTop: spacing.lg,
+   // marginTop: spacing.lg,
   },
   buttonSpacing: {
     // marginVertical: spacing.xs,

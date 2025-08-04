@@ -204,7 +204,7 @@ const MyRoutine = forwardRef((props, ref) => {
 
   // Date picker handlers
   const handleStartDateChange = (event, selectedDate) => {
-    setShowStartDatePicker(false);
+   // setShowStartDatePicker(false);
     if (event.type === 'dismissed') return;
     if (selectedDate) {
       setNewItemDateStarted(selectedDate);
@@ -212,7 +212,7 @@ const MyRoutine = forwardRef((props, ref) => {
   };
 
   const handleStopDateChange = (event, selectedDate) => {
-    setShowStopDatePicker(false);
+    //setShowStopDatePicker(false);
     if (event.type === 'dismissed') return;
     if (selectedDate) {
       setNewItemDateStopped(selectedDate);
@@ -221,11 +221,11 @@ const MyRoutine = forwardRef((props, ref) => {
 
   // Handler for navigating to the chat screen for routine discussion
   const handleNavigateToChat = async () => { 
-    if (!routineItems || routineItems.length === 0) {
-      console.error("MyRoutine: Cannot create routine thread, no user context.");
-      alert("Please log in to chat about your routine.");
-      return;
-    }
+    // if (!routineItems || routineItems.length === 0) {
+    //   console.error("MyRoutine: Cannot create routine thread, no user context.");
+    //   alert("Please log in to chat about your routine.");
+    //   return;
+    // }
 
     try {
       // Conditional initial message based on whether user has existing routine items
@@ -840,7 +840,7 @@ const MyRoutine = forwardRef((props, ref) => {
                 />
                 <TouchableOpacity
                   style={styles.dateInputButton}
-                  onPress={() => setShowStartDatePicker(true)}
+                  onPress={() => setShowStartDatePicker(!showStartDatePicker)}
                 >
                   <Text style={[styles.dateText, !newItemDateStarted && styles.dateTextPlaceholder]}>
                     {newItemDateStarted ? newItemDateStarted.toDateString() : 'Select start date'}
@@ -864,7 +864,7 @@ const MyRoutine = forwardRef((props, ref) => {
           )}
 
                       {/* Stop Date Input */}
-            <View style={styles.inputContainer}>
+            <View >
               <Text style={styles.label}>Stop Date (Optional)</Text>
               <View style={styles.inputWrapper}>
                 <CalendarX 
@@ -874,7 +874,7 @@ const MyRoutine = forwardRef((props, ref) => {
                 />
                 <TouchableOpacity
                   style={styles.dateInputButton}
-                  onPress={() => setShowStopDatePicker(true)}
+                  onPress={() => setShowStopDatePicker(!showStopDatePicker)}
                 >
                   <Text style={[styles.dateText, !newItemDateStopped && styles.dateTextPlaceholder]}>
                     {newItemDateStopped ? newItemDateStopped.toDateString() : 'Select stop date'}

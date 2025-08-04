@@ -215,7 +215,7 @@ export default function Profile() {
   };
 
   const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
+   // setShowDatePicker(false);
     if (event.type === 'dismissed') return;
     if (selectedDate) {
       setEditForm(prev => ({ ...prev, birth_date: selectedDate }));
@@ -359,7 +359,7 @@ export default function Profile() {
                      <Calendar size={20} color="#9CA3AF" style={styles.inputIcon} />
                      <TouchableOpacity
                        style={styles.dateInputButton}
-                       onPress={() => setShowDatePicker(true)}
+                       onPress={() => setShowDatePicker(!showDatePicker)}
                      >
                        <Text style={[styles.dateText, !editForm.birth_date && { color: '#9CA3AF' }]}>
                          {editForm.birth_date ? editForm.birth_date.toDateString() : 'Select your birth date'}

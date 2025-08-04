@@ -33,7 +33,7 @@ export default function NameScreen() {
   const { setProfile, setProfileStatus, user } = useAuthStore();
 
   const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
+   // setShowDatePicker(false);
     if (event.type === 'dismissed') return;
     if (selectedDate) setBirthDate(selectedDate);
   };
@@ -179,7 +179,7 @@ export default function NameScreen() {
                 <Text style={styles.label}>Birth Date</Text>
                 <TouchableOpacity
                   style={styles.dateInputWrapper}
-                  onPress={() => setShowDatePicker(true)}
+                  onPress={() => setShowDatePicker(!showDatePicker)}
                 >
                   <Text style={[styles.dateText, !birthDate && { color: '#9CA3AF' }]}> 
                     {birthDate ? birthDate.toDateString() : 'Select your birth date'}

@@ -26,7 +26,7 @@ import RecommendationsList from '../../../src/components/routine/Recommendations
 import { colors, spacing, typography } from '../../../src/styles';
 
 export default function RoutineTab() {
-  const [activeTab, setActiveTab] = useState('recommendations');
+  const [activeTab, setActiveTab] = useState('myRoutine');
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const myRoutineRef = useRef(null);
   
