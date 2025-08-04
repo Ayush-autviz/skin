@@ -279,12 +279,30 @@ const MyRoutine = forwardRef((props, ref) => {
     else if (includesPM) finalUsage = 'PM';
     else if (includesAM) finalUsage = 'AM';
 
+    // Format parameters for backend
+    const formatParameter = (value) => {
+      if (!value) return value;
+      // Capitalize first letter for frequency
+      if (value === 'Daily' || value === 'Weekly' || value === 'As Needed') {
+        return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+      }
+      // Keep AM/PM as is (both capital letters)
+      if (value === 'AM' || value === 'PM' || value === 'Both') {
+        return value;
+      }
+      // Capitalize first letter for Product, Activity, Nutrition
+      if (value === 'Product' || value === 'Activity' || value === 'Nutrition') {
+        return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+      }
+      return value;
+    };
+
     // Prepare data for API (with extra field for additional info)
     const apiItemData = {
       name: newItemName.trim(),
-      type: newItemType,
-      usage: finalUsage,
-      frequency: newItemFrequency,
+      type: formatParameter(newItemType),
+      usage: formatParameter(finalUsage),
+      frequency: formatParameter(newItemFrequency),
       extra: {
         dateStarted: newItemDateStarted?.toISOString(),
         dateStopped: newItemDateStopped?.toISOString(),

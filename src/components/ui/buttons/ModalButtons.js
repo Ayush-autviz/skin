@@ -25,13 +25,9 @@ export const PrimaryButton = ({
       disabled={disabled || loading}
       activeOpacity={0.7}
     >
-      {loading ? (
-        <ActivityIndicator size="small" color={colors.textOnPrimary} />
-      ) : (
-        <Text style={[styles.buttonTextBase, styles.primaryButtonText]}>
-          {title}
-        </Text>
-      )}
+      <Text style={[styles.buttonTextBase, styles.primaryButtonText]}>
+        {loading ? (title === "Save" ? "Saving..." : "Updating...") : title}
+      </Text>
     </TouchableOpacity>
   );
 };
