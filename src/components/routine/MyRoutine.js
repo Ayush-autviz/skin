@@ -374,6 +374,21 @@ const MyRoutine = forwardRef((props, ref) => {
       });
       dateInfo = `You are using this product since ${formattedDate}`;
     }
+    if (item.dateStopped) {
+      const stopDate = new Date(item.dateStopped);
+      const startDate = new Date(item.dateStarted);
+      const formattedStartDate = startDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      const formattedStopDate = stopDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      dateInfo = `You used this product from ${formattedStartDate} to ${formattedStopDate}`;
+    }
 
     console.log('item', item);
     
@@ -521,6 +536,8 @@ const MyRoutine = forwardRef((props, ref) => {
     setNewItemFrequency('Daily');
     setNewItemDateStarted(null); 
     setNewItemDateStopped(null); 
+    setShowStopDatePicker(false);
+    setShowStartDatePicker(false);
   };
 
   // Update the openAddModalWithFrequency function with proper mapping

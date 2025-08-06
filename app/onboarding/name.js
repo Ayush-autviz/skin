@@ -177,6 +177,7 @@ export default function NameScreen() {
               {/* Birth Date */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Birth Date</Text>
+                <Text style={styles.labelSubtext}>Enter your real age for the most accurate results.</Text>
                 <TouchableOpacity
                   style={styles.dateInputWrapper}
                   onPress={() => setShowDatePicker(!showDatePicker)}
@@ -247,7 +248,8 @@ const styles = StyleSheet.create({
   },
   errorText: { color: '#D73527', fontSize: 14, textAlign: 'center', fontWeight: '500' },
   inputContainer: { marginBottom: 24 },
-  label: { fontSize: 16, fontWeight: '500', color: '#6B7280', marginBottom: 12 },
+  label: { fontSize: 16, fontWeight: '500', color: '#6B7280', },
+  labelSubtext: { fontSize: 13, color: colors.textTertiary, marginTop: 4, color: colors.primary },
   input: {
     borderBottomWidth: 1,
     borderBottomColor: '#8B7355',
@@ -260,6 +262,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#8B7355',
     paddingVertical: 12,
+    marginTop: 6,
   },
   dateText: {
     fontSize: 16,
@@ -284,6 +287,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginVertical: 8,
     overflow: 'hidden',
+    marginTop: 12,
   },
   profileImage: {
     width: '100%',

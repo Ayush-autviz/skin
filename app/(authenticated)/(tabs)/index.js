@@ -83,7 +83,7 @@ export default function Home() {
               <Feather name="camera" size={48} color={colors.primary} />
             </View>
             <Text style={styles.emptyTitle}>No snapshots yet</Text>
-            <Text style={styles.emptySubtitle}>Tap the + button below to capture your first photo</Text>
+            <Text style={styles.emptySubtitle}>Tap the + to capture or upload your first face snapshot. Center your face for best results</Text>
           </View>
         ) : (
           <PhotoGrid 

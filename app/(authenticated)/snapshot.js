@@ -872,7 +872,7 @@ export default function SnapshotScreen() {
             style={styles.headerButton}
             onPress={handleClose}
           >
-            <Feather name="x" size={24} color="white" />
+            <Feather name="chevron-left" size={24} color="white" />
           </TouchableOpacity>
           
           {/* Center: Title/Date and Mask Toggle */}

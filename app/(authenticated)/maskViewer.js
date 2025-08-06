@@ -369,7 +369,7 @@ export default function MaskViewerScreen() {
               />
               
               {/* Zoom controls - positioned just below the image */}
-              <View style={styles.zoomControlsContainer}>
+              {/* <View style={styles.zoomControlsContainer}>
                 <Animated.View style={[styles.zoomControls, { opacity: index === activeIndex ? 1 : 0 }]}>
                   <TouchableOpacity
                     style={styles.zoomButton}
@@ -401,7 +401,7 @@ export default function MaskViewerScreen() {
                     <ZoomIn size={18} color="white" />
                   </TouchableOpacity>
                 </Animated.View>
-              </View>
+              </View> */}
             </View>
           ))}
         </Animated.ScrollView>
@@ -507,7 +507,8 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    // paddingVertical: 40,
+    marginBottom: 100,
   },
   maskImageContainer: {
     width: IMAGE_SIZE,
