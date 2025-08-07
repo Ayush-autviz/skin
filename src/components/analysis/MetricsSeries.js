@@ -123,6 +123,8 @@ const DATE_CARD_WIDTH = 115;  // 100 * 1.15 = 115 (15% increase)
 const DATE_CARD_HEIGHT = 173; // 150 * 1.15 ≈ 173 (15% increase)
 const DATE_CARD_MARGIN = 3;  // 8 / 2 = 4
 
+const router = useRouter(); 
+
 const METRIC_KEYS = [
   'acneScore',
   'rednessScore',
@@ -465,7 +467,7 @@ const getLightColor = (hexColor) => {
   }
 };
 
-const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScrollSyncRef }) => {
+const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScrollSyncRef, photos }) => {
   if (!metric?.scores?.length) return null;
 
   const scrollViewRef = useRef(null);
@@ -546,7 +548,51 @@ const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScr
     <View style={styles.card}>
       {/* Title Section with average and percentage change */}
       <View style={styles.titleRow}>
-        <Text style={styles.categoryText}>{METRIC_LABELS[metric.metricName] || metric.metricName}</Text>
+        <TouchableOpacity onPress={() => {
+  // Navigate to metric detail with proper parameters
+  if (selectedIndex !== null && photos[selectedIndex]) {
+    const selectedPhoto = photos[selectedIndex];
+    console.log('Navigating to metric detail from MetricsSeries:', {
+      metricKey: metric.metricName,
+      metricValue: metric.scores[selectedIndex]?.score,
+      photoId: selectedPhoto.id
+    });
+    
+    router.push({
+      pathname: '/(authenticated)/metricDetail',
+      params: {
+        maskResults: selectedPhoto?.maskResults,
+        maskImages: selectedPhoto?.maskImages,
+        metricKey: metric.metricName,
+        metricValue: metric.scores[selectedIndex]?.score,
+        photoData: JSON.stringify(selectedPhoto)
+      }
+    });
+  } else {
+    // Fallback if no photo is selected - use the first photo
+    const firstPhoto = photos[0];
+    if (firstPhoto) {
+      console.log('Navigating to metric detail from MetricsSeries (fallback):', {
+        metricKey: metric.metricName,
+        metricValue: metric.scores[0]?.score,
+        photoId: firstPhoto.id
+      });
+      
+      router.push({
+        pathname: '/(authenticated)/metricDetail',
+        params: {
+          maskResults: firstPhoto?.maskResults,
+          maskImages: firstPhoto?.maskImages,
+          metricKey: metric.metricName,
+          metricValue: metric.scores[0]?.score,
+          photoData: JSON.stringify(firstPhoto)
+        }
+      });
+    }
+  }
+}}>
+          <Text style={styles.categoryText}>{METRIC_LABELS[metric.metricName] || metric.metricName}</Text>
+        </TouchableOpacity>
         <View style={styles.metricStatsContainer}>
           {mockAverage !== null && (
             <Text style={styles.averageText}>Average Score:{mockAverage}</Text>
@@ -933,6 +979,7 @@ const MetricsSeries = ({ photos }) => {
             onDotPress={handleDotPress}
             scrollPosition={scrollPosition}
             forceScrollSyncRef={forceScrollSyncRef}
+            photos={photos} // Add this line
           />
         ))}
       </ScrollView>

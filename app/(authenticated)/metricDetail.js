@@ -40,7 +40,7 @@ import ListItem from '../../src/components/ui/ListItem';
 import FloatingTooltip from '../../src/components/ui/FloatingTooltip';
 import { colors } from '../../src/styles';
 import useAuthStore from '../../src/stores/authStore';
-import { getSkinTrendScores } from '../../src/services/newApiService';
+import { getSkinTrendScores, getHautMaskImages } from '../../src/services/newApiService';
 
 // Import the JSON data
 import concernsData from '../../data/concerns.json';
@@ -517,7 +517,9 @@ export default function MetricDetailScreen() {
   console.log('🔵 metricKey:', params);
 
   const [backgroundImageLoading, setBackgroundImageLoading] = useState(true);
-  const [maskImageLoading, setMaskImageLoading] = useState(true);
+  const [maskImageLoading, setMaskImageLoading] = useState(false);
+  const [maskImages, setMaskImages] = useState(null);
+  const [maskImagesLoading, setMaskImagesLoading] = useState(false);
 
   
   
@@ -525,6 +527,35 @@ export default function MetricDetailScreen() {
   const parsedPhotoData = typeof photoData === 'string' ? JSON.parse(photoData) : photoData;
 
   console.log(parsedPhotoData,'parsed photo data');
+  
+  // Fetch mask images when component loads
+  useEffect(() => {
+    const fetchMaskImages = async () => {
+      if (!parsedPhotoData?.hautUploadData?.imageId) {
+        console.log('🔴 No imageId available for fetching mask images');
+        return;
+      }
+      
+      try {
+        setMaskImagesLoading(true);
+        console.log('🔵 Fetching mask images for imageId:', parsedPhotoData.hautUploadData.imageId);
+        
+        const maskImagesData = await getHautMaskImages(parsedPhotoData.hautUploadData.imageId);
+        console.log('✅ Mask images fetched successfully:', maskImagesData);
+        
+        setMaskImages(maskImagesData);
+      } catch (error) {
+        console.error('🔴 Error fetching mask images:', error);
+        setMaskImages(null);
+      } finally {
+        setMaskImagesLoading(false);
+      }
+    };
+    
+    fetchMaskImages();
+  }, [parsedPhotoData?.hautUploadData?.imageId]);
+  
+
   
   // State for whether the current concern is being tracked by the user
   const [isConcernTracked, setIsConcernTracked] = useState(false);
@@ -536,6 +567,8 @@ export default function MetricDetailScreen() {
   const [trendScores, setTrendScores] = useState(null);
   const [isLoadingTrends, setIsLoadingTrends] = useState(false);
   
+
+
   // Format the metric name for display (convert camelCase to Title Case)
   const formatMetricName = (key) => {
     if (!key) return '';
@@ -1024,12 +1057,36 @@ export default function MetricDetailScreen() {
         {/* Mask Image Section */}
         {(() => {
           const conditionName = getConditionNameForMetric(metricKey);
-          console.log('🔵 conditionName:', conditionName);
-          const maskImageData = parsedPhotoData?.maskImages?.filter(image => image.skin_condition_name === conditionName)[0];
-          console.log('🔵 maskImageData:', sanitizeS3Uri(maskImageData?.mask_img_url));
-          console.log('🔵 Background photo URI:', parsedPhotoData?.storageUrl);
           
-          if (conditionName && maskImageData?.mask_img_url) {
+          // Check if we have mask images data - use fetched mask images
+          let maskImageData = null;
+          
+          // First try to use the fetched mask images
+          if (maskImages && Array.isArray(maskImages)) {
+            maskImageData = maskImages.find(image => image.skin_condition_name === conditionName);
+            // If not found, try to find any mask image
+            if (!maskImageData && maskImages.length > 0) {
+              maskImageData = maskImages[0];
+            }
+          }
+          
+          // Fallback to photo data if no fetched mask images
+          if (!maskImageData) {
+            if (parsedPhotoData?.maskImages) {
+              maskImageData = parsedPhotoData.maskImages.filter(image => image.skin_condition_name === conditionName)[0];
+              if (!maskImageData && parsedPhotoData.maskImages.length > 0) {
+                maskImageData = parsedPhotoData.maskImages[0];
+              }
+            } else if (parsedPhotoData?.maskResults) {
+              maskImageData = parsedPhotoData.maskResults.find(result => result.skin_condition_name === conditionName);
+              if (!maskImageData && parsedPhotoData.maskResults.length > 0) {
+                maskImageData = parsedPhotoData.maskResults[0];
+              }
+            }
+          }
+          
+          // If no mask data, show the original photo instead
+          if (conditionName && (maskImageData?.mask_img_url || parsedPhotoData?.storageUrl)) {
             return (
               <View style={{ marginHorizontal: 16 }}>
                 <Text style={styles.sectionTitle}>Analysis Visualization</Text>
@@ -1037,28 +1094,24 @@ export default function MetricDetailScreen() {
                   <Text style={styles.maskImageDescription}>
                     This visualization shows the analyzed areas for {formatMetricName(metricKey).toLowerCase()} on your face.
                   </Text>
+                  
+                  {/* Show loading indicator while fetching mask images */}
+                  {maskImagesLoading && (
+                    <View style={styles.maskImagesLoadingContainer}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={styles.maskImagesLoadingText}>Loading analysis data...</Text>
+                    </View>
+                  )}
+                  
                   <View style={styles.maskImageContainer}>
-                    {/* Background Image */}
-                    {
-                      backgroundImageLoading && maskImageLoading ? (
-                        <View style={styles.loadingContainer}>
-                          <ActivityIndicator size="large" color={colors.primary} />
-                        </View>
-                      ) : (
-                           <>
-                           </>
-  
-                      )
-                    }
-
-<>
-
-                                            <Image
-                      source={{ uri: sanitizeS3Uri(maskImageData?.image_url) }}
+                    {/* Background Image - Use storageUrl if mask data not available */}
+                    <Image
+                      source={{ uri: sanitizeS3Uri(maskImageData?.image_url || parsedPhotoData?.storageUrl) }}
                       style={styles.backgroundImage}
                       resizeMode="cover"
                       onError={(error) => {
                         console.log('🔴 Error loading background image:', error.nativeEvent.error);
+                        setBackgroundImageLoading(false);
                       }}
                       onLoad={() => {
                         console.log('✅ Background image loaded successfully');
@@ -1066,28 +1119,39 @@ export default function MetricDetailScreen() {
                       }}
                     />
                     
-                    {/* Conditional Image Overlay (SVG or regular image) */}
-                    <View style={styles.svgOverlay}>
-                      <ConditionalImage
-                        source={{ uri: sanitizeS3Uri(maskImageData.mask_img_url) }}
-                        style={styles.svgOverlay}
-                        width="100%"
-                        height="100%"
-                        onError={(error) => {
-                          console.log('🔴 Error loading mask image:', error);
-                        }}
-                        onLoad={() => {
-                          console.log('✅ Mask image loaded successfully for:', conditionName);
-                          setMaskImageLoading(false);
-                        }}
-                      />
-                    </View>
-                        </>
-
-
+                    {/* Loading indicator for background image */}
+                    {backgroundImageLoading && (
+                      <View style={styles.imageLoadingContainer}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={styles.loadingText}>Loading image...</Text>
+                      </View>
+                    )}
+                    
+                    {/* Conditional Image Overlay (SVG or regular image) - Only show if mask data exists */}
+                    {maskImageData?.mask_img_url && (
+                      <View style={styles.svgOverlay}>
+                        <ConditionalImage
+                          source={{ uri: sanitizeS3Uri(maskImageData.mask_img_url) }}
+                          style={styles.svgOverlay}
+                          width="100%"
+                          height="100%"
+                          onError={(error) => {
+                            console.log('🔴 Error loading mask image:', error);
+                            setMaskImageLoading(false);
+                          }}
+                          onLoad={() => {
+                            console.log('✅ Mask image loaded successfully for:', conditionName);
+                            setMaskImageLoading(false);
+                          }}
+                        />
+                      </View>
+                    )}
                   </View>
                   <Text style={styles.maskImageNote}>
-                    Highlighted areas indicate regions where {formatMetricName(metricKey).toLowerCase()} was detected and analyzed.
+                    {maskImageData?.mask_img_url 
+                      ? `Highlighted areas indicate regions where ${formatMetricName(metricKey).toLowerCase()} was detected and analyzed.`
+                      : `Analysis visualization for ${formatMetricName(metricKey).toLowerCase()}.`
+                    }
                   </Text>
                 </View>
               </View>
@@ -1764,5 +1828,53 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  imageLoadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 12,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666',
+    fontSize: 14,
+  },
+  maskLoadingContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: '100%',
+    padding: 10,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  maskLoadingText: {
+    marginLeft: 5,
+    color: '#666',
+    fontSize: 12,
+  },
+  maskImagesLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  maskImagesLoadingText: {
+    marginLeft: 8,
+    color: '#666',
+    fontSize: 14,
   },
 });
