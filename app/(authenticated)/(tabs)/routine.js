@@ -24,12 +24,13 @@ import SettingsDrawer from '../../../src/components/layout/SettingsDrawer';
 import MyRoutine from '../../../src/components/routine/MyRoutine';
 import RecommendationsList from '../../../src/components/routine/RecommendationsList';
 import { colors, spacing, typography } from '../../../src/styles';
+import { useRouter } from 'expo-router';
 
 export default function RoutineTab() {
   const [activeTab, setActiveTab] = useState('myRoutine');
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const myRoutineRef = useRef(null);
-  
+  const router = useRouter();
   useEffect(() => {
     console.log('🧴 Routine tab loaded');
   }, []);
@@ -46,7 +47,8 @@ export default function RoutineTab() {
   );
 
   const handleMenuPress = () => {
-    setIsSettingsVisible(true);
+    // setIsSettingsVisible(true);
+    router.push('/');
   };
 
   return (
@@ -54,6 +56,7 @@ export default function RoutineTab() {
       <TabHeader 
         title="Routine"
         onMenuPress={handleMenuPress}
+        showBack={true}
       />
       <View style={styles.contentContainer}>
         {/* Tab Navigation */}

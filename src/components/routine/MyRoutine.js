@@ -680,6 +680,9 @@ const MyRoutine = forwardRef((props, ref) => {
               style={styles.arrowIcon}
             />
           </TouchableOpacity>
+          <TouchableOpacity onPress={openAddModal} style={{  padding: 16, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{color: colors.primary, fontSize: 16, fontWeight: '500'}}>+ Add a routine item</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <>
@@ -695,6 +698,13 @@ const MyRoutine = forwardRef((props, ref) => {
           ]}
           stickySectionHeadersEnabled={false}
         />
+  {/* 
+          {routineItems.length > 0 && ( */}
+          <TouchableOpacity style={{padding: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'red', borderRadius: 16, borderWidth: 1, borderColor: colors.primary, }} onPress={openAddModal}>
+            <Text style={{color: colors.primary, fontSize: 16, fontWeight: '500'}}>Add to your routine</Text>
+          </TouchableOpacity>
+        {/* )} */}
+        
         {/* Fixed AI Message Card */}
         <View style={styles.fixedCardWrapper} onLayout={handleCardLayout}>
           <AiMessageCard
@@ -947,6 +957,7 @@ const styles = StyleSheet.create({
   },
   sectionsList: {
     flex: 1,
+    
   },
   listContentContainerBase: {
     paddingTop: spacing.lg,

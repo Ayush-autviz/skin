@@ -27,19 +27,19 @@ function CustomTabBar({ state, descriptors, navigation }) {
   };
 
   const handleCameraPress = () => {
-    const currentRoute = getCurrentRoute();
+    // const currentRoute = getCurrentRoute();
     
-    if (!currentRoute) {
-      console.log('Navigation state not ready, assuming index screen');
-      router.push('/camera');
-      return;
-    }
+    // if (!currentRoute) {
+    //   console.log('Navigation state not ready, assuming index screen');
+    //   router.push('/camera');
+    //   return;
+    // }
     
-    if (currentRoute === 'index') {
+    // if (currentRoute === 'index') {
       router.push('/camera');
-    } else {
-      navigation.navigate('index');
-    }
+    // } else {
+    //   navigation.navigate('index');
+    // }
   };
 
   // Direct route comparison - more reliable

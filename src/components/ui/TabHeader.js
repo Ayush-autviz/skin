@@ -19,7 +19,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '../../styles';
 
-export default function TabHeader({ title, onMenuPress, rightComponent }) {
+export default function TabHeader({ title, onMenuPress, rightComponent, showBack = false }) {
   return (
     <View style={styles.headerContainer}>
       <BlurView 
@@ -35,7 +35,11 @@ export default function TabHeader({ title, onMenuPress, rightComponent }) {
             activeOpacity={0.7}
           >
             <View style={styles.menuIconContainer}>
-              <Ionicons name="menu-outline" size={24} color={colors.primary} />
+              {showBack ? (
+                <Ionicons name="chevron-back" size={22} color={colors.primary} />
+              ) : (
+                <Ionicons name="menu-outline" size={24} color={colors.primary} />
+              )}
             </View>
           </TouchableOpacity>
 

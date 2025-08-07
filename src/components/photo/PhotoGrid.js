@@ -323,7 +323,7 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated, onLoadMore, isLoadingMore, 
         showsVerticalScrollIndicator={false}
         stickySectionHeadersEnabled={false}
         onEndReached={handleEndReached}
-        onEndReachedThreshold={0.1}
+        onEndReachedThreshold={0.7}
         ListFooterComponent={renderFooter}
       />
     </View>

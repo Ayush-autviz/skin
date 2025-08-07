@@ -22,8 +22,10 @@ import TabHeader from '../../../src/components/ui/TabHeader';
 import { colors, spacing, typography, shadows } from '../../../src/styles';
 import MetricsSeries from '../../../src/components/analysis/MetricsSeries';
 import { getComparison, transformComparisonData } from '../../../src/services/newApiService';
+import { useRouter } from 'expo-router';
 
 export default function ProgressTab() {
+  const router = useRouter();
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,8 @@ export default function ProgressTab() {
   const [isError, setIsError] = useState(false);
 
   const handleMenuPress = () => {
-    setIsSettingsVisible(true);
+    // setIsSettingsVisible(true);
+    router.push('/');
   };
 
   // Fetch comparison data using simple axios
@@ -146,6 +149,7 @@ export default function ProgressTab() {
       <TabHeader
         title="Progress"
         onMenuPress={handleMenuPress}
+        showBack={true}
       />
 
       <View style={styles.content}>

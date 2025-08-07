@@ -1097,7 +1097,7 @@ export default function MetricDetailScreen() {
         })()}
         
         {/* Trend/History Card */}
-        <View style={{ marginHorizontal: 16 }}>
+        {/* <View style={{ marginHorizontal: 16 }}>
           <Text style={styles.sectionTitle}>Trend</Text>
           <View style={styles.metricCard}>
             {trendScores && trendScores.length > 0 ? (
@@ -1116,7 +1116,7 @@ export default function MetricDetailScreen() {
               <Text style={styles.trendPlaceholderText}>No trend data available.</Text>
             )}
           </View>
-        </View>
+        </View> */}
         
         {/* Content Section: Overview */}
         <View style={styles.contentSectionContainer}>
