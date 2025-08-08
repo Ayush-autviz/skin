@@ -475,6 +475,7 @@ export default function SnapshotScreen() {
           // Create photo data structure
           const photoDataObj = {
             id: photoId,
+            imageId: imgId,
             storageUrl: localUri,
             timestamp: timestamp ? new Date(timestamp) : new Date(),
             metrics: transformedMetrics,

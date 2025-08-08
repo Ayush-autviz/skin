@@ -45,6 +45,201 @@ import { getSkinTrendScores, getHautMaskImages } from '../../src/services/newApi
 // Import the JSON data
 import concernsData from '../../data/concerns.json';
 import MetricsSeries_simple from '../../src/components/analysis/MetricsSeries_simple';
+import MetricsSeries from '../../src/components/analysis/MetricsSeries';
+
+// Helper functions for perceived age chart
+const calculateActualAge = (birthDate) => {
+  if (!birthDate) return null;
+  const birth = birthDate instanceof Date ? birthDate : new Date(birthDate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+const getAgeComparisonColor = (perceivedAge, actualAge) => {
+  if (!actualAge || !perceivedAge) return '#222';
+  
+  const ageDifference = perceivedAge - actualAge;
+  
+  if (ageDifference > 5) {
+    return '#FF3B30'; // Red - perceived age is more than 5 years greater than actual age
+  } else if (ageDifference > 0) {
+    return '#FFB340'; // Yellow - perceived age is greater than actual age but within 5 years
+  } else {
+    return '#34C759'; // Green - perceived age is less than or equal to actual age (good)
+  }
+};
+
+const getColorForScore = (score) => {
+  if (score <= 30) return '#FF3B30';
+  if (score <= 70) return '#FFB340';
+  return '#34C759';
+};
+
+// Helper function to generate light version of a color
+const getLightColor = (hexColor) => {
+  if (!hexColor || hexColor === '#999999') return '#f0f0f0';
+  
+  switch (hexColor) {
+    case '#FF3B30': return '#FFEBEA'; // Light red
+    case '#FFB340': return '#FFF4E6'; // Light amber  
+    case '#34C759': return '#E8F5E8'; // Light green
+    default: return '#f0f0f0';
+  }
+};
+
+const PerceivedAgeChart = ({ photos }) => {
+  const { profile } = useAuthStore();
+  
+  // Process photos to get perceived age data
+  const processedData = photos.map(photo => {
+    let dateValue;
+    const ts = photo.created_at;
+    if (ts?.seconds && typeof ts.seconds === 'number') {
+      dateValue = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0));
+    } else if (ts instanceof Date) {
+      dateValue = ts;
+    } else if (typeof ts === 'string' || typeof ts === 'number') {
+      dateValue = new Date(ts);
+    } else {
+      return null;
+    }
+    
+    if (!(dateValue instanceof Date && !isNaN(dateValue.getTime()))) {
+      return null;
+    }
+
+    return {
+      photoId: photo.skin_result_id,
+      date: dateValue,
+      score: photo.skin_condition_score ?? null,
+    };
+  }).filter(item => item !== null);
+
+  if (!processedData.length) {
+    return <Text style={styles.trendPlaceholderText}>No perceived age data available.</Text>;
+  }
+
+  // Chart constants
+  const barWidth = 10;
+  const barRadius = 5;
+  const barSlotWidth = 16;
+  const plotAreaWidth = processedData.length * barSlotWidth;
+  const chartHeight = 48;
+
+  return (
+    <View style={{ height: chartHeight + 40 }}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={{ height: chartHeight }}
+        contentContainerStyle={{ 
+          paddingTop: 28,
+          paddingRight: 16
+        }}
+      >
+        <View style={[styles.plotArea, { width: plotAreaWidth, height: chartHeight }]}>
+          {/* Y-Axis Grid Lines */}
+          <View style={styles.gridContainer}>
+            <View style={[styles.yAxisGridLine, { bottom: chartHeight - 1 }]} />
+            <View style={[styles.yAxisGridLine, { bottom: chartHeight / 2 }]} />
+            <View style={[styles.yAxisGridLine, { bottom: 0 }]} />
+          </View>
+          
+          {/* Bars */}
+          {processedData.map((scoreData, index) => {
+            const actualAge = calculateActualAge(profile?.birth_date);
+            const color = getAgeComparisonColor(scoreData.score, actualAge);
+            
+            if (!scoreData.score || scoreData.score === null) {
+              // Render null data indicator
+              const xPosition = index * barSlotWidth;
+              return (
+                <View
+                  key={scoreData.photoId}
+                  style={[
+                    styles.nullBarContainer,
+                    {
+                      left: xPosition,
+                      bottom: chartHeight / 2 - 2,
+                    }
+                  ]}
+                >
+                  <View style={styles.nullBar} />
+                </View>
+              );
+            }
+            
+            // Calculate bar height and position
+            const barHeight = (scoreData.score / 100) * chartHeight;
+            const xPosition = index * barSlotWidth;
+            const isRecent = index >= processedData.length - 3;
+            
+            return (
+              <View key={scoreData.photoId} style={{ 
+                position: 'absolute', 
+                left: xPosition, 
+                bottom: 0, 
+                width: barSlotWidth, 
+                alignItems: 'center'
+              }}>
+                <View
+                  style={{
+                    width: barSlotWidth,
+                    height: chartHeight,
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                  }}
+                >
+                  {/* Light background bar with shadow */}
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        width: barWidth,
+                        height: Math.max(barHeight, 2),
+                        borderRadius: barRadius,
+                        backgroundColor: getLightColor(color),
+                        opacity: isRecent ? 1 : 0.7,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 2,
+                        elevation: 2,
+                      }
+                    ]}
+                  />
+                  
+                  {/* Dark circle at top of bar */}
+                  <View
+                    style={[
+                      styles.barCircle,
+                      {
+                        backgroundColor: color,
+                        opacity: isRecent ? 1 : 0.7,
+                        position: 'absolute',
+                        bottom: Math.max(barHeight - 3, -1),
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 2,
+                        elevation: 3,
+                      }
+                    ]}
+                  />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
 
 // Helper function to map metric keys to condition names for mask images
 const getConditionNameForMetric = (metricKey) => {
@@ -1160,27 +1355,33 @@ export default function MetricDetailScreen() {
           return null;
         })()}
         
-        {/* Trend/History Card */}
-        {/* <View style={{ marginHorizontal: 16 }}>
-          <Text style={styles.sectionTitle}>Trend</Text>
-          <View style={styles.metricCard}>
-            {trendScores && trendScores.length > 0 ? (
-              <MetricsSeries_simple
-                photos={trendScores}
-                metricKeyToDisplay={metricKey}
-                chartHeight={100}
-                pointsVisibleInWindow={5}
-                showXAxisLabels={true}
-                showYAxisLabels={true}
-                chartBackgroundColor="#F8F8F8"
-                scrollToEnd={true}
-                onSelectionChange={handleChartSelection}
-              />
-            ) : (
-              <Text style={styles.trendPlaceholderText}>No trend data available.</Text>
-            )}
+        {/* Trend/History Card - Show for skin score metrics and perceived age */}
+        {(!currentConcernDetails?._isProfileMetric || metricKey === 'perceivedAge') && (
+          <View style={{ marginHorizontal: 16 }}>
+            <Text style={styles.sectionTitle}>Trend</Text>
+            <View style={styles.metricCard}>
+              {trendScores && trendScores.length > 0 ? (
+                metricKey === 'perceivedAge' ? (
+                  <PerceivedAgeChart photos={trendScores} />
+                ) : (
+                  <MetricsSeries_simple
+                    photos={trendScores}
+                    metricKeyToDisplay={metricKey}
+                    chartHeight={100}
+                    pointsVisibleInWindow={5}
+                    showXAxisLabels={true}
+                    showYAxisLabels={true}
+                    chartBackgroundColor="#F8F8F8"
+                    scrollToEnd={true}
+                    onSelectionChange={handleChartSelection}
+                  />
+                )
+              ) : (
+                <Text style={styles.trendPlaceholderText}>No trend data available.</Text>
+              )}
+            </View>
           </View>
-        </View> */}
+        )}
         
         {/* Content Section: Overview */}
         <View style={styles.contentSectionContainer}>
@@ -1876,5 +2077,55 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     color: '#666',
     fontSize: 14,
+  },
+  // Chart styles for perceived age
+  plotArea: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginLeft: 24,
+  },
+  gridContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '100%',
+    justifyContent: 'space-between',
+  },
+  yAxisGridLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: '#f0f0f0',
+  },
+  nullBarContainer: {
+    position: 'absolute',
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    transform: [{ translateX: -8 }, { translateY: -8 }],
+  },
+  nullBar: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#dddddd',
+  },
+  bar: {
+    width: 10,
+    height: 2,
+    borderRadius: 5,
+    backgroundColor: '#333',
+    opacity: 0.7,
+    borderWidth: 0,
+    borderColor: 'transparent',
+  },
+  barCircle: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
 });

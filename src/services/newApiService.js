@@ -1226,6 +1226,7 @@ export const getChatHistoryByImageId = async (imageId) => {
     const response = await apiClient.get(`/thread/get-latest-chat?image_id=${imageId}`);
     
     if (response.data.status === 200) {
+      console.log("🔵 response of getChatHistoryByImageId: in apiService", response.data);
       console.log("✅ Chat history fetched successfully");
       return {
         success: true,
@@ -1240,6 +1241,51 @@ export const getChatHistoryByImageId = async (imageId) => {
       error.response?.data?.message ||
         error.message ||
         "Failed to fetch chat history"
+    );
+  }
+};
+
+/**
+ * Send first chat message for snapshot feedback
+ * @param {Object} chatData - Chat data for snapshot feedback
+ * @param {string} chatData.imageId - Image ID
+ * @param {string} chatData.firstName - User's first name
+ * @param {number} chatData.age - User's age
+ * @param {string} chatData.skinType - User's skin type
+ * @param {Array} chatData.skinConcerns - Array of skin concerns
+ * @param {Array} chatData.excludedMetrics - Array of excluded metrics
+ * @param {Object} chatData.metrics - Metrics object
+ * @returns {Promise<Object>} Chat response
+ */
+export const sendSnapshotFirstChat = async (chatData) => {
+  try {
+    console.log("🔵 Sending snapshot first chat:", chatData);
+    
+    const response = await apiClient.post("/thread/snapshot-first-chat", {
+      imageId: chatData.imageId,
+      firstName: chatData.firstName,
+      age: chatData.age,
+      skinType: chatData.skinType,
+      skinConcerns: chatData.skinConcerns || [],
+      excludedMetrics: chatData.excludedMetrics || [],
+      metrics: chatData.metrics || {},
+    });
+    
+    if (response.data.status === 200) {
+      console.log("✅ Snapshot first chat sent successfully");
+      return {
+        success: true,
+        data: response.data.data,
+      };
+    } else {
+      throw new Error(response.data.message || "Failed to send snapshot first chat");
+    }
+  } catch (error) {
+    console.error("🔴 sendSnapshotFirstChat error:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to send snapshot first chat"
     );
   }
 };

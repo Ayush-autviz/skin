@@ -37,6 +37,7 @@ import AiMessageCard from '../chat/AiMessageCard'; // Import AiMessageCard
 import palette from '../../styles/palette'; // Import palette for consistent colors
 import useAuthStore from '../../stores/authStore';
 import { getImageChatSummary } from '../../services/chatApiService';
+import { sendSnapshotFirstChat } from '../../services/newApiService';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -86,16 +87,56 @@ const MetricsSheet = forwardRef(({
   // Fetch summary when photoData changes
   useEffect(() => {
     if (photoData && uiState === 'complete') {
-      const imageId = photoData.id || photoData.image_id;
+      // const imageId = photoData.id || photoData.image_id;
+      const imageId = photoData.imageId;
+
+      console.log('🔵 MetricsSheet - imageId:', imageId);
       
       if (imageId) {
         setSummaryLoading(true);
         getImageChatSummary(imageId)
           .then(response => {
-            if (response.success) {
+            if (response.summary) {
+              console.log('🔵 Summary successful, setting summary:', response.summary);
               setSummary(response.summary);
             } else {
               setSummary(null);
+              console.log('🔵 Summary not successful, calling snapshot first chat API...');
+              
+              // Call snapshot first chat API when summary fails
+              const user = useAuthStore.getState().user;
+              const profile = useAuthStore.getState().profile;
+              
+              console.log('🔵 user in MetricsSheet:', user);
+              console.log('🔵 profile in MetricsSheet:', profile);
+              console.log('🔵 imageId in MetricsSheet:', imageId);
+              
+              // Prepare chat data
+              const chatData = {
+                imageId: imageId,
+                firstName: user?.user_name || profile?.user_name || 'User',
+                age: profile?.age || 25, // Default age if not available
+                skinType: profile?.skinType || 'normal', // Default skin type
+                skinConcerns: profile?.concerns ? Object.keys(profile.concerns).filter(key => profile.concerns[key]) : [],
+                excludedMetrics: [], // Empty array for now
+                metrics: photoData?.metrics || {}
+              };
+              
+              console.log('🔵 Chat data prepared in MetricsSheet:', chatData);
+              
+              sendSnapshotFirstChat(chatData)
+                .then(chatResponse => {
+                  console.log('✅ Snapshot first chat API response in MetricsSheet:', chatResponse);
+                  
+                  // Store AI feedback from response
+                  if (chatResponse.success && chatResponse.data) {
+                    setSummary(chatResponse.data.message || chatResponse.data.feedback);
+                    console.log('✅ AI feedback stored in MetricsSheet:', chatResponse.data.message || chatResponse.data.feedback);
+                  }
+                })
+                .catch(chatError => {
+                  console.error('🔴 Snapshot first chat API error in MetricsSheet:', chatError);
+                });
             }
           })
           .catch(error => {
@@ -542,7 +583,7 @@ const MetricsSheet = forwardRef(({
           </View> */}
           <View style={styles.aiMessageContent}>
             <Text style={styles.aiMessageText}>
-              {summary ? summary : (summaryLoading ? "Loading summary..." : "Analyze my score")}
+              {summary ? summary : (summaryLoading ? "Loading summary..." : "Loading summary...")}
             </Text>
             <View style={styles.aiMessageFooter}>
               <Text style={styles.aiMessageTime}>

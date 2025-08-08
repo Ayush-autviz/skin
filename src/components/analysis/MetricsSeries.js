@@ -117,6 +117,7 @@ import { usePhotoContext } from '../../contexts/PhotoContext'; // Import photo c
 import { useRouter } from 'expo-router'; // Import router
 import { getImageChatSummary } from '../../services/chatApiService';
 import { colors } from '../../styles';
+import useAuthStore from '../../stores/authStore';
 
 const { width } = Dimensions.get('window');
 const DATE_CARD_WIDTH = 115;  // 100 * 1.15 = 115 (15% increase)
@@ -419,13 +420,24 @@ const getColorForScore = (score) => {
 };
 
 // Helper to normalize metric values and handle null/zero cases
-const normalizeMetricValue = (value) => {
+const normalizeMetricValue = (value, metricName = null, profile = null) => {
   // Check for null, undefined, NaN, or zero
   if (value === null || value === undefined || isNaN(value) || value === 0) {
     return {
       value: 50, // Center position
       color: '#999999', // Grey color
       isNullValue: true
+    };
+  }
+
+  // For perceived age metric, use age comparison colors
+  if (metricName === 'perceivedAge' && profile?.birth_date) {
+    const actualAge = calculateActualAge(profile.birth_date);
+    const ageComparisonColor = getAgeComparisonColor(value, actualAge);
+    return {
+      value,
+      color: ageComparisonColor,
+      isNullValue: false
     };
   }
 
@@ -467,7 +479,35 @@ const getLightColor = (hexColor) => {
   }
 };
 
-const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScrollSyncRef, photos }) => {
+// Calculate user's actual age from birth date
+const calculateActualAge = (birthDate) => {
+  if (!birthDate) return null;
+  const birth = birthDate instanceof Date ? birthDate : new Date(birthDate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+// Get age comparison color for perceived age metric
+const getAgeComparisonColor = (perceivedAge, actualAge) => {
+  if (!actualAge || !perceivedAge) return '#222'; // Default color if no data
+  
+  const ageDifference = perceivedAge - actualAge;
+  
+  if (ageDifference > 5) {
+    return '#FF3B30'; // Red - perceived age is more than 5 years greater than actual age
+  } else if (ageDifference > 0) {
+    return '#FFB340'; // Yellow - perceived age is greater than actual age but within 5 years
+  } else {
+    return '#34C759'; // Green - perceived age is less than or equal to actual age (good)
+  }
+};
+
+const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScrollSyncRef, photos, profile }) => {
   if (!metric?.scores?.length) return null;
 
   const scrollViewRef = useRef(null);
@@ -643,7 +683,7 @@ const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScr
             
             {/* Bars */}
             {metric.scores.map((scoreData, index) => {
-              const normalizedMetric = normalizeMetricValue(scoreData.score);
+              const normalizedMetric = normalizeMetricValue(scoreData.score, metric.metricName, profile);
               
               if (normalizedMetric.isNullValue) {
                 // Render null data indicator at center
@@ -743,6 +783,7 @@ const MetricsSeries = ({ photos }) => {
   const forceScrollSyncRef = useRef(false);
   const { setSelectedSnapshot } = usePhotoContext(); // Use photo context
   const router = useRouter(); // Use router
+  const { profile } = useAuthStore(); // Get user profile for age comparison
 
   // Removed loading overlay timeout - loading is now handled by parent component
 
@@ -979,7 +1020,8 @@ const MetricsSeries = ({ photos }) => {
             onDotPress={handleDotPress}
             scrollPosition={scrollPosition}
             forceScrollSyncRef={forceScrollSyncRef}
-            photos={photos} // Add this line
+            photos={photos}
+            profile={profile}
           />
         ))}
       </ScrollView>
