@@ -154,7 +154,7 @@ const MetricsSheet = forwardRef(({
       setSummary(null);
       setSummaryLoading(false);
     }
-  }, [photoData, uiState]);
+  });
   
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({

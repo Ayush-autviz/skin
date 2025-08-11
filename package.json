@@ -53,6 +53,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.2",
+    "react-native-confirmation-code-field": "^8.0.1",
     "react-native-dotenv": "^3.4.11",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",

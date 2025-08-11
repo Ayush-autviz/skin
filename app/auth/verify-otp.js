@@ -4,6 +4,7 @@
 /* ------------------------------------------------------
 WHAT IT DOES
 - Handles OTP verification for both signup and forgot password
+- Uses react-native-confirmation-code-field for reliable OTP input
 - Provides visual feedback with auto-focusing OTP inputs
 - Includes resend OTP functionality with cooldown
 - Shows appropriate messaging based on flow type
@@ -17,11 +18,10 @@ DEV PRINCIPLES
 - Uses accessibility guidelines
 ------------------------------------------------------*/
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   TouchableOpacity,
   Platform,
@@ -33,9 +33,15 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Mail } from 'lucide-react-native';
 import { verifyOtp, resendOtp, resendOtpForgotPassword } from '../../src/services/newApiService';
+import {
+  CodeField,
+  Cursor,
+  useBlurOnFulfill,
+  useClearByFocusCell,
+} from 'react-native-confirmation-code-field';
 
 export default function VerifyOtp() {
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -48,12 +54,13 @@ export default function VerifyOtp() {
   const email = params.email;
   const isSignup = params.isSignup === 'true';
   
-  const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
-
-  useEffect(() => {
-    // Auto-focus first input when screen loads
-    inputRefs[0].current?.focus();
-  }, []);
+  // OTP field configuration
+  const CELL_COUNT = 4;
+  const ref = useBlurOnFulfill({ value: otp, cellCount: CELL_COUNT });
+  const [props, getCellOnLayoutHandler] = useClearByFocusCell({
+    value: otp,
+    setValue: setOtp,
+  });
 
   useEffect(() => {
     // Countdown timer for resend cooldown
@@ -64,89 +71,20 @@ export default function VerifyOtp() {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
-  const handleOtpChange = (text, index) => {
-    // Only allow numeric input
-    const numericText = text.replace(/[^0-9]/g, '');
-    
-    const newOtp = [...otp];
-    setError('');
-    setSuccessMessage('');
-
-    // Handle paste or auto-suggestion (multiple characters)
-    if (numericText.length > 1) {
-      console.log('🔵 Multi-character input detected:', numericText);
-      
-      // Split the text and take only first 4 digits
-      const digits = numericText.slice(0, 4).split('');
-      
-      // Clear all fields first, then fill from the beginning
-      const freshOtp = ['', '', '', ''];
-      
-      // Fill boxes from the beginning
-      for (let i = 0; i < digits.length && i < 4; i++) {
-        freshOtp[i] = digits[i];
-      }
-      
-      setOtp(freshOtp);
-      
-      // Calculate which input to focus next
-      const nextFocusIndex = Math.min(digits.length, 3);
-      
-      // Small delay to ensure state update completes before focusing
+  // Auto-verify when OTP is complete
+  useEffect(() => {
+    if (otp.length === CELL_COUNT) {
+      // Small delay to ensure state is updated
       setTimeout(() => {
-        if (nextFocusIndex < 4 && digits.length < 4) {
-          inputRefs[nextFocusIndex].current?.focus();
-        } else {
-          // If all fields are filled, blur the current input and auto-verify
-          inputRefs[3].current?.blur();
-          
-          // Auto-verify if all 4 digits are filled
-          if (digits.length === 4) {
-            console.log('🔵 All digits filled via paste/auto-suggestion, triggering verification');
-            // Pass the digits directly to avoid state timing issues
-            setTimeout(() => {
-              handleVerifyOtp(freshOtp);
-            }, 100);
-          }
-        }
-      }, 10);
-      
-    } else {
-      // Handle single character input (normal typing)
-      newOtp[index] = numericText;
-      setOtp(newOtp);
-
-      // Auto-focus next input if current field has a value
-      if (numericText && index < 3) {
-        inputRefs[index + 1].current?.focus();
-      } else if (numericText && index === 3) {
-        // If we just filled the last field, check if OTP is complete and auto-verify
-        const completedOtp = newOtp.filter(digit => digit !== '');
-        if (completedOtp.length === 4) {
-          console.log('🔵 Last digit entered, auto-verifying OTP');
-          inputRefs[3].current?.blur();
-          setTimeout(() => {
-            handleVerifyOtp(newOtp);
-          }, 100);
-        }
-      }
+        handleVerifyOtp();
+      }, 100);
     }
-  };
+  }, [otp]);
 
-  const handleKeyPress = (e, index) => {
-    // Handle backspace to go to previous input
-    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs[index - 1].current?.focus();
-    }
-  };
-
-  const handleVerifyOtp = async (otpDigits = null) => {
-    // Use provided digits or current state
-    const otpCode = otpDigits ? otpDigits.join('') : otp.join('');
+  const handleVerifyOtp = async () => {
+    console.log('🔵 Verifying OTP:', otp, 'Length:', otp.length);
     
-    console.log('🔵 Verifying OTP:', otpCode, 'Length:', otpCode.length);
-    
-    if (otpCode.length !== 4) {
+    if (otp.length !== CELL_COUNT) {
       setError('Please enter the complete 4-digit OTP');
       return;
     }
@@ -158,7 +96,7 @@ export default function VerifyOtp() {
       const result = await verifyOtp({
         signup: isSignup,
         email: email,
-        otp: otpCode
+        otp: otp
       });
       
       if (result.success) {
@@ -292,36 +230,32 @@ export default function VerifyOtp() {
               <View style={styles.otpContainer}>
                 <Text style={styles.label}>Enter Verification Code</Text>
                 <View style={styles.otpInputContainer}>
-                  {otp.map((digit, index) => (
-                    <TextInput
-                      key={index}
-                      ref={inputRefs[index]}
-                      style={[
-                        styles.otpInput,
-                        digit && styles.otpInputFilled,
-                        error && styles.otpInputError
-                      ]}
-                      value={digit}
-                      onChangeText={(text) => handleOtpChange(text, index)}
-                      onKeyPress={(e) => handleKeyPress(e, index)}
-                      onFocus={() => {
-                        // Clear the current field when focused (better UX for editing)
-                        if (digit) {
-                          const newOtp = [...otp];
-                          newOtp[index] = '';
-                          setOtp(newOtp);
-                        }
-                      }}
-                      keyboardType="number-pad"
-                      maxLength={6} // Allow longer input for paste operations
-                      textAlign="center"
-                      selectTextOnFocus
-                      autoComplete={index === 0 ? "sms-otp" : "off"} // Enable auto-suggestion on first field
-                      textContentType={index === 0 ? "oneTimeCode" : "none"} // iOS auto-suggestion
-                      accessibilityLabel={`OTP digit ${index + 1}`}
-                      accessibilityHint={`Enter digit ${index + 1} of the verification code`}
-                    />
-                  ))}
+                  <CodeField
+                    ref={ref}
+                    {...props}
+                    value={otp}
+                    onChangeText={setOtp}
+                    cellCount={CELL_COUNT}
+                    rootStyle={styles.codeFieldRoot}
+                    keyboardType="number-pad"
+                    textContentType="oneTimeCode"
+                    renderCell={({ index, symbol, isFocused }) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.otpInput,
+                          symbol && styles.otpInputFilled,
+                          error && styles.otpInputError,
+                          isFocused && styles.otpInputFocused
+                        ]}
+                        onLayout={getCellOnLayoutHandler(index)}
+                      >
+                        <Text style={styles.otpInputText}>
+                          {symbol || (isFocused ? <Cursor /> : null)}
+                        </Text>
+                      </View>
+                    )}
+                  />
                 </View>
               </View>
 
@@ -479,9 +413,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   otpInputContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
     marginHorizontal: 20,
+  },
+  codeFieldRoot: {
+    marginVertical: 20,
+    height: 56,
+    paddingHorizontal: 20,
   },
   otpInput: {
     width: 56,
@@ -493,6 +431,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
     backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 8,
   },
   otpInputFilled: {
     borderColor: PRIMARY_COLOR,
@@ -500,6 +441,16 @@ const styles = StyleSheet.create({
   },
   otpInputError: {
     borderColor: '#FF6B6B',
+  },
+  otpInputFocused: {
+    borderColor: PRIMARY_COLOR,
+    backgroundColor: '#FDF9F7',
+  },
+  otpInputText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1F2937',
+    textAlign: 'center',
   },
   verifyButton: {
     backgroundColor: PRIMARY_COLOR,
