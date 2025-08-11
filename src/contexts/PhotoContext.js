@@ -133,28 +133,37 @@ export function PhotoProvider({ children }) {
       const apiPhotos = result.photos;
       
       // Sort the photos by timestamp (Oldest to Newest) 
-      const sortedPhotos = [...apiPhotos].sort((a, b) => {
-        const dateA = new Date(a.timestamp);
-        const dateB = new Date(b.timestamp);
-        return dateA.getTime() - dateB.getTime(); // Ascending sort (oldest first)
-      });
-      
-      if (page === 1) {
-        // First page - replace all photos
-        setPhotos(sortedPhotos);
-        setPagination(result.pagination);
-      } else {
-        // Subsequent pages - append to existing photos
-        setPhotos(prevPhotos => [...prevPhotos, ...sortedPhotos]);
-        setPagination(result.pagination);
-      }
-      
-      setLastUpdated(new Date());
-      if (page === 1) {
-        await cachePhotos(sortedPhotos);
-      }
-      
-      console.log('✅ PHOTO_CONTEXT: Photos fetched and sorted successfully:', sortedPhotos.length);
+const sortedPhotos = [...apiPhotos].sort((a, b) => {
+  const dateA = new Date(a.timestamp);
+  const dateB = new Date(b.timestamp);
+  return dateA.getTime() - dateB.getTime(); // Ascending sort (oldest first)
+});
+
+// Deduplicate photos based on ID
+const uniquePhotos = sortedPhotos.filter((photo, index, self) => 
+  index === self.findIndex(p => p.id === photo.id)
+);
+
+if (page === 1) {
+  // First page - replace all photos
+  setPhotos(uniquePhotos);
+  setPagination(result.pagination);
+} else {
+  // Subsequent pages - append to existing photos with deduplication
+  setPhotos(prevPhotos => {
+    const existingIds = new Set(prevPhotos.map(p => p.id));
+    const newPhotos = uniquePhotos.filter(photo => !existingIds.has(photo.id));
+    return [...prevPhotos, ...newPhotos];
+  });
+  setPagination(result.pagination);
+}
+
+setLastUpdated(new Date());
+if (page === 1) {
+  await cachePhotos(uniquePhotos);
+}
+
+console.log('✅ PHOTO_CONTEXT: Photos fetched and sorted successfully:', uniquePhotos.length);
     } catch (error) {
       console.error('🔴 PHOTO_CONTEXT: Error fetching photos from API:', error);
     } finally {

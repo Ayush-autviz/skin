@@ -143,12 +143,19 @@ const PerceivedAgeChart = ({ photos }) => {
         }}
       >
         <View style={[styles.plotArea, { width: plotAreaWidth, height: chartHeight }]}>
-          {/* Y-Axis Grid Lines */}
-          <View style={styles.gridContainer}>
-            <View style={[styles.yAxisGridLine, { bottom: chartHeight - 1 }]} />
-            <View style={[styles.yAxisGridLine, { bottom: chartHeight / 2 }]} />
-            <View style={[styles.yAxisGridLine, { bottom: 0 }]} />
-          </View>
+  {/* Y-Axis Grid Lines and Labels */}
+  <View style={styles.gridContainer}>
+    <View style={[styles.yAxisGridLine, { bottom: chartHeight - 1 }]} />
+    <View style={[styles.yAxisGridLine, { bottom: chartHeight / 2 }]} />
+    <View style={[styles.yAxisGridLine, { bottom: 0 }]} />
+  </View>
+  
+  {/* Y-Axis Labels */}
+  <View style={styles.yAxisLabelsContainer}>
+    <Text style={styles.yAxisLabel}>100</Text>
+    <Text style={styles.yAxisLabel}>50</Text>
+    <Text style={styles.yAxisLabel}>0</Text>
+  </View>
           
           {/* Bars */}
           {processedData.map((scoreData, index) => {
@@ -2099,6 +2106,21 @@ const styles = StyleSheet.create({
     right: 0,
     height: 1,
     backgroundColor: '#f0f0f0',
+  },
+  yAxisLabelsContainer: {
+    position: 'absolute',
+    left: -30,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  yAxisLabel: {
+    fontSize: 10,
+    color: '#999',
+    fontWeight: '500',
+    textAlign: 'right',
+    width: 25,
   },
   nullBarContainer: {
     position: 'absolute',

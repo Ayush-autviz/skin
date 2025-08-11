@@ -31,7 +31,7 @@ import {
   Alert
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { usePhotoContext } from '../../contexts/PhotoContext';
 import AiMessageCard from '../chat/AiMessageCard'; // Import AiMessageCard
 import palette from '../../styles/palette'; // Import palette for consistent colors
@@ -85,7 +85,7 @@ const MetricsSheet = forwardRef(({
   }, [currentSnapPoint, viewState, photoData]);
 
   // Fetch summary when photoData changes
-  useEffect(() => {
+  useFocusEffect(() => {
     if (photoData && uiState === 'complete') {
       // const imageId = photoData.id || photoData.image_id;
       const imageId = photoData.imageId;
