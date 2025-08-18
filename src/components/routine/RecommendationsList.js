@@ -220,6 +220,7 @@ const styles = StyleSheet.create({
   },
   concernSection: {
     marginBottom: 32,
+    marginHorizontal: 16,
   },
   concernTitle: {
     fontSize: 18,

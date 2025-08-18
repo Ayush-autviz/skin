@@ -73,14 +73,14 @@ const formatConditionName = (conditionName) => {
   const nameMap = {
     'none': 'Original',
     'redness': 'Redness',
-    'hydration': 'Hydration', 
-    'eye_bags': 'Eye Bags',
-    'pores': 'Pores',
-    'acne': 'Acne',
-    'lines': 'Fine Lines',
+    'hydration': 'Dewiness', 
+    'eye_bags': 'Eye Area Condition',
+    'pores': 'Visible Pores',
+    'acne': 'Breakouts',
+    'lines': 'Lines',
     'translucency': 'Translucency',
     'pigmentation': 'Pigmentation',
-    'uniformness': 'Uniformness'
+    'uniformness': 'Evenness'
   };
   
   return nameMap[conditionName] || conditionName.charAt(0).toUpperCase() + conditionName.slice(1);

@@ -320,23 +320,33 @@
       "scoreLevels": {
         "excellent": {
           "max": 100,
-          "min": 90,
-          "text": "Your skin shows minimal to no detectable acne spots. This indicates very clear skin with little active breakout activity."
+          "min": 91,
+          "text": "Clear skin with minimal to no visible breakouts; indicates excellent skin condition"
+        },
+        "great": {
+          "max": 90,
+          "min": 81,
+          "text": "Mild breakout presence, limited to isolated pimples and some inflammation; overall skin remains in good condition"
         },
         "good": {
-          "max": 89,
-          "min": 70,
-          "text": "Your skin shows only minor acne activity with few detectable spots. Keep up your current routine to maintain this clarity."
+          "max": 80,
+          "min": 71,
+          "text": "Moderate breakout activity with a combination of inflammatory areas and pimples"
         },
-        "fair": {
-          "max": 69,
-          "min": 40,
-          "text": "Your skin shows moderate acne activity with some detectable spots and regions. Targeted treatments can help improve this condition."
+        "average": {
+          "max": 70,
+          "min": 51,
+          "text": "Moderate breakout activity with a combination of inflammatory areas and pimples"
+        },
+        "poor": {
+          "max": 50,
+          "min": 31,
+          "text": "Prominent breakout presence, including multiple inflamed areas and widespread pimples"
         },
         "bad": {
-          "max": 39,
+          "max": 30,
           "min": 0,
-          "text": "Your skin shows significant acne activity with multiple detectable spots across facial areas. A comprehensive treatment approach will be most effective."
+          "text": "Severe breakout condition with high inflammation and pimples"
         }
       },
       "whatYouCanDo": [
@@ -433,33 +443,33 @@
       "scoreLevels": {
         "excellent": {
           "max": 100,
-          "min": 90,
-          "text": "Your skin shows minimal pigmentation irregularities with even tone throughout. This indicates optimal pigmentation control with very few dark spots or discoloration detected."
+          "min": 91,
+          "text": "Skin tone is even with minimal to no visible pigmented spots"
         },
         "great": {
-          "max": 89,
-          "min": 80,
-          "text": "Your skin displays well-controlled pigmentation with mostly even tone. Minor pigmentation variations are present but overall skin tone is balanced."
+          "max": 90,
+          "min": 81,
+          "text": "Mild pigmentation visible as small, localized spots"
         },
         "good": {
-          "max": 79,
-          "min": 70,
-          "text": "Your skin shows moderate pigmentation control with generally even tone. Some areas of pigmentation are noticeable but not significantly pronounced."
+          "max": 80,
+          "min": 71,
+          "text": "Moderate pigmentation present, with noticeable uneven tone and several pigmented spots across face"
         },
         "average": {
-          "max": 69,
-          "min": 50,
-          "text": "Average pigmentation condition with moderate discoloration. Several areas of uneven pigmentation are detected, which is common and can be improved with targeted treatments."
+          "max": 70,
+          "min": 51,
+          "text": "Moderate pigmentation present, with noticeable uneven tone and several pigmented spots across face"
         },
         "poor": {
-          "max": 49,
-          "min": 30,
-          "text": "Poor pigmentation control with noticeable dark spots and uneven tone. Multiple pigmentation concerns are affecting overall skin appearance."
+          "max": 50,
+          "min": 31,
+          "text": "Extensive pigmentation with prominent hyperpigmented sports and areas"
         },
         "bad": {
-          "max": 29,
+          "max": 30,
           "min": 0,
-          "text": "Significant pigmentation concerns with extensive dark spots and uneven tone detected. This indicates substantial pigmentation issues that would benefit from comprehensive treatment approaches."
+          "text": "Severe and widespread pigmentation with large, dense spots"
         }
       },
       "whatYouCanDo": [
@@ -542,33 +552,33 @@
       "scoreLevels": {
         "excellent": {
           "max": 100,
-          "min": 90,
-          "text": "Your skin displays remarkable uniformness with smooth, even texture and tone. This indicates optimal skin condition with minimal irregularities."
+          "min": 91,
+          "text": "Relatively good skin condition (uniform texture)"
         },
         "great": {
-          "max": 89,
-          "min": 80,
-          "text": "Your skin shows good uniformness with mostly even texture and tone. Minor variations are present but overall skin appearance is well-balanced."
+          "max": 90,
+          "min": 81,
+          "text": "Relatively good skin condition (uniform texture)"
         },
         "good": {
-          "max": 79,
-          "min": 70,
-          "text": "Your skin demonstrates moderate uniformness with generally even texture. Some areas of unevenness are detected but overall condition is healthy."
+          "max": 80,
+          "min": 71,
+          "text": "Info to come"
         },
         "average": {
-          "max": 69,
-          "min": 50,
-          "text": "Average skin uniformness with noticeable texture variations. Several areas of uneven tone or texture are detected, which is common and can be improved."
+          "max": 70,
+          "min": 51,
+          "text": "Visible skin texture non‑uniformness"
         },
         "poor": {
-          "max": 49,
-          "min": 30,
-          "text": "Poor skin uniformness with significant texture and tone irregularities. Multiple areas of unevenness are affecting overall skin appearance."
+          "max": 50,
+          "min": 31,
+          "text": "Alerting condition; may require specialist attention"
         },
         "bad": {
-          "max": 29,
+          "max": 30,
           "min": 0,
-          "text": "Significant uniformness concerns with extensive texture and tone irregularities detected. This indicates substantial skin unevenness that would benefit from comprehensive treatment approaches."
+          "text": "Alerting condition; may require specialist attention"
         }
       },
       "whatYouCanDo": [
@@ -650,33 +660,33 @@
       "scoreLevels": {
         "excellent": {
           "max": 100,
-          "min": 90,
-          "text": "Your skin shows minimal redness with excellent overall tone. This indicates optimal skin condition with very little irritation or inflammation detected."
+          "min": 91,
+          "text": "Minimal redness, barely noticeable pink tint"
         },
         "great": {
-          "max": 89,
-          "min": 80,
-          "text": "Your skin displays well-controlled redness levels with mostly even tone. Only minor areas of redness are present, indicating good skin health."
+          "max": 90,
+          "min": 81,
+          "text": "Light pink areas or mild flushing"
         },
         "good": {
-          "max": 79,
-          "min": 70,
-          "text": "Your skin shows moderate redness control with generally healthy appearance. Some areas of mild redness are detected but overall condition is stable."
+          "max": 80,
+          "min": 71,
+          "text": "Light pink areas or mild flushing"
         },
         "average": {
-          "max": 69,
-          "min": 50,
-          "text": "Average redness levels with moderate areas of irritation. Several regions of redness are detected, which is common and can be improved with gentle, targeted care."
+          "max": 70,
+          "min": 51,
+          "text": "Moderate redness with visible blood vessels"
         },
         "poor": {
-          "max": 49,
-          "min": 30,
-          "text": "Poor redness control with noticeable areas of irritation and inflammation. Multiple regions show redness that may benefit from calming treatments and barrier repair."
+          "max": 50,
+          "min": 31,
+          "text": "Significant redness with inflammation"
         },
         "bad": {
-          "max": 29,
+          "max": 30,
           "min": 0,
-          "text": "Significant redness concerns with extensive areas of irritation detected. This indicates substantial inflammation that would benefit from gentle, anti-inflammatory skincare approaches and possibly professional guidance."
+          "text": "Severe redness with pronounced inflammation"
         }
       },
       "whatYouCanDo": [
@@ -763,33 +773,33 @@
       "scoreLevels": {
         "excellent": {
           "max": 100,
-          "min": 90,
-          "text": "Your skin shows minimal visible lines with smooth, youthful texture. This indicates optimal skin condition with very few detectable lines or wrinkles."
+          "min": 91,
+          "text": "Subtle signs of fine lines"
         },
         "great": {
-          "max": 89,
-          "min": 80,
-          "text": "Your skin displays well-controlled line formation with mostly smooth texture. Only minor lines are present, indicating good skin health and structure."
+          "max": 90,
+          "min": 81,
+          "text": "YMultiple fine lines or a few deep lines"
         },
         "good": {
-          "max": 79,
-          "min": 70,
-          "text": "Your skin shows moderate line visibility with generally healthy appearance. Some lines are noticeable but not significantly pronounced."
+          "max": 80,
+          "min": 71,
+          "text": "Presence of both deep and fine lines"
         },
         "average": {
-          "max": 69,
-          "min": 50,
-          "text": "Average line condition with moderate visibility. Several lines and wrinkles are detected, which is common with aging and can be improved with targeted treatments."
+          "max": 70,
+          "min": 51,
+          "text": "Presence of both deep and fine lines"
         },
         "poor": {
-          "max": 49,
-          "min": 30,
-          "text": "Poor line control with noticeable wrinkles affecting skin appearance. Multiple lines are detected that would benefit from anti-aging treatments and prevention strategies."
+          "max": 50,
+          "min": 31,
+          "text": "Presence of severe deep lines"
         },
         "bad": {
-          "max": 29,
+          "max": 30,
           "min": 0,
-          "text": "Significant line concerns with extensive wrinkles detected. This indicates pronounced aging signs that would benefit from comprehensive anti-aging approaches and possibly professional treatments."
+          "text": "Presence of severe deep lines"
         }
       },
       "whatYouCanDo": [
@@ -1237,33 +1247,33 @@
       "scoreLevels": {
         "excellent": {
           "max": 100,
-          "min": 90,
-          "text": "Your skin shows minimal visible pores with refined skin texture. This indicates optimal pore condition with very few enlarged or prominent pores detected."
+          "min": 91,
+          "text": "No visible pores"
         },
         "great": {
-          "max": 89,
-          "min": 80,
-          "text": "Your skin displays well-controlled pore visibility with mostly refined texture. Only minor pore visibility is detected, indicating good skin condition."
+          "max": 90,
+          "min": 81,
+          "text": "Minimal visible pores"
         },
         "good": {
-          "max": 79,
-          "min": 70,
-          "text": "Your skin shows moderate pore visibility with generally healthy texture. Some pores are noticeable but not significantly enlarged."
+          "max": 80,
+          "min": 71,
+          "text": "Moderate visible pores"
         },
         "average": {
-          "max": 69,
-          "min": 50,
-          "text": "Average pore condition with moderate visibility. Several enlarged pores are detected, which is common and can be improved with consistent skincare."
+          "max": 70,
+          "min": 51,
+          "text": "Moderate visible pores"
         },
         "poor": {
-          "max": 49,
-          "min": 30,
-          "text": "Poor pore condition with noticeable enlarged pores affecting skin texture. This suggests increased pore visibility that would benefit from targeted treatments."
+          "max": 50,
+          "min": 31,
+          "text": "Numerous enlarged pores"
         },
         "bad": {
-          "max": 29,
+          "max": 30,
           "min": 0,
-          "text": "Significant pore visibility with many enlarged pores detected. This indicates prominent pore concerns that may require comprehensive skincare approaches and possibly professional treatments."
+          "text": "Extensive enlarged pores"
         }
       },
       "whatYouCanDo": [
@@ -1579,33 +1589,33 @@
       "scoreLevels": {
         "excellent": {
           "max": 100,
-          "min": 90,
-          "text": "Your skin shows optimal hydration levels with excellent moisture retention. This indicates healthy barrier function with well-balanced hydration throughout."
+          "min": 91,
+          "text": "Relatively good skin hydration"
         },
         "great": {
-          "max": 89,
-          "min": 80,
-          "text": "Your skin displays good hydration with mostly adequate moisture levels. Minor areas of dryness may be present but overall hydration is well-maintained."
+          "max": 90,
+          "min": 81,
+          "text": "Relatively good skin hydration"
         },
         "good": {
-          "max": 79,
-          "min": 70,
-          "text": "Your skin shows moderate hydration levels with generally healthy moisture balance. Some areas may benefit from additional hydration support."
+          "max": 80,
+          "min": 71,
+          "text": "Relatively good skin hydration"
         },
         "average": {
-          "max": 69,
-          "min": 50,
-          "text": "Average hydration levels with noticeable areas of dryness. Several regions show mild dehydration which can be improved with targeted moisturizing approaches."
+          "max": 70,
+          "min": 51,
+          "text": "Visible signs of dehydration"
         },
         "poor": {
-          "max": 49,
-          "min": 30,
-          "text": "Poor hydration with significant areas of dryness detected. Multiple regions show moderate dehydration that would benefit from intensive moisturizing treatments."
+          "max": 50,
+          "min": 31,
+          "text": "Visible signs of dehydration"
         },
         "bad": {
-          "max": 29,
+          "max": 30,
           "min": 0,
-          "text": "Severe dehydration concerns with extensive dry areas detected. This indicates significant moisture loss that requires comprehensive hydration therapy and barrier repair."
+          "text": "Visible signs of dehydration"
         }
       },
       "whatYouCanDo": [
@@ -1678,12 +1688,12 @@
       "displayName": "Eye Area Condition",
       "overview": "Your eye area condition score reflects the overall health of the skin around your eyes, including lines, puffiness, and dark circles. This metric provides a holistic view of the eye area's skin quality, which is often the first to show signs of aging and fatigue.",
       "scoreLevels": {
-        "excellent": { "max": 100, "min": 90, "text": "Your eye area is in excellent condition with minimal visible concerns such as lines, puffiness, or dark circles." },
-        "great": { "max": 89, "min": 80, "text": "Your eye area is healthy with only minor visible concerns. Maintain your current care routine for best results." },
-        "good": { "max": 79, "min": 70, "text": "Your eye area is in good condition with some mild concerns. Gentle care and hydration can help maintain this." },
-        "average": { "max": 69, "min": 50, "text": "Your eye area shows average condition with some visible issues such as mild puffiness or fine lines." },
-        "poor": { "max": 49, "min": 30, "text": "Your eye area has noticeable concerns, including visible lines, puffiness, or dark circles. Targeted care may help improve this area." },
-        "bad": { "max": 29, "min": 0, "text": "Your eye area shows significant concerns. Consider specialized treatments and consult a professional for best results." }
+        "excellent": { "max": 100, "min": 90, "text": "Relatively good eye area skin condition"},
+        "great": { "max": 89, "min": 80, "text": "Relatively good eye area skin condition"},
+        "good": { "max": 79, "min": 70, "text": "Info to come"},
+        "average": { "max": 69, "min": 50, "text": "Info to come"},
+        "poor": { "max": 49, "min": 30, "text": "Alerting eye area condition; may require specialist attention"},
+        "bad": { "max": 29, "min": 0, "text": "Alerting eye area condition; may require specialist attention"}
       },
       "whatYouCanDo": [
         {

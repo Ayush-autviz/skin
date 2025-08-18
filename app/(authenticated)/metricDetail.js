@@ -1310,10 +1310,10 @@ export default function MetricDetailScreen() {
           if (conditionName && (maskImageData?.mask_img_url || parsedPhotoData?.storageUrl)) {
             return (
               <View style={{ marginHorizontal: 16 }}>
-                <Text style={styles.sectionTitle}>Analysis Visualization</Text>
+                <Text style={styles.sectionTitle}>Face Mask</Text>
                 <View style={styles.metricCard}>
                   <Text style={styles.maskImageDescription}>
-                    This visualization shows the analyzed areas for {formatMetricName(metricKey).toLowerCase()} on your face.
+                    This mask shows the analyzed areas for {formatMetricName(metricKey).toLowerCase()} on your face.
                   </Text>
                   
                   {/* Show loading indicator while fetching mask images */}
@@ -1545,7 +1545,9 @@ export default function MetricDetailScreen() {
                 <Text style={styles.adviceLabel}>Ingredients</Text>
                 {currentConcernDetails.advice.ingredients.map((ingredient, index) => (
                   <View key={index} style={styles.adviceListItem}>
-                    <Text style={styles.adviceListItemText}>• {ingredient}</Text>
+                    <Text style={styles.adviceListItemText}>•</Text>
+                    <Text style={styles.adviceListItemText}>{ingredient}</Text>
+
                   </View>
                 ))}
               </View>
@@ -1557,7 +1559,8 @@ export default function MetricDetailScreen() {
                 <Text style={styles.adviceLabel}>Behavior</Text>
                 {currentConcernDetails.advice.Behavior.map((behavior, index) => (
                   <View key={index} style={styles.adviceListItem}>
-                    <Text style={styles.adviceListItemText}>• {behavior}</Text>
+                    <Text style={styles.adviceListItemText}>•</Text>
+                    <Text style={styles.adviceListItemText}>{behavior}</Text>
                   </View>
                 ))}
               </View>
@@ -1842,6 +1845,8 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   adviceListItem: {
+    flexDirection: 'row',
+    gap: 4,
     marginBottom: 4,
   },
   adviceListItemText: {
