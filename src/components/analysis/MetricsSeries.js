@@ -441,6 +441,17 @@ const normalizeMetricValue = (value, metricName = null, profile = null) => {
     };
   }
 
+  // For eye age metric, use eye age comparison colors
+  if (metricName === 'eyeAge' && profile?.birth_date) {
+    const actualAge = calculateActualAge(profile.birth_date);
+    const eyeAgeComparisonColor = getEyeAgeComparisonColor(value, actualAge);
+    return {
+      value,
+      color: eyeAgeComparisonColor,
+      isNullValue: false
+    };
+  }
+
   // For valid values, return the normalized value and appropriate color
   return {
     value,
@@ -504,6 +515,21 @@ const getAgeComparisonColor = (perceivedAge, actualAge) => {
     return '#FFB340'; // Yellow - perceived age is greater than actual age but within 5 years
   } else {
     return '#34C759'; // Green - perceived age is less than or equal to actual age (good)
+  }
+};
+
+// Get age comparison color for eye age metric
+const getEyeAgeComparisonColor = (eyeAge, actualAge) => {
+  if (!actualAge || !eyeAge) return '#222'; // Default color if no data
+  
+  const ageDifference = eyeAge - actualAge;
+  
+  if (ageDifference <= 0) {
+    return '#34C759'; // Green - eye age is equal to or less than actual age (good)
+  } else if (ageDifference < 5) {
+    return '#FFB340'; // Yellow - eye age is more than actual age but less than 5 years
+  } else {
+    return '#FF3B30'; // Red - eye age is more than 5 years greater than actual age
   }
 };
 

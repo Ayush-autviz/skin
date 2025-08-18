@@ -21,6 +21,44 @@ import {
 
 const { width } = Dimensions.get('window');
 
+// Helper function to format timestamps consistently
+const formatTimestamp = (timestamp) => {
+  if (!timestamp) return '';
+  
+  try {
+    // If timestamp is a string (UTC from API), display it directly without conversion
+    if (typeof timestamp === 'string') {
+      // Parse the ISO string to get just the time part (HH:MM)
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid timestamp:', timestamp);
+        return '';
+      }
+      // Extract just the time part from the ISO string and remove seconds
+      const timeString = timestamp.split('T')[1]; // Get "HH:MM:SS.mmmZ" part
+      const timeWithoutSeconds = timeString.split(':').slice(0, 2).join(':'); // Keep only HH:MM
+      return timeWithoutSeconds; // Return "HH:MM" format
+    }
+    
+    // If it's a Date object, format it to match API format without seconds
+    if (timestamp instanceof Date) {
+      if (isNaN(timestamp.getTime())) {
+        console.warn('Invalid timestamp:', timestamp);
+        return '';
+      }
+      // Format to match API timestamp format but without seconds
+      const timeString = timestamp.toISOString().split('T')[1];
+      const timeWithoutSeconds = timeString.split(':').slice(0, 2).join(':'); // Keep only HH:MM
+      return timeWithoutSeconds;
+    }
+    
+    return '';
+  } catch (error) {
+    console.error('Error formatting timestamp:', error, timestamp);
+    return '';
+  }
+};
+
 export default function ThreadChatScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -119,7 +157,7 @@ export default function ThreadChatScreen() {
           id: `${msg.role}-${Date.now()}-${index}`,
           content: msg.content,
           role: msg.role,
-          timestamp: new Date(msg.created_at)
+          timestamp: msg.timestamp || msg.created_at || new Date().toISOString() // Use API timestamp or fallback to UTC
         }));
         
         setMessages(formattedMessages);
@@ -160,7 +198,7 @@ export default function ThreadChatScreen() {
           id: `${msg.role}-${Date.now()}-${index}`,
           content: msg.content,
           role: msg.role,
-          timestamp: new Date(msg.timestamp)
+          timestamp: msg.timestamp || msg.created_at || new Date().toISOString() // Use API timestamp or fallback to UTC
         }));
 
         setMessages(formattedMessages);
@@ -185,7 +223,7 @@ export default function ThreadChatScreen() {
       id: `user-${Date.now()}`,
       content: messageToSend,
       role: 'user',
-      timestamp: new Date()
+      timestamp: new Date().toISOString() // Use UTC format to match API response
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -226,7 +264,7 @@ export default function ThreadChatScreen() {
             id: `ai-${Date.now()}`,
             content: lastAiMessage.content,
             role: 'assistant',
-            timestamp: new Date(lastAiMessage.timestamp)
+            timestamp: lastAiMessage.timestamp // Keep original API timestamp string
           };
           setMessages(prev => [...prev, aiMessage]);
           
@@ -259,7 +297,7 @@ export default function ThreadChatScreen() {
 
       if (confirmed) {
         // Confirm the item
-        const response = await confirmThreadItem(threadId, pendingItem);
+        const response = await confirmThreadItem(threadId, pendingItem, false);
         
         if (response.success) {
           // Add confirmation message
@@ -267,7 +305,7 @@ export default function ThreadChatScreen() {
             id: `confirm-${Date.now()}`,
             content: 'Yes',
             role: 'user',
-            timestamp: new Date()
+            timestamp: new Date().toISOString() // Use UTC format to match API response
           };
 
           // Add AI response (last message from the response)
@@ -279,7 +317,7 @@ export default function ThreadChatScreen() {
               id: `ai-${Date.now()}`,
               content: lastAiMessage.content,
               role: 'assistant',
-              timestamp: new Date(lastAiMessage.timestamp)
+              timestamp: lastAiMessage.timestamp // Keep original API timestamp string
             };
             setMessages(prev => [...prev, confirmMessage, aiMessage]);
           } else {
@@ -294,14 +332,19 @@ export default function ThreadChatScreen() {
           thread_type: chatType
         };
 
-        const response = await sendThreadMessage(threadId, messageData);
+        // const response = await sendThreadMessage(threadId, messageData, true);
+
+        const response = await confirmThreadItem(threadId, pendingItem, true);
+
+        console.log("🔵 response of no confirmThreadItem", response);
+
 
         if (response.success) {
           const noMessage = {
             id: `no-${Date.now()}`,
             content: 'No',
             role: 'user',
-            timestamp: new Date()
+            timestamp: new Date().toISOString() // Use UTC format to match API response
           };
 
           // Add AI response (last message from the response)
@@ -313,7 +356,7 @@ export default function ThreadChatScreen() {
               id: `ai-${Date.now()}`,
               content: lastAiMessage.content,
               role: 'assistant',
-              timestamp: new Date(lastAiMessage.timestamp)
+              timestamp: lastAiMessage.timestamp // Keep original API timestamp string
             };
             setMessages(prev => [...prev, noMessage, aiMessage]);
           } else {
@@ -367,7 +410,7 @@ export default function ThreadChatScreen() {
           </Text>
         </View>
         <Text style={styles.timestamp}>
-          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {formatTimestamp(message.timestamp)}
         </Text>
       </View>
     );
@@ -482,6 +525,7 @@ export default function ThreadChatScreen() {
           <PendingItemCard />
 
           {/* Input Area */}
+          { !pendingItem && (
           <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
               <TextInput
@@ -512,8 +556,9 @@ export default function ThreadChatScreen() {
                   <Feather name="send" size={20} color="#FFFFFF" />
                 )}
               </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          )}
         </Animated.View>
       </KeyboardAvoidingView>
     </SafeAreaView>

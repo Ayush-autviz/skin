@@ -17,7 +17,7 @@ PROPS USED:
 - onDelete, onViewStateChange, onTryAgain: Callbacks.
 ------------------------------------------------------*/
 
-import React, { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useState, useEffect, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -85,76 +85,78 @@ const MetricsSheet = forwardRef(({
   }, [currentSnapPoint, viewState, photoData]);
 
   // Fetch summary when photoData changes
-  useFocusEffect(() => {
-    if (photoData && uiState === 'complete') {
-      // const imageId = photoData.id || photoData.image_id;
-      const imageId = photoData.imageId;
+  useFocusEffect(
+    useCallback(() => {
+      if (photoData && uiState === 'complete') {
+        // const imageId = photoData.id || photoData.image_id;
+        const imageId = photoData.imageId;
 
-      console.log('🔵 MetricsSheet - imageId:', imageId);
-      
-      if (imageId) {
-        setSummaryLoading(true);
-        getImageChatSummary(imageId)
-          .then(response => {
-            if (response.summary) {
-              console.log('🔵 Summary successful, setting summary:', response.summary);
-              setSummary(response.summary);
-            } else {
+        console.log('🔵 MetricsSheet - imageId:', imageId);
+        
+        if (imageId) {
+          setSummaryLoading(true);
+          getImageChatSummary(imageId)
+            .then(response => {
+              if (response.summary) {
+                console.log('🔵 Summary successful, setting summary:', response.summary);
+                setSummary(response.summary);
+              } else {
+                setSummary(null);
+                console.log('🔵 Summary not successful, calling snapshot first chat API...');
+                
+                // Call snapshot first chat API when summary fails
+                const user = useAuthStore.getState().user;
+                const profile = useAuthStore.getState().profile;
+                
+                console.log('🔵 user in MetricsSheet:', user);
+                console.log('🔵 profile in MetricsSheet:', profile);
+                console.log('🔵 imageId in MetricsSheet:', imageId);
+                
+                // Prepare chat data
+                const chatData = {
+                  imageId: imageId,
+                  firstName: user?.user_name || profile?.user_name || 'User',
+                  age: profile?.age || 25, // Default age if not available
+                  skinType: profile?.skinType || 'normal', // Default skin type
+                  skinConcerns: profile?.concerns ? Object.keys(profile.concerns).filter(key => profile.concerns[key]) : [],
+                  excludedMetrics: [], // Empty array for now
+                  metrics: photoData?.metrics || {}
+                };
+                
+                console.log('🔵 Chat data prepared in MetricsSheet:', chatData);
+                
+                sendSnapshotFirstChat(chatData)
+                  .then(chatResponse => {
+                    console.log('✅ Snapshot first chat API response in MetricsSheet:', chatResponse);
+                    
+                    // Store AI feedback from response
+                    if (chatResponse.success && chatResponse.data) {
+                      setSummary(chatResponse.data.message || chatResponse.data.feedback);
+                      console.log('✅ AI feedback stored in MetricsSheet:', chatResponse.data.message || chatResponse.data.feedback);
+                    }
+                  })
+                  .catch(chatError => {
+                    console.error('🔴 Snapshot first chat API error in MetricsSheet:', chatError);
+                  });
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching summary:', error);
               setSummary(null);
-              console.log('🔵 Summary not successful, calling snapshot first chat API...');
-              
-              // Call snapshot first chat API when summary fails
-              const user = useAuthStore.getState().user;
-              const profile = useAuthStore.getState().profile;
-              
-              console.log('🔵 user in MetricsSheet:', user);
-              console.log('🔵 profile in MetricsSheet:', profile);
-              console.log('🔵 imageId in MetricsSheet:', imageId);
-              
-              // Prepare chat data
-              const chatData = {
-                imageId: imageId,
-                firstName: user?.user_name || profile?.user_name || 'User',
-                age: profile?.age || 25, // Default age if not available
-                skinType: profile?.skinType || 'normal', // Default skin type
-                skinConcerns: profile?.concerns ? Object.keys(profile.concerns).filter(key => profile.concerns[key]) : [],
-                excludedMetrics: [], // Empty array for now
-                metrics: photoData?.metrics || {}
-              };
-              
-              console.log('🔵 Chat data prepared in MetricsSheet:', chatData);
-              
-              sendSnapshotFirstChat(chatData)
-                .then(chatResponse => {
-                  console.log('✅ Snapshot first chat API response in MetricsSheet:', chatResponse);
-                  
-                  // Store AI feedback from response
-                  if (chatResponse.success && chatResponse.data) {
-                    setSummary(chatResponse.data.message || chatResponse.data.feedback);
-                    console.log('✅ AI feedback stored in MetricsSheet:', chatResponse.data.message || chatResponse.data.feedback);
-                  }
-                })
-                .catch(chatError => {
-                  console.error('🔴 Snapshot first chat API error in MetricsSheet:', chatError);
-                });
-            }
-          })
-          .catch(error => {
-            console.error('Error fetching summary:', error);
-            setSummary(null);
-          })
-          .finally(() => {
-            setSummaryLoading(false);
-          });
+            })
+            .finally(() => {
+              setSummaryLoading(false);
+            });
+        } else {
+          setSummary(null);
+          setSummaryLoading(false);
+        }
       } else {
         setSummary(null);
         setSummaryLoading(false);
       }
-    } else {
-      setSummary(null);
-      setSummaryLoading(false);
-    }
-  });
+    }, [photoData, uiState])
+  );
   
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -169,7 +171,7 @@ const MetricsSheet = forwardRef(({
   }));
   
   // Function to snap to a position with animation
-  const snapTo = (position, options = {}) => {
+  const snapTo = useCallback((position, options = {}) => {
     // Update local state first
     setCurrentSnapPoint(position);
     
@@ -191,10 +193,10 @@ const MetricsSheet = forwardRef(({
         }
       }
     });
-  };
+  }, [sheetPosition, viewState, onViewStateChange]);
 
   // Toggle between collapsed and expanded states when handle is tapped
-  const toggleExpanded = () => {
+  const toggleExpanded = useCallback(() => {
     // If in zooming state, request exit zoom
     if (viewState === 'zooming') {
       onViewStateChange('default');
@@ -206,10 +208,10 @@ const MetricsSheet = forwardRef(({
       ? SNAP_POINTS.COLLAPSED 
       : SNAP_POINTS.EXPANDED;
     snapTo(nextPosition);
-  };
+  }, [viewState, currentSnapPoint, onViewStateChange, snapTo]);
   
   // Set up pan responder for drag gestures - UPDATED to be conditional
-  const panResponder = useRef(
+  const panResponder = useMemo(() => 
     PanResponder.create({
       onStartShouldSetPanResponder: (_, gestureState) => {
         // Only handle initial touches on drag handle or when in collapsed state
@@ -279,8 +281,8 @@ const MetricsSheet = forwardRef(({
           snapTo(SNAP_POINTS.MINIMIZED);
         }
       }
-    })
-  ).current;
+    }), [viewState, currentSnapPoint, onViewStateChange, snapTo, sheetPosition]
+  );
 
   // Helper function to get tag based on metric value
   const getMetricTag = (value) => {
@@ -298,8 +300,8 @@ const MetricsSheet = forwardRef(({
       'eyeAreaCondition': 'Eye Area Condition',
       'linesScore': 'Lines',
       'pigmentationScore': 'Pigmentation',
-      'poresScore': 'Pores',
-      'hydrationScore': 'Hydration',
+      'poresScore': 'Visible Pores',
+      'hydrationScore': 'Dewiness',
       'uniformnessScore': 'Evenness'
     };
     
@@ -336,7 +338,7 @@ const MetricsSheet = forwardRef(({
   const router = useRouter();
 
   // --- Render Metrics Content (Scrollable Part - uses metrics prop) ---
-  const renderMetricsContent = () => {
+  const renderMetricsContent = useCallback(() => {
       // console.log(`[MetricsSheet renderMetricsContent] -> uiState: ${uiState}, Has metrics prop: ${!!metrics}`);
        switch (uiState) {
          case 'loading': return ( <View style={styles.centerContainer}><ActivityIndicator size="large" /><Text>Loading...</Text></View> );
@@ -355,6 +357,31 @@ const MetricsSheet = forwardRef(({
                      <Text style={styles.metricGroupTitle}>SKIN PROFILE</Text>
                      {Object.entries(metrics)
                        .filter(([key]) => isStandaloneMetric(key) && key !== 'imageQuality')
+                       .sort(([keyA], [keyB]) => {
+                         // Define the desired order for skin profile metrics
+                         const order = [
+                           'skinType',      // Skin Type
+                           'skinTone',      // Skin Tone
+                           'perceivedAge',  // Perceived Age
+                           'eyeAge',        // Eye Age
+                          //  'skinAge',       // Skin Age
+                         ];
+                         
+                         const indexA = order.indexOf(keyA);
+                         const indexB = order.indexOf(keyB);
+                         
+                         // If both are in the order array, sort by their position
+                         if (indexA !== -1 && indexB !== -1) {
+                           return indexA - indexB;
+                         }
+                         
+                         // If only one is in the order array, prioritize it
+                         if (indexA !== -1) return -1;
+                         if (indexB !== -1) return 1;
+                         
+                         // If neither is in the order array, sort alphabetically
+                         return keyA.localeCompare(keyB);
+                       })
                        .map(([key, value], index, array) => {
                           const formattedKey = formatMetricName(key);
                           let displayValue = value;
@@ -410,14 +437,14 @@ const MetricsSheet = forwardRef(({
                         .sort(([keyA], [keyB]) => {
                           // Define the desired order
                           const order = [
-                            'acneScore',      // Breakouts
-                            'rednessScore',   // Redness
-                            'eyeAreaCondition', // Eye Area Condition
-                            'linesScore',     // Lines
+                            'uniformnessScore', // Evenness
                             'pigmentationScore', // Pigmentation
+                            'rednessScore',   // Redness
                             'poresScore',     // Pores
+                            'acneScore',      // Breakouts
+                            'linesScore',     // Lines
                             'hydrationScore', // Hydration
-                            'uniformnessScore' // Evenness
+                            'eyeAreaCondition', // Eye Area Condition
                           ];
                           
                           const indexA = order.indexOf(keyA);
@@ -437,57 +464,58 @@ const MetricsSheet = forwardRef(({
                         })
                         .filter(([key]) => key !== 'translucencyScore') // Remove Translucency
                         .map(([key, value], index, array) => {
-                           const { tag, color, bg } = getMetricTag(value);
-                           const formattedKey = formatMetricName(key, true);
-                           return (
-                             <TouchableOpacity
-                               key={key}
-                               style={[
-                                 styles.metricRow,
-                                 index < array.length - 1 && styles.borderBottom
-                               ]}
-                               onPress={() => {
-                                 // Only navigate if in the expanded state
-                                 if (viewState === 'metrics') {
+                          const { tag, color, bg } = getMetricTag(value);
+                          const formattedKey = formatMetricName(key, true);
+                          
+                          return (
+                            <TouchableOpacity
+                              key={key}
+                              style={[
+                                styles.metricRow,
+                                index < array.length - 1 && styles.borderBottom
+                              ]}
+                              onPress={() => {
+                                // Only navigate if in the expanded state
+                                if (viewState === 'metrics') {
                                   //  console.log(`Navigating to metric detail: ${key} (${value})`);
-                                   router.push({
-                                     pathname: '/(authenticated)/metricDetail',
-                                     params: {
-                                       maskResults: photoData?.maskResults,
-                                       maskImages: photoData?.maskImages,
-                                       metricKey: key,
-                                       metricValue: value,
-                                       photoData: JSON.stringify(photoData || metrics)
-                                     }
-                                   });
-                                 }
-                               }}
-                               activeOpacity={viewState === 'metrics' ? 0.7 : 1}
-                             >
-                               <Text style={styles.metricLabel}>
-                                 {formattedKey.toUpperCase()}
-                               </Text>
-                               <View style={styles.metricValueContainer}>
-                                 <View style={[styles.scoreContainer, { backgroundColor: bg }]}>
-                                   <Text style={styles.metricValue}>{value}</Text>
-                                   <Text style={styles.scoreSuffix}> / 100</Text>
-                                 </View>
-                                 <Feather name="chevron-right" size={18} color={palette.gray6} style={{ marginLeft: 8 }} />
-                               </View>
-                             </TouchableOpacity>
-                           );
+                                  router.push({
+                                    pathname: '/(authenticated)/metricDetail',
+                                    params: {
+                                      maskResults: photoData?.maskResults,
+                                      maskImages: photoData?.maskImages,
+                                      metricKey: key,
+                                      metricValue: value,
+                                      photoData: JSON.stringify(photoData || metrics)
+                                    }
+                                  });
+                                }
+                              }}
+                              activeOpacity={viewState === 'metrics' ? 0.7 : 1}
+                            >
+                              <Text style={styles.metricLabel}>
+                                {formattedKey.toUpperCase()}
+                              </Text>
+                              <View style={styles.metricValueContainer}>
+                                <View style={[styles.scoreContainer, { backgroundColor: bg }]}>
+                                  <Text style={styles.metricValue}>{value}</Text>
+                                    <Text style={styles.scoreSuffix}> / 100</Text>
+                                  </View>
+                                <Feather name="chevron-right" size={18} color={palette.gray6} style={{ marginLeft: 8 }} />
+                              </View>
+                            </TouchableOpacity>
+                          );
                         })}
                     </View>
-                    {/* If no metrics available, show a message */}
-                    {(!metrics || Object.keys(metrics).length === 0) && (
-                      <View style={styles.noMetricsContainer}>
-                        <Text style={styles.noMetricsText}>No metrics available</Text>
-                      </View>
-                    )}
-                    {/* Add padding at the bottom for better scrolling */}
-                    <View style={{ height: 40 }} />
-               </ScrollView>
-            );
+                     {/* If no metrics available, show a message */}
+                     {(!metrics || Object.keys(metrics).length === 0) && (
+                       <View style={styles.noMetricsContainer}>
+                         <Text style={styles.noMetricsText}>No metrics available</Text>
+                       </View>
+                     )}
+                     {/* Add padding at the bottom for better scrolling */}
+                     <View style={{ height: 40 }} />
+                </ScrollView>
+              );
          case 'no_results':
             return (
               <View style={styles.noResultsContainer}>
@@ -528,7 +556,15 @@ const MetricsSheet = forwardRef(({
          default:
             return null;
        }
-  };
+  }, [uiState, metrics, isScrollEnabled, isStandaloneMetric, formatMetricName, getMetricTag, viewState, router, photoData, onTryAgain]);
+
+  // Memoize the animated height interpolation
+  const animatedHeight = useMemo(() => 
+    sheetPosition.interpolate({
+      inputRange: [0, 100],
+      outputRange: ['0%', '100%']
+    }), [sheetPosition]
+  );
 
   return (
     <>
@@ -537,10 +573,7 @@ const MetricsSheet = forwardRef(({
         style={[
           styles.container, 
           { 
-            height: sheetPosition.interpolate({
-              inputRange: [0, 100],
-              outputRange: ['0%', '100%']
-            })
+            height: animatedHeight
           }
         ]}
       >
@@ -748,7 +781,7 @@ const styles = StyleSheet.create({
   },
   metricGroupTitle: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '800',
     color: '#999',
     marginVertical: 8,
     letterSpacing: 0.5,

@@ -336,7 +336,7 @@ export default function SettingsDrawer({ isVisible, onClose }) {
                 onPress={handleProfilePress}
               />
               
-              <MenuItem
+              {/* <MenuItem
                 icon="notifications-outline"
                 title="Notifications"
                 onPress={() => {
@@ -346,9 +346,9 @@ export default function SettingsDrawer({ isVisible, onClose }) {
                     // router.push('/(authenticated)/notifications');
                   }, 100);
                 }}
-              />
+              /> */}
               
-              <MenuItem
+              {/* <MenuItem
                 icon="help-circle-outline"
                 title="Help & FAQs"
                 onPress={() => {
@@ -358,7 +358,7 @@ export default function SettingsDrawer({ isVisible, onClose }) {
                     // router.push('/(authenticated)/help');
                   }, 100);
                 }}
-              />
+              /> */}
             </View>
 
             {/* Sign Out Section */}

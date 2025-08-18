@@ -1,7 +1,7 @@
 // MyRoutine.js
 // Component to display and manage the user's routine items
 
-import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle, useRef } from 'react';
 import { View, Text, SectionList, ActivityIndicator, StyleSheet, TouchableOpacity, TextInput, Alert, Platform } from 'react-native';
 import { colors, spacing, typography, palette } from '../../styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import Chip from '../ui/Chip';
 import ModalBottomSheet from '../layout/ModalBottomSheet';
 import AiMessageCard from '../chat/AiMessageCard';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ListItem from '../ui/ListItem';
 import { 
@@ -30,7 +31,8 @@ import {
   getRoutineItems, 
   createRoutineItem, 
   updateRoutineItem, 
-  deleteRoutineItem 
+  deleteRoutineItem,
+  clearPendingRequests
 } from '../../services/newApiService';
 
 // Define static messages based on routine size
@@ -118,6 +120,24 @@ const MyRoutine = forwardRef((props, ref) => {
 
   const insets = useSafeAreaInsets();
   const [fixedCardHeight, setFixedCardHeight] = useState(150);
+  
+  // Ref to track if fetch is in progress
+  const fetchInProgressRef = useRef(false);
+  
+  // Ref to track debounce timeout
+  const debounceTimeoutRef = useRef(null);
+  
+  // Ref to track if we've already attempted to fetch data
+  const hasAttemptedFetchRef = useRef(false);
+  
+  // Ref to track if we should refetch on focus
+  const shouldRefetchOnFocusRef = useRef(false);
+  
+  // Ref to track the refetch timeout
+  const refetchTimeoutRef = useRef(null);
+  
+  // Ref to track focus effect debounce
+  const focusEffectDebounceRef = useRef(null);
 
   // Transform API data to component format
   const transformApiItem = (apiItem) => {
@@ -155,25 +175,67 @@ const MyRoutine = forwardRef((props, ref) => {
 
   // Fetch routine items from API
   const fetchRoutineItems = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await getRoutineItems();
-      
-      if (response.success && response.data) {
-        const transformedItems = response.data.map(transformApiItem);
-        setRoutineItems(transformedItems);
-      } else {
-        setRoutineItems([]);
+    // Clear any existing debounce timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    // Debounce the fetch call to prevent rapid successive calls
+    debounceTimeoutRef.current = setTimeout(async () => {
+      // Prevent multiple simultaneous fetch calls
+      if (fetchInProgressRef.current) {
+        console.log('🔄 MyRoutine: Fetch already in progress, skipping...');
+        return;
       }
       
-      setLoading(false);
-    } catch (err) {
-      console.error('🔴 MyRoutine: Error fetching routine items:', err);
-      setError(err.message || 'Failed to load routine items.');
-      setLoading(false);
-    }
+      try {
+        fetchInProgressRef.current = true;
+        hasAttemptedFetchRef.current = true; // Mark that we've attempted to fetch
+        setLoading(true);
+        setError(null);
+        
+        const response = await getRoutineItems();
+        
+        if (response.success && response.data) {
+          const transformedItems = response.data.map(transformApiItem);
+          setRoutineItems(transformedItems);
+          shouldRefetchOnFocusRef.current = false; // No need to refetch if we have data
+          
+          // Clear any existing timeout
+          if (refetchTimeoutRef.current) {
+            clearTimeout(refetchTimeoutRef.current);
+          }
+        } else {
+          setRoutineItems([]);
+          shouldRefetchOnFocusRef.current = true; // Mark that we should refetch on focus if no data
+        }
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('🔴 MyRoutine: Error fetching routine items:', err);
+        
+        // Handle specific error types
+        if (err.message === 'DUPLICATE_REQUEST' || err.message === 'REQUEST_IN_PROGRESS') {
+          console.log('🔄 MyRoutine: Request in progress, will retry shortly...');
+          // Clear any stuck pending requests
+          clearPendingRequests();
+          // Wait a bit and retry
+          setTimeout(() => {
+            if (!loading) { // Only retry if not already loading
+              fetchRoutineItems();
+            }
+          }, 500);
+          return;
+        }
+        
+        setError(err.message || 'Failed to load routine items.');
+        setRoutineItems([]); // Set empty array on error
+        shouldRefetchOnFocusRef.current = true; // Mark that we should refetch on focus after error
+        setLoading(false);
+      } finally {
+        fetchInProgressRef.current = false;
+      }
+    }, 100); // 100ms debounce delay
   };
 
   // Expose refetchRoutines method to parent component
@@ -185,8 +247,74 @@ const MyRoutine = forwardRef((props, ref) => {
   }));
 
   useEffect(() => {
-    fetchRoutineItems();
+    let isMounted = true;
+    
+    const loadRoutines = async () => {
+      if (isMounted) {
+        await fetchRoutineItems();
+      }
+    };
+    
+    loadRoutines();
+    
+    // Cleanup function to prevent state updates on unmounted component
+    return () => {
+      isMounted = false;
+      fetchInProgressRef.current = false;
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      if (refetchTimeoutRef.current) {
+        clearTimeout(refetchTimeoutRef.current);
+      }
+      if (focusEffectDebounceRef.current) {
+        clearTimeout(focusEffectDebounceRef.current);
+      }
+      clearPendingRequests(); // Clear pending requests on unmount
+    };
   }, []);
+
+  // Refetch data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      // Clear any existing focus effect debounce
+      if (focusEffectDebounceRef.current) {
+        clearTimeout(focusEffectDebounceRef.current);
+      }
+      
+      // Debounce the focus effect to prevent rapid successive calls
+      focusEffectDebounceRef.current = setTimeout(() => {
+        // Clear any stuck pending requests first
+        clearPendingRequests();
+        
+        // Only refetch if:
+        // 1. We haven't attempted to fetch yet (first time), OR
+        // 2. We should refetch on focus AND we have no data AND we're not loading
+        // 
+        // We NEVER refetch when we already have data to prevent unnecessary re-renders
+        const shouldRefetch = 
+          !hasAttemptedFetchRef.current || 
+          (shouldRefetchOnFocusRef.current && !loading && !fetchInProgressRef.current && routineItems.length === 0);
+        
+        if (shouldRefetch) {
+          console.log('🔄 MyRoutine: Screen focused, refetching routines...', {
+            hasAttempted: hasAttemptedFetchRef.current,
+            shouldRefetchOnFocus: shouldRefetchOnFocusRef.current,
+            hasData: routineItems.length > 0,
+            isLoading: loading
+          });
+          fetchRoutineItems();
+        } else {
+          console.log('🔄 MyRoutine: Screen focused, no need to refetch', {
+            hasAttempted: hasAttemptedFetchRef.current,
+            shouldRefetchOnFocus: shouldRefetchOnFocusRef.current,
+            hasData: routineItems.length > 0,
+            isLoading: loading
+          });
+        }
+      }, 300); // 300ms debounce delay for focus effect
+    }, [routineItems.length, loading])
+  );
 
   // Toggle logic for AM/PM usage (checkbox style)
   const handleUsageToggle = (tappedUsage) => {
@@ -372,7 +500,11 @@ const MyRoutine = forwardRef((props, ref) => {
         day: 'numeric',
         year: 'numeric'
       });
-      dateInfo = `You are using this product since ${formattedDate}`;
+      if( item.type === 'Product' || item.type === 'Nutrition') {
+        dateInfo = `You started using this product on ${formattedDate}`;
+      } else if( item.type === 'Activity') {
+        dateInfo = `You started this activity on ${formattedDate}`;
+      } 
     }
     if (item.dateStopped) {
       const stopDate = new Date(item.dateStopped);
@@ -387,7 +519,11 @@ const MyRoutine = forwardRef((props, ref) => {
         day: 'numeric',
         year: 'numeric'
       });
-      dateInfo = `You used this product from ${formattedStartDate} to ${formattedStopDate}`;
+      if( item.type === 'Product' || item.type === 'Nutrition') {
+        dateInfo = `You started using this product on ${formattedStartDate} and stopped on ${formattedStopDate}`;
+      } else if( item.type === 'Activity') {
+        dateInfo = `You started this activity on ${formattedStartDate} and stopped on ${formattedStopDate}`;
+      } 
     }
 
     console.log('item', item);

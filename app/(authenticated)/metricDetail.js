@@ -1505,6 +1505,47 @@ export default function MetricDetailScreen() {
           </View>
         )}
 
+                {/* Advice Details Section */}
+        {currentConcernDetails && (
+          <View style={styles.contentSectionContainer}>
+            <Text style={styles.contentSectionTitle}>Recommendation</Text>
+            
+            {/* Disclaimer - Moved to top with attractive styling */}
+            {currentConcernDetails.advice?.disclaimer && (
+              <View style={styles.disclaimerContainer}>
+                <View style={styles.disclaimerIconContainer}>
+                  <Feather name="info" size={20} color="#fff" />
+                </View>
+                <Text style={styles.disclaimerText}>{currentConcernDetails.advice.disclaimer}</Text>
+              </View>
+            )}
+  
+            {/* Ingredients */}
+            {currentConcernDetails.advice?.ingredients && currentConcernDetails.advice.ingredients.length > 0 && (
+              <View style={styles.adviceItem}>
+                <Text style={styles.adviceLabel}>Ingredients</Text>
+                {currentConcernDetails.advice.ingredients.map((ingredient, index) => (
+                  <View key={index} style={styles.adviceListItem}>
+                    <Text style={styles.adviceListItemText}>• {ingredient}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Behavior */}
+            {currentConcernDetails.advice?.Behavior && currentConcernDetails.advice.Behavior.length > 0 && (
+              <View style={styles.adviceItem}>
+                <Text style={styles.adviceLabel}>Behavior</Text>
+                {currentConcernDetails.advice.Behavior.map((behavior, index) => (
+                  <View key={index} style={styles.adviceListItem}>
+                    <Text style={styles.adviceListItemText}>• {behavior}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Space at bottom for better scrolling */}
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -1735,6 +1776,59 @@ const styles = StyleSheet.create({
   distributionLabelSelected: {
     color: '#6E46FF',
     fontWeight: '500',
+  },
+  
+  // Simple advice styles
+  disclaimerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2196f3',
+  },
+  disclaimerIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#2196f3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  disclaimerText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#1565c0',
+    fontWeight: '500',
+    flex: 1,
+  },
+  adviceItem: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+  },
+  adviceLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#333',
+  },
+  adviceText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#555',
+  },
+  adviceListItem: {
+    marginBottom: 4,
+  },
+  adviceListItemText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#555',
   },
   
   // Numeric value styles

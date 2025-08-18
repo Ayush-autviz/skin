@@ -301,7 +301,7 @@
       "keyForLookup": "acneScore",
       "displayName": "Acne",
       "associatedMetric": "Acne score <90",
-      "overview": "Breakouts occur when pores get clogged by oil and dead skin cells, allowing bacteria to thrive and cause inflammation. This complex issue is influenced by hormones, genetics, diet, and stress, requiring a multi-faceted approach to manage effectively.",
+      "overview": "Breakouts occur when pores get clogged by oil and dead skin cells, allowing bacteria to thrive and cause inflammation. This complex issue is influenced by hormones, genetics, diet, and stress, requiring a multi‑faceted approach to manage effectively.",
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -391,7 +391,24 @@
           "icon": "award",
           "initialChatMessage": "It's true that improving acne takes time and consistency, and progress isn't always a straight line. Would you like to talk about setting realistic expectations or staying motivated?"
         }
-      ]
+      ],
+      "advice": {
+        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "ingredients": [
+          "Benzoyl Peroxide: Kills acne‑causing bacteria and helps unclog pores.",
+          "Salicylic Acid: Penetrates pores to dissolve debris and reduce inflammation.",
+          "Retinols: Help cell turnover to address  clogged pores and inflammation.",
+          "Azelaic acid: Can be less irritating for those with sensitive skin"
+        ],
+        "Behavior": [
+          "Develop a consistent cleansing routine without over‑washing.",
+          "Introduce acne‑fighting ingredients gradually to prevent irritation.",
+          "Consider dietary factors if you notice a trigger.",
+          "Manage stress levels.",
+          "Monitor patterns with Magic Mirror  to identify triggers and treatment efficacy.",
+          "Remember that improvement isn’t always linear — patience and consistency matter."
+        ]
+      }
     },
     "pigmentationScore": {
       "keyForLookup": "pigmentationScore",
@@ -485,13 +502,28 @@
           "icon": "award",
           "initialChatMessage": "Fading pigmentation truly tests our patience, as it can take several months to see changes. Would it be helpful to discuss how to track progress and stay consistent with your routine?"
         }
-      ]
+      ],
+      "advice": {
+        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice and in light of failure to diagnose skin cancer (melanoma) in cases of persistent pigmentation, do consult a Dermatologist to be safe)",
+        "ingredients": [
+         "Vitamin C (Ascorbic Acid): Antioxidant can help fade the appearance of pigmentation.",
+         "Niacinamide: can help manage the appearance of pigmentation, inflammation, and support collagen",
+         "Azelaic acid:  can help manage the appearance of pigmentation",
+         "Alpha hydroxy acids, such as lactic acid and glycolic acid",
+         "Maintain consistent, year‑round broad spectrum  sun protection (SPF 30+)."
+        ],
+        "Behavior": [
+         "Consider professional treatments like chemical peels or laser therapy for persistent spots.",
+         "Monitor patterns with Magic Mirror imaging to identify triggers and treatment efficacy.",
+         "Be patient, as fading pigmentation can take several months.  Consistency matters."
+        ]
+      }
     },
     "uniformnessScore": {
       "keyForLookup": "uniformnessScore",
       "displayName": "Uniformness",
       "associatedMetric": "Skin uniformness <90",
-      "overview": "Skin uniformness refers to the evenness of skin texture, tone, and overall appearance. Factors like sun damage, aging, acne scarring, and uneven pigmentation can affect skin uniformness, making targeted treatments beneficial.",
+      "overview": "Skin evenness refers to the evenness of skin texture, tone, and overall appearance. Factors like sun damage, aging, acne scarring, and uneven pigmentation can affect skin uniformness, making targeted treatments beneficial.",
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -579,7 +611,21 @@
           "icon": "award",
           "initialChatMessage": "Achieving a more even skin tone really comes down to consistency with your routine and sun protection. What are the biggest challenges you face in staying consistent?"
         }
-      ]
+      ],
+      "advice": {
+        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "ingredients": [
+          "Retinol: can help manage the appearance of pigmentation and skin texture",
+          "Niacinamide: can help manage the appearance of pigmentation, inflammation, and support collagen",
+          "Vitamin C: can help manage the appearance of pigmentation associated with sun damage.",
+          "Use broad‑spectrum sun protection (SPF 30+) daily to prevent further damage."
+        ],
+        "Behavior": [
+          "Apply brightening ingredients, such as niacinamide and/or vitamin C,  in the morning and cell‑renewal ingredients, such as retinol, at night.",
+          "Monitor patterns with Magic Mirror imaging to identify triggers and treatment efficacy.",
+          "Remember that improvement isn’t always linear — be patient.  Consistency matters."
+        ]
+      }
     },
     "rednessScore": {
       "keyForLookup": "rednessScore",
@@ -673,7 +719,26 @@
           "icon": "eye",
           "initialChatMessage": "Tracking your redness flare patterns can be very insightful for identifying potential triggers and seeing how your skin responds to different products or lifestyle changes. Would you like to discuss methods for tracking this?"
         }
-      ]
+      ],
+      "advice": {
+        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "ingredients": [
+         "Simplify your routine during flare-ups as they may be caused by products you are using and should cease using. Adding new ingredients should be a subsequent step so look for products with minimal ingredients, avoiding fragrance and alcohol.",
+         "Niacinamide: Inhibits melanin transfer and has anti‑inflammatory properties.",
+         "Ceramides: Restore barrier function to protect and retain moisture.",
+         "Azelaic Acid: Reduces redness through anti-inflammatory and antimicrobial actions.",
+         "Allantoin: Antiinflammatory effects to help manage redness",
+         "Centella Asiatica: Calms inflammation and supports healing.",
+         "Green Tea Extract: Potent antioxidant with anti-inflammatory properties."
+        ],
+        "Behavior": [
+          "Use lukewarm (never hot) water when cleansing.",
+          "Consider environmental factors like humidity, heating/cooling systems.",
+          "Track flare patterns with Magic Mirror to identify triggers and treatment efficacy.",
+          "For persistent redness seek professional care. ",
+          "Be patient, as reducing flares may take time.  Consistency matters."
+        ]
+      }
     },
     "linesScore": {
       "keyForLookup": "linesScore",
@@ -767,7 +832,23 @@
           "icon": "award",
           "initialChatMessage": "For more significant or faster results in reducing wrinkles, professional treatments like chemical peels, microneedling, or injectables can be very effective. Is this something you're considering or would like to learn more about?"
         }
-      ]
+      ],
+      "advice": {
+        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "ingredients": [
+          "Retinol: Support collagen and accelerate cell turnover.",
+          "Hyaluronic acid: Adds hydration for skin suppleness.",
+          "Matrixyl, Argireline: Support collagen and modulate muscle contraction, respectively.",
+          "Vitamin C: Antioxidant that protects and supports collagen synthesis.",
+          "Alpha Hydroxy Acids (AHAs): Exfoliate, improving texture and the appearance of fine lines."
+        ],
+        "Behavior": [
+          "Prioritize sun protection for prevention.",
+          "Incorporate peptides and antioxidants into your routine.",
+          "Maintain skin hydration.",
+          "Consider seeking professional care which may include peels, microneedling,and  injectablesfor significant results."
+        ]
+      }
     },
     "saggingScore": {
       "keyForLookup": "saggingScore",
@@ -1219,7 +1300,23 @@
           "icon": "eye",
           "initialChatMessage": "Tracking changes in your pore appearance with standardized imaging and consistent lighting is a great way to see if your routine is effective. Are you interested in tips on how to best capture these images?"
         }
-      ]
+      ],
+      "advice": {
+        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "ingredients": [
+          "Salicylic Acid: Help reduce buildup ",
+          "Retinols: Helps improve  cell turnover.",
+          "Nasal adhesive strips: Attach to sebum and debris inside of pores to help gently lift away",
+          "Clay minerals: Temporarily absorb excess oil and improve  pore appearance."
+        ],
+        "Behavior": [
+          "Maintain consistent cleansing without stripping the skin.",
+          "Use gentle exfoliation 2-3 times weekly.",
+          "Monitor patterns with Magic Mirror imaging to track treatment efficacy.",
+          "Managing pores is an ongoing process.  Routine management is necessary.",
+          "Be patient, as treating pores can take time.  Consistency matters."
+        ]
+      }
     },
     "aging": {
       "keyForLookup": "aging",
@@ -1545,7 +1642,21 @@
           "icon": "award",
           "initialChatMessage": "Layering a hydrating serum under your moisturizer is a pro tip for boosting skin hydration, especially effective when your skin feels extra dry or during harsh weather. Are you interested in how to choose and layer serums effectively?"
         }
-      ]
+      ],
+      "advice": {
+        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "ingredients": [
+         "Hyaluronic Acid: Attracts and retains water in the skin, providing deep hydration.",
+         "Glycerin: A powerful humectant that draws moisture into the skin and helps maintain softness.",
+         "Look for ceramides and fatty acids in moisturizers to strengthen the skin barrier.",
+         "Layer hydrating serums under your moisturizer for an extra boost, especially in dry weather."
+        ],
+        "Behavior": [
+          "Drink adequate water throughout the day to support skin hydration from within.",
+          "Use a humidifier in dry environments to prevent moisture loss.",
+          "Avoid over-cleansing or using harsh soaps, which can strip the skin's natural moisture."
+        ]
+      }
     },
     "eyeAreaCondition": {
       "keyForLookup": "eyeAreaCondition",
@@ -1584,7 +1695,18 @@
           "icon": "alert-triangle",
           "initialChatMessage": "Being gentle when cleansing and avoiding rubbing the eyes helps prevent irritation and fine lines. Need more tips on gentle cleansing?"
         }
-      ]
+      ],
+      "advice": {
+        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "ingredients": [
+         "Use gentle eye creams and daily sun protection.",
+         "Look for ingredients like peptides, hyaluronic acid, and caffeine in eye products."
+        ],
+        "Behavior": [
+          "Prioritize adequate sleep and hydration.",
+          "Be gentle when cleansing and avoid rubbing the eyes."
+        ]
+      }
     },
     "Oily": {
       "keyForLookup": "Oily",

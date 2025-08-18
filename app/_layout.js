@@ -4,7 +4,7 @@ import { ThreadProvider } from '../src/contexts/ThreadContext';
 import AuthProvider from '../src/contexts/AuthProvider';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 // import * as Clarity from '@microsoft/react-native-clarity';
-// import { useEffect } from 'react';
+import { useEffect } from 'react';
 
 // Root layout with new authentication system
 export default function RootLayout() {

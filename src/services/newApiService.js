@@ -6,22 +6,121 @@ import useAuthStore from "../stores/authStore";
 
 const BASE_URL = "http://44.198.183.94:9000/api/v1";
 
-// Create axios instance
+// Create axios instance with enhanced configuration
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,
+  timeout: 45000, // Increased from 30000 to 45000ms (45 seconds)
+  // Add retry configuration
+  retry: 1,
+  retryDelay: 1000,
+  // Better error handling - only 2xx status codes are successful
+  validateStatus: function (status) {
+    return status >= 200 && status < 300; // Only 2xx status codes are successful
+  },
 });
 
 // Export apiClient for use in other services
 export { apiClient };
 
-// Request interceptor to add auth token
+// Request deduplication to prevent multiple simultaneous requests
+const pendingRequests = new Map();
+
+// Function to clear all pending requests (useful for cleanup)
+export const clearPendingRequests = () => {
+  console.log("🧹 Clearing all pending requests");
+  pendingRequests.clear();
+};
+
+// Function to clear specific pending request
+export const clearPendingRequest = (requestKey) => {
+  if (pendingRequests.has(requestKey)) {
+    console.log("🧹 Clearing pending request:", requestKey);
+    pendingRequests.delete(requestKey);
+  }
+};
+
+// Function to force clear all stuck requests (useful for debugging)
+export const forceClearAllRequests = () => {
+  console.log("🧹 Force clearing all pending requests");
+  pendingRequests.clear();
+};
+
+// Function to get pending requests count (useful for debugging)
+export const getPendingRequestsCount = () => {
+  return pendingRequests.size;
+};
+
+const createRequestKey = (method, url, data) => {
+  // Add safety checks for undefined parameters
+  const safeMethod = method || 'GET';
+  const safeUrl = url || '';
+  const safeData = data || {};
+  
+  return `${safeMethod.toUpperCase()}:${safeUrl}:${JSON.stringify(safeData)}`;
+};
+
+// Enhanced request interceptor with deduplication
 apiClient.interceptors.request.use(
   (config) => {
+    // Safety check - ensure config exists
+    if (!config) {
+      console.error("🔴 Request interceptor: config is undefined");
+      return Promise.reject(new Error('Invalid request configuration'));
+    }
+    
     const { accessToken } = useAuthStore.getState();
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+    
+    // Create unique key for this request
+    const requestKey = createRequestKey(config.method, config.url, config.data);
+    
+    // Check if there's already a pending request for this operation
+    if (pendingRequests.has(requestKey)) {
+      const pending = pendingRequests.get(requestKey);
+      const timeSinceRequest = Date.now() - pending.timestamp;
+      
+      // If the request is very recent (less than 100ms), reject as duplicate
+      if (timeSinceRequest < 100) {
+        console.log("🔄 Request deduplication: rejecting very recent duplicate request for", requestKey);
+        return Promise.reject(new Error('DUPLICATE_REQUEST'));
+      }
+      
+      // If the request is older, allow it (might be a legitimate retry)
+      console.log("🔄 Request deduplication: allowing older request for", requestKey, "after", timeSinceRequest, "ms");
+      // Remove the old pending request and continue with this one
+      pendingRequests.delete(requestKey);
+    }
+    
+    // Store this request as pending with timestamp
+    pendingRequests.set(requestKey, {
+      timestamp: Date.now(),
+      config: config
+    });
+    
+    // Add cleanup function to remove from pending requests
+    config.metadata = { requestKey };
+    
+    // Set a timeout to clean up stale pending requests (5 seconds)
+    setTimeout(() => {
+      if (pendingRequests.has(requestKey)) {
+        const pending = pendingRequests.get(requestKey);
+        if (Date.now() - pending.timestamp > 5000) {
+          console.log("🧹 Cleaning up stale pending request:", requestKey);
+          pendingRequests.delete(requestKey);
+        }
+      }
+    }, 5000);
+    
+    // Also set a shorter timeout for the request itself (30 seconds)
+    setTimeout(() => {
+      if (pendingRequests.has(requestKey)) {
+        console.log("⏰ Request timeout cleanup:", requestKey);
+        pendingRequests.delete(requestKey);
+      }
+    }, 30000);
+    
     console.log("🔵 API Request:", config.method?.toUpperCase(), config.url);
     return config;
   },
@@ -31,43 +130,188 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for token refresh
+// Enhanced response interceptor for better error handling
 apiClient.interceptors.response.use(
   (response) => {
+    // Safety check - ensure response and config exist
+    if (!response || !response.config) {
+      console.error("🔴 Response interceptor: response or config is undefined");
+      return response;
+    }
+    
+    // Clean up pending request
+    if (response.config.metadata?.requestKey) {
+      pendingRequests.delete(response.config.metadata.requestKey);
+    }
+    
     console.log("✅ API Response:", response.status, response.config.url);
     return response;
   },
   async (error) => {
-    const originalRequest = error.config;
+    console.log("🔴 Response interceptor error triggered:", {
+      message: error?.message,
+      status: error?.response?.status,
+      url: error?.config?.url,
+      method: error?.config?.method,
+      hasConfig: !!error?.config,
+      hasResponse: !!error?.response,
+      hasRequest: !!error?.request
+    });
+    
+    // Clean up pending request on error (with safety check)
+    if (error?.config?.metadata?.requestKey) {
+      pendingRequests.delete(error.config.metadata.requestKey);
+    }
+    
+    // Handle duplicate request errors - instead of rejecting, wait for the existing request
+    if (error.message === 'DUPLICATE_REQUEST') {
+      console.log("🔄 Duplicate request detected - waiting for existing request to complete");
+      
+      // Only proceed if we have config data
+      if (error?.config) {
+        // Try to get the existing request result
+        const requestKey = createRequestKey(error.config.method, error.config.url, error.config.data);
+        const pending = pendingRequests.get(requestKey);
+        
+        if (pending) {
+          // Wait a bit for the existing request to complete
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // If it's still pending, wait a bit more and then reject
+          if (pendingRequests.has(requestKey)) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // If still pending after additional wait, reject
+            if (pendingRequests.has(requestKey)) {
+              console.log("⏰ Request still pending after wait, rejecting with REQUEST_IN_PROGRESS");
+              return Promise.reject(new Error('REQUEST_IN_PROGRESS'));
+            }
+          }
+          
+          // If we get here, the request completed, so we should retry the original request
+          console.log("✅ Original request completed, retrying...");
+          return apiClient(error.config);
+        }
+      }
+      
+      // If no pending request found, reject with a generic error
+      return Promise.reject(new Error('REQUEST_IN_PROGRESS'));
+    }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const originalRequest = error?.config;
+
+    // Enhanced error logging with null checks
+    if (error?.code === 'ECONNABORTED') {
+      console.error("🔴 Request timeout:", error?.config?.url || 'unknown URL', "after", error?.config?.timeout || 'unknown timeout', "ms");
+    } else if (error?.message === 'Network Error') {
+      console.error("🔴 Network error:", error?.config?.url || 'unknown URL', "- check internet connection");
+    } else if (error?.code === 'ECONNRESET') {
+      console.error("🔴 Connection reset:", error?.config?.url || 'unknown URL');
+    } else if (error?.code === 'ENOTFOUND') {
+      console.error("🔴 Server not found:", error?.config?.url || 'unknown URL');
+    } else if (error?.response) {
+      console.error("🔴 Server error:", error.response.status, error.response.statusText, error?.config?.url || 'unknown URL');
+    } else if (error?.request) {
+      console.error("🔴 No response received:", error?.config?.url || 'unknown URL', "- server might be down");
+    }
+
+    // Handle token refresh for 401 errors (only if we have config)
+    console.log("🔍 Checking 401 error handling conditions:", {
+      hasError: !!error,
+      hasResponse: !!error?.response,
+      status: error?.response?.status,
+      hasOriginalRequest: !!originalRequest,
+      hasRetry: !!originalRequest?._retry,
+      errorKeys: error ? Object.keys(error) : 'no error object',
+      responseKeys: error?.response ? Object.keys(error.response) : 'no response object'
+    });
+    
+    if (error?.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      console.log("🔄 401 Unauthorized detected - starting token refresh process...");
+      console.log("🔍 Original request details:", {
+        url: originalRequest.url,
+        method: originalRequest.method,
+        hasHeaders: !!originalRequest.headers,
+        hasRetry: !!originalRequest._retry
+      });
+      
       originalRequest._retry = true;
 
       try {
-        const { refreshToken } = useAuthStore.getState();
+        const authState = useAuthStore.getState();
+        console.log("🔍 Auth store state:", {
+          hasUser: !!authState.user,
+          hasAccessToken: !!authState.accessToken,
+          hasRefreshToken: !!authState.refreshToken,
+          storeKeys: authState ? Object.keys(authState) : 'no store state'
+        });
+        
+        const { refreshToken } = authState;
+        console.log("🔍 Refresh token available:", !!refreshToken);
+        
         if (refreshToken) {
           console.log("🔄 Attempting token refresh...");
           const newTokens = await refreshAccessToken(refreshToken);
+          console.log("✅ Token refresh successful, updating store...");
+          
           useAuthStore
             .getState()
             .setTokens(newTokens.access_token, newTokens.refresh_token);
 
           // Retry original request with new token
+          console.log("🔄 Retrying original request with new token...");
+          
+          // Ensure headers exist
+          if (!originalRequest.headers) {
+            originalRequest.headers = {};
+          }
+          
           originalRequest.headers.Authorization = `Bearer ${newTokens.access_token}`;
-          return apiClient(originalRequest);
+          console.log("🔍 Retry request headers:", originalRequest.headers);
+          
+          const retryResponse = await apiClient(originalRequest);
+          console.log("✅ Retry successful:", retryResponse.status);
+          return retryResponse;
+        } else {
+          console.log("🔴 No refresh token available, logging out user");
+          useAuthStore.getState().logout();
         }
       } catch (refreshError) {
         console.error("🔴 Token refresh failed:", refreshError);
+        console.log("🔍 Refresh error details:", {
+          message: refreshError.message,
+          response: refreshError.response?.status,
+          data: refreshError.response?.data
+        });
+        
         // Logout user if refresh fails
         useAuthStore.getState().logout();
       }
+    } else if (error?.response?.status === 401) {
+      console.log("🔴 401 error but not handling refresh:", {
+        hasOriginalRequest: !!originalRequest,
+        hasRetry: !!originalRequest?._retry,
+        status: error.response.status
+      });
     }
 
+    // Enhanced error logging with more context and null checks
     console.error(
-      "🔴 API Error:",
-      error.response?.status,
-      error.response?.data || error.message
+      "🔴 API Error Details:",
+      {
+        url: error?.config?.url || 'unknown',
+        method: error?.config?.method?.toUpperCase() || 'unknown',
+        status: error?.response?.status || 'unknown',
+        statusText: error?.response?.statusText || 'unknown',
+        message: error?.message || 'unknown',
+        code: error?.code || 'unknown',
+        responseData: error?.response?.data || 'none',
+        hasConfig: !!error?.config,
+        hasResponse: !!error?.response,
+        hasRequest: !!error?.request
+      }
     );
+    
     return Promise.reject(error);
   }
 );
@@ -741,9 +985,11 @@ export const transformHautResults = (hautResults) => {
  * Fetches all photos of the authenticated user.
  * User ID is inferred from access token; no params required.
  */
-export const getUserPhotos = async (page = 1, limit = 10) => {
+export const getUserPhotos = async (page = 1, limit = 10, retryCount = 0) => {
+  const MAX_RETRIES = 3;
+  
   try {
-    console.log("🔵 Fetching user photos - page:", page, "limit:", limit);
+    console.log("🔵 Fetching user photos - page:", page, "limit:", limit, "retry:", retryCount);
     const response = await apiClient.get(`/haut_process/?page=${page}&limit=${limit}`);
 
     if (response.data.status === 200) {
@@ -794,8 +1040,34 @@ export const getUserPhotos = async (page = 1, limit = 10) => {
     throw new Error(response.data.message || "Failed to fetch photos");
   } catch (error) {
     console.error("🔴 getUserPhotos error:", error);
+    
+    // Handle specific error types with retry limit
+    if ((error.message === 'DUPLICATE_REQUEST' || error.message === 'REQUEST_IN_PROGRESS') && retryCount < MAX_RETRIES) {
+      console.log(`🔄 getUserPhotos: Request in progress, retrying after delay... (${retryCount + 1}/${MAX_RETRIES})`);
+      
+      // Wait a bit and retry
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Clear any stuck pending requests
+      clearPendingRequests();
+      
+      // Retry the request with incremented retry count
+      return getUserPhotos(page, limit, retryCount + 1);
+    }
+    
+    // Handle network errors
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Request timeout - please check your connection');
+    }
+    
+    if (error.message === 'Network Error') {
+      throw new Error('Network error - please check your internet connection');
+    }
+    
     throw new Error(
-      error.response?.data?.message || error.message || "Failed to fetch photos"
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch photos"
     );
   }
 };
@@ -1098,17 +1370,13 @@ export const postChatMessage = async (body) => {
 // THREAD-BASED CHAT API FUNCTIONS
 // -----------------------------------------------------------------------------
 
-/**
- * Send initial message to create a new thread
- * @param {Object} messageData - Message data
- * @param {string} messageData.content - Message content
- * @param {string} messageData.role - Message role (user/assistant)
- * @param {string} messageData.thread_type - Thread type (general_chat, routine_add_discussion, snapshot_feedback)
- * @returns {Promise<Object>} Thread creation response
- */
-export const createThread = async (messageData) => {
+// Enhanced createThread function with retry logic and better error handling
+export const createThread = async (messageData, retryCount = 0) => {
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 1000; // 1 second
+  
   try {
-    console.log("🔵 Creating new thread:", messageData);
+    console.log("🔵 Creating new thread:", messageData, `(attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
     
     // For snapshot_feedback type, include image_id if provided
     const requestData = { ...messageData };
@@ -1129,26 +1397,79 @@ export const createThread = async (messageData) => {
     }
   } catch (error) {
     console.error("🔴 createThread error:", error);
-    throw new Error(
-      error.response?.data?.message ||
-        error.message ||
-        "Failed to create thread"
-    );
+    
+    // Enhanced error logging
+    if (error.code === 'ECONNABORTED') {
+      console.error("🔴 Request timeout - server took too long to respond");
+    } else if (error.message === 'Network Error') {
+      console.error("🔴 Network error - check internet connection or server availability");
+    } else if (error.response) {
+      console.error("🔴 Server error:", error.response.status, error.response.data);
+    } else if (error.request) {
+      console.error("🔴 No response received - server might be down");
+    }
+    
+    // Retry logic for network-related errors
+    if (retryCount < MAX_RETRIES && shouldRetry(error)) {
+      console.log(`🔄 Retrying createThread in ${RETRY_DELAY}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      
+      // Exponential backoff for subsequent retries
+      const nextRetryDelay = RETRY_DELAY * Math.pow(2, retryCount);
+      await new Promise(resolve => setTimeout(resolve, nextRetryDelay));
+      
+      // Recursive retry
+      return createThread(messageData, retryCount + 1);
+    }
+    
+    // If we've exhausted retries or it's not a retryable error, throw a user-friendly error
+    const userFriendlyMessage = getUserFriendlyErrorMessage(error);
+    throw new Error(userFriendlyMessage);
   }
 };
 
-/**
- * Send message to existing thread
- * @param {string} threadId - Thread ID
- * @param {Object} messageData - Message data
- * @param {string} messageData.content - Message content
- * @param {string} messageData.role - Message role (user/assistant)
- * @param {string} messageData.thread_type - Thread type
- * @returns {Promise<Object>} Message response
- */
-export const sendThreadMessage = async (threadId, messageData) => {
+// Helper function to determine if an error should be retried
+const shouldRetry = (error) => {
+  // Retry on network errors, timeouts, and 5xx server errors
+  return (
+    error.message === 'Network Error' ||
+    error.code === 'ECONNABORTED' ||
+    error.code === 'ECONNRESET' ||
+    error.code === 'ENOTFOUND' ||
+    (error.response && error.response.status >= 500 && error.response.status < 600)
+  );
+};
+
+// Helper function to provide user-friendly error messages
+const getUserFriendlyErrorMessage = (error) => {
+  if (error.message === 'Network Error') {
+    return 'Network connection issue. Please check your internet connection and try again.';
+  } else if (error.code === 'ECONNABORTED') {
+    return 'Request timed out. The server is taking longer than expected. Please try again.';
+  } else if (error.code === 'ECONNRESET') {
+    return 'Connection was reset. Please try again.';
+  } else if (error.code === 'ENOTFOUND') {
+    return 'Unable to reach the server. Please check your connection and try again.';
+  } else if (error.response?.status === 500) {
+    return 'Server error. Please try again in a few moments.';
+  } else if (error.response?.status === 503) {
+    return 'Service temporarily unavailable. Please try again later.';
+  } else if (error.response?.data?.message) {
+    return error.response.data.message;
+  } else {
+    return 'Failed to create thread. Please try again.';
+  }
+};
+
+// Enhanced sendThreadMessage function with retry logic and better error handling
+export const sendThreadMessage = async (threadId, messageData, retryCount = 0) => {
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 1000; // 1 second
+  
   try {
-    console.log("🔵 Sending thread message:", { threadId, messageData });
+    console.log("🔵 Sending thread message:", { threadId, messageData }, `(attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
     console.log("🔵 threadId:", threadId);
     console.log("🔵 messageData:", messageData);
     
@@ -1173,11 +1494,36 @@ export const sendThreadMessage = async (threadId, messageData) => {
     }
   } catch (error) {
     console.error("🔴 sendThreadMessage error:", error);
-    throw new Error(
-      error.response?.data?.message ||
-        error.message ||
-        "Failed to send thread message"
-    );
+    
+    // Enhanced error logging
+    if (error.code === 'ECONNABORTED') {
+      console.error("🔴 Request timeout - server took too long to respond");
+    } else if (error.message === 'Network Error') {
+      console.error("🔴 Network error - check internet connection or server availability");
+    } else if (error.response) {
+      console.error("🔴 Server error:", error.response.status, error.response.data);
+    } else if (error.request) {
+      console.error("🔴 No response received - server might be down");
+    }
+    
+    // Retry logic for network-related errors
+    if (retryCount < MAX_RETRIES && shouldRetry(error)) {
+      console.log(`🔄 Retrying sendThreadMessage in ${RETRY_DELAY}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      
+      // Exponential backoff for subsequent retries
+      const nextRetryDelay = RETRY_DELAY * Math.pow(2, retryCount);
+      await new Promise(resolve => setTimeout(resolve, nextRetryDelay));
+      
+      // Recursive retry
+      return sendThreadMessage(threadId, messageData, retryCount + 1);
+    }
+    
+    // If we've exhausted retries or it's not a retryable error, throw a user-friendly error
+    const userFriendlyMessage = getUserFriendlyErrorMessage(error);
+    throw new Error(userFriendlyMessage);
   }
 };
 
@@ -1187,11 +1533,11 @@ export const sendThreadMessage = async (threadId, messageData) => {
  * @param {Object} item - Item to confirm
  * @returns {Promise<Object>} Confirmation response
  */
-export const confirmThreadItem = async (threadId, item) => {
+export const confirmThreadItem = async (threadId, item, bool) => {
   try {
     console.log("🔵 Confirming thread item:", { threadId, item });
     
-    const response = await apiClient.post(`/thread/thread/${threadId}/confirm-item`, {
+    const response = await apiClient.post(`/thread/thread/${threadId}/confirm-item?user_decline=${bool}`, {
       item
     });
     
@@ -1298,9 +1644,11 @@ export const sendSnapshotFirstChat = async (chatData) => {
  * Get user's routine items
  * @returns {Promise<Object>} Routine items data
  */
-export const getRoutineItems = async () => {
+export const getRoutineItems = async (retryCount = 0) => {
+  const MAX_RETRIES = 3;
+  
   try {
-    console.log("🔵 Fetching routine items...");
+    console.log("🔵 Fetching routine items... (retry:", retryCount, ")");
 
     const response = await apiClient.get("/routine/");
 
@@ -1315,6 +1663,30 @@ export const getRoutineItems = async () => {
     }
   } catch (error) {
     console.error("🔴 getRoutineItems error:", error);
+    
+    // Handle specific error types with retry limit
+    if ((error.message === 'DUPLICATE_REQUEST' || error.message === 'REQUEST_IN_PROGRESS') && retryCount < MAX_RETRIES) {
+      console.log(`🔄 getRoutineItems: Request in progress, retrying after delay... (${retryCount + 1}/${MAX_RETRIES})`);
+      
+      // Wait a bit and retry
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Clear any stuck pending requests
+      clearPendingRequests();
+      
+      // Retry the request with incremented retry count
+      return getRoutineItems(retryCount + 1);
+    }
+    
+    // Handle network errors
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('Request timeout - please check your connection');
+    }
+    
+    if (error.message === 'Network Error') {
+      throw new Error('Network error - please check your internet connection');
+    }
+    
     throw new Error(
       error.response?.data?.message ||
         error.message ||
