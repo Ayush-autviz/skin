@@ -249,6 +249,24 @@ const PerceivedAgeChart = ({ photos }) => {
 };
 
 // Helper function to map metric keys to condition names for mask images
+const getHeaderNameForMetric = (metricKey) => {
+  const mapping = {
+    'rednessScore': 'Redness',
+    'hydrationScore': 'Dewiness', 
+    'eyeAge': 'Eye Bags',
+    'poresScore': 'Visible Pores',
+    'acneScore': 'Breakouts',
+    'linesScore': 'Lines',
+    'translucencyScore': 'Translucency',
+    'pigmentationScore': 'Pigmentation',
+    'uniformnessScore': 'Evenness',
+    'eyeAreaCondition': 'Eye Area Condition'
+  };
+  
+  return mapping[metricKey] || null;
+};
+
+// Helper function to map metric keys to condition names for mask images
 const getConditionNameForMetric = (metricKey) => {
   const mapping = {
     'rednessScore': 'redness',
@@ -716,7 +734,7 @@ export default function MetricDetailScreen() {
   
   // Extract parameters from navigation
   const { metricKey, metricValue, photoData } = params || {};
-  console.log('🔵 metricKey:', params);
+  console.log('🔵 metricKey in metricDetail:', params);
 
   const [backgroundImageLoading, setBackgroundImageLoading] = useState(true);
   const [maskImageLoading, setMaskImageLoading] = useState(false);
@@ -1114,7 +1132,8 @@ export default function MetricDetailScreen() {
           >
             <Feather name="arrow-left" size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{formatMetricName(metricKey)}</Text>
+          {/* <Text style={styles.headerTitle}>{formatMetricName(metricKey)}</Text> */}
+          <Text style={styles.headerTitle}>{getHeaderNameForMetric(metricKey)}</Text>
         </View>
         {/* <TouchableOpacity 
           style={styles.trackButton}
@@ -1132,7 +1151,7 @@ export default function MetricDetailScreen() {
       <ScrollView style={styles.scrollContainer}>
         {/* Main metric card */}
         <View style={{ marginHorizontal: 16 }}>
-          <Text style={styles.sectionTitle}>{getLatestPhotoDateString()}</Text>
+          {/* <Text style={styles.sectionTitle}>{getLatestPhotoDateString()}</Text> */}
           <View style={styles.metricCard}>
             {/* Profile Metric Template (for skinType, perceivedAge, eyeAge, skinTone) */}
             {currentConcernDetails?._isProfileMetric ? (
@@ -1506,7 +1525,7 @@ export default function MetricDetailScreen() {
         )}
 
                 {/* Advice Details Section */}
-        {currentConcernDetails && (
+        {currentConcernDetails?.advice && (
           <View style={styles.contentSectionContainer}>
             <Text style={styles.contentSectionTitle}>Recommendation</Text>
             

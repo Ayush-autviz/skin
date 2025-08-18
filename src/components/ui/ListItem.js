@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   container: {
     backgroundColor: colors.white,
-    marginHorizontal: 16,
+    // marginHorizontal: 16,
     marginVertical: 6,
     paddingVertical: 16,
     paddingHorizontal: 16,

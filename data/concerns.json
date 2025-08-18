@@ -174,7 +174,7 @@
         },
         {
           "title": "Treatment Options",
-          "description": "Both topical and professional treatments that can address aging concerns."
+          "description": "Both topical and professional treatments that can address targeted concerns."
         }
       ]
     },
@@ -257,6 +257,11 @@
         }
       },
       "toneDescriptions": {
+        "Very Light": {
+          "description": "Very low melanin content with extreme sensitivity to UV radiation and certain skincare ingredients.",
+          "characteristics": "Burns almost instantly, rarely tans, often has very fair skin, light eyes, and light/blonde or red hair.",
+          "considerations": "Requires daily high SPF, protective clothing, and gentle formulas to avoid irritation and sun damage."
+        },
         "Light": {
           "description": "Lower melanin content with higher sensitivity to UV radiation and some skincare ingredients.",
           "characteristics": "Burns easily, tans minimally, often has freckles or light hair",
@@ -267,10 +272,20 @@
           "characteristics": "Burns moderately, tans gradually, varied hair and eye colors",
           "considerations": "Good tolerance for most treatments, still needs consistent sun protection"
         },
+        "Tan": {
+          "description": "Medium-high melanin content with lower sensitivity to UV exposure and a warm, sun-kissed undertone.",
+          "characteristics": "Rarely burns, tans quickly and deeply, typically has dark blonde to dark brown hair and medium-toned skin.",
+          "considerations": "Moderate natural sun protection but prone to uneven pigmentation; benefits from daily SPF with special attention to hyperpigmentation risk."
+        },
         "Dark": {
           "description": "Higher melanin content providing natural UV protection but increased risk for certain pigmentation concerns.",
           "characteristics": "Burns rarely, tans easily, naturally darker hair and eyes",
           "considerations": "Lower risk of UV damage but higher risk of post-inflammatory hyperpigmentation"
+        },
+        "Brown": {
+          "description": "Rich melanin content offering strong UV protection but higher susceptibility to hyperpigmentation and uneven tone.",
+          "characteristics": "Burns very rarely, deeply pigmented skin, dark hair, and dark eyes.",
+          "considerations": "Focus on maintaining even tone, preventing dark spots, and using daily SPF to protect against long-term damage."
         }
       },
       "importantConsiderations": [
