@@ -23,6 +23,7 @@ const { width } = Dimensions.get('window');
 
 // Helper function to format timestamps consistently
 const formatTimestamp = (timestamp) => {
+  console.log("🔵 formatTimestamp", timestamp);
   if (!timestamp) return '';
   
   try {
@@ -30,7 +31,12 @@ const formatTimestamp = (timestamp) => {
     
     // If timestamp is a string (UTC from API), parse it
     if (typeof timestamp === 'string') {
-      date = new Date(timestamp);
+      // Ensure the timestamp is treated as UTC by adding Z if missing
+      let utcTimestamp = timestamp;
+      if (!timestamp.endsWith('Z') && !timestamp.includes('+')) {
+        utcTimestamp = timestamp + 'Z';
+      }
+      date = new Date(utcTimestamp);
     } else if (timestamp instanceof Date) {
       date = timestamp;
     } else {
@@ -389,6 +395,13 @@ export default function ThreadChatScreen() {
 
   const MessageBubble = ({ message }) => {
     const isUser = message.role === 'user';
+    
+    // Debug timestamp for both user and assistant messages
+    console.log(`🔵 Message ${message.role} timestamp:`, {
+      role: message.role,
+      timestamp: message.timestamp,
+      formatted: formatTimestamp(message.timestamp)
+    });
     
     return (
       <View style={[
