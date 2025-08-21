@@ -52,6 +52,20 @@ const PROFILE_TO_CONCERN_MAPPING = {
   'Wrinkles': 'linesScore'
 };
 
+// Mapping from concern keys to display names (like in MetricsSheet)
+const CONCERN_KEY_TO_DISPLAY_NAME = {
+  'acneScore': 'Breakouts',
+  'poresScore': 'Visible Pores',
+  'rednessScore': 'Redness',
+  'pigmentationScore': 'Pigmentation',
+  'linesScore': 'Lines',
+  'hydrationScore': 'Dewiness',
+  'uniformnessScore': 'Evenness',
+  'eyeBagsScore': 'Eye Area Condition',
+  'saggingScore': 'Sagging',
+  'translucencyScore': 'Translucency'
+};
+
 const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
   const router = useRouter();
   const { user, profile } = useAuthStore();
@@ -88,8 +102,8 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
 
   // Filter concerns based on automatically selected concerns
   const filteredConcerns = selectedConcerns.size === 0 
-    ? allConcerns // Show all if none selected
-    : allConcerns.filter(concern => selectedConcerns.has(concern.keyForLookup));
+    ? allConcerns.filter(concern => concern.advice) // Only show concerns with advice object
+    : allConcerns.filter(concern => selectedConcerns.has(concern.keyForLookup) && concern.advice); // Selected concerns + must have advice
 
   const toggleExpanded = (concernKey) => {
     const newExpanded = new Set(expandedConcerns);
@@ -147,7 +161,7 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
           icon={iconName}
           iconColor={iconColor}
           showChevron={true}
-          onPress={() => handleRecommendationPress(item)}
+          // onPress={() => handleRecommendationPress(item)}
         />
       </View>
     );
@@ -184,15 +198,20 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
       </View>
 
       {filteredConcerns.map((concern, concernIndex) => {
+        // Only show concerns that have advice object
+        if (!concern.advice) return null;
+        
         // Use ingredients from advice if available, otherwise fall back to recommendations
-        const itemsToShow = concern.advice?.ingredients || concern.whatYouCanDo || [];
+        const itemsToShow = concern.advice.ingredients || concern.whatYouCanDo || [];
         const isExpanded = expandedConcerns.has(concern.keyForLookup);
         const visibleItems = isExpanded ? itemsToShow : itemsToShow.slice(0, 3);
         const hasMore = itemsToShow.length > 3;
 
         return (
           <View key={concern.keyForLookup} style={styles.concernSection}>
-            <Text style={styles.concernTitle}>{concern.displayName}</Text>
+            <Text style={styles.concernTitle}>
+              {CONCERN_KEY_TO_DISPLAY_NAME[concern.keyForLookup] || concern.displayName || concern.keyForLookup}
+            </Text>
             <View style={styles.itemsContainer}>
               {visibleItems.map((item, itemIndex) => {
                 // If it's an ingredient string, render as ingredient item

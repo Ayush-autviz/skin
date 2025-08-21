@@ -317,6 +317,7 @@
       "displayName": "Acne",
       "associatedMetric": "Acne score <90",
       "overview": "Breakouts occur when pores get clogged by oil and dead skin cells, allowing bacteria to thrive and cause inflammation. This complex issue is influenced by hormones, genetics, diet, and stress, requiring a multi‑faceted approach to manage effectively.",
+      "maskVerbiage": ["The highlighted regions highlight detected acne regions"],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -440,6 +441,7 @@
       "displayName": "Pigmentation",
       "associatedMetric": "Pigmentation quality <90",
       "overview": "Pigmented spots, or hyperpigmentation, result from excess melanin production, often triggered by sun exposure, hormonal shifts, or skin inflammation. These can manifest as sun spots, age spots, or melasma, affecting the skin's evenness.",
+      "maskVerbiage": ["The highlighted zones highlight detected pigmentation spots."],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -549,6 +551,7 @@
       "displayName": "Uniformness",
       "associatedMetric": "Skin uniformness <90",
       "overview": "Skin evenness refers to the evenness of skin texture, tone, and overall appearance. Factors like sun damage, aging, acne scarring, and uneven pigmentation can affect skin uniformness, making targeted treatments beneficial.",
+      "maskVerbiage": ["The highlighted zones indicate areas of skin texture irregularities."],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -657,6 +660,7 @@
       "displayName": "Redness",
       "associatedMetric": "Redness score <80",
       "overview": "Skin redness often signals a compromised barrier, leading to sensitivity and irritation from external factors; it can also indicate conditions like rosacea. Maintaining a healthy skin microbiome and using calming ingredients are key to managing redness.",
+      "maskVerbiage": ["The highlighted zones highlight regions with high redness."],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -770,6 +774,7 @@
       "displayName": "Lines",
       "associatedMetric": "Lines score <75",
       "overview": "Wrinkles are visible lines or creases that form due to aging, sun damage, and repeated facial expressions, resulting from the loss of collagen and elastin. Addressing wrinkles involves protecting the skin and using ingredients that support skin structure and renewal.",
+      "maskVerbiage": ["The green zones highlight deep wrinkle regions", "The blue zones highlight fine wrinkle lines", "The yellow zones highlight sagging contours"],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -1244,6 +1249,7 @@
       "displayName": "Pores",
       "associatedMetric": "Pores quality <90",
       "overview": "Visible pores are a natural part of skin texture, but enlarged or prominent pores can be influenced by genetics, oil production, aging, and sun damage. Understanding your pore condition helps guide appropriate treatments and skincare routines.",
+      "maskVerbiage": ["Blue zones highlight detected visible presence of pores"],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -1586,6 +1592,7 @@
       "displayName": "Hydration",
       "associatedMetric": "Hydration score <70",
       "overview": "Dewiness refers to the skin's ability to retain and balance moisture, which is essential for maintaining a healthy, resilient barrier. Well-moisturized skin appears plump, smooth, and radiant, while dryness can lead to dullness, rough texture, increased sensitivity, and the appearance of fine lines. Factors such as climate, skincare habits, diet, and age can all impact your skin's hydration levels.",
+      "maskVerbiage": ["Vectorized heatmap mask of dehydration"],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -1687,6 +1694,7 @@
       "keyForLookup": "eyeAreaCondition",
       "displayName": "Eye Area Condition",
       "overview": "Your eye area condition score reflects the overall health of the skin around your eyes, including lines, puffiness, and dark circles. This metric provides a holistic view of the eye area's skin quality, which is often the first to show signs of aging and fatigue.",
+      "maskVerbiage": ["The red zones highlight detected dark circles under the eyes", "The blue zones highlight detected puffiness or eye bags", "The green zones highlight detected lacrimal groove areas"],
       "scoreLevels": {
         "excellent": { "max": 100, "min": 90, "text": "Relatively good eye area skin condition"},
         "great": { "max": 89, "min": 80, "text": "Relatively good eye area skin condition"},

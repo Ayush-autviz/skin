@@ -34,6 +34,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ConditionalImage } from '../../src/utils/imageUtils';
 
+// Import the concerns data
+import concernsData from '../../data/concerns.json';
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_SIZE = SCREEN_WIDTH - 40;
 const TAB_HEIGHT = 50;
@@ -303,6 +306,26 @@ export default function MaskViewerScreen() {
       { skin_condition_name: 'none', mask_img_url: parsedPhotoData?.storageUrl, displayName: 'Original', image_url: parsedPhotoData?.maskImages[0]?.image_url },
       ...(parsedPhotoData?.maskImages || [])
         .filter(mask => mask.mask_img_url !== "Unknown")
+        .filter(mask => {
+          // Only include masks that have maskVerbiage in concerns.json
+          const conditionToConcernKey = {
+            'redness': 'rednessScore',
+            'hydration': 'hydrationScore',
+            'eye_bags': 'eyeAreaCondition',
+            'pores': 'poresScore',
+            'acne': 'acneScore',
+            'lines': 'linesScore',
+            'translucency': 'translucencyScore',
+            'pigmentation': 'pigmentationScore',
+            'uniformness': 'uniformnessScore'
+          };
+          
+          const concernKey = conditionToConcernKey[mask.skin_condition_name];
+          const concernDetails = concernsData?.skinConcerns?.[concernKey];
+          
+          // Only include if maskVerbiage exists
+          return concernDetails?.maskVerbiage;
+        })
         .map((mask) => ({
           ...mask,
           displayName: formatConditionName(mask.skin_condition_name)
@@ -455,6 +478,51 @@ export default function MaskViewerScreen() {
             </Text>
             <View style={styles.currentLabelIndicator} />
           </BlurView>
+          
+          {/* Mask Verbiage from concerns.json */}
+          {(() => {
+            const currentCondition = maskOptions[activeIndex]?.skin_condition_name;
+            if (currentCondition && currentCondition !== 'none') {
+              // Map condition names to concern keys
+              const conditionToConcernKey = {
+                'redness': 'rednessScore',
+                'hydration': 'hydrationScore',
+                'eye_bags': 'eyeAreaCondition',
+                'pores': 'poresScore',
+                'acne': 'acneScore',
+                'lines': 'linesScore',
+                // 'translucency': 'translucencyScore',
+                'pigmentation': 'pigmentationScore',
+                'uniformness': 'uniformnessScore'
+              };
+              
+              const concernKey = conditionToConcernKey[currentCondition];
+              const concernDetails = concernsData?.skinConcerns?.[concernKey];
+              
+              if (concernDetails?.maskVerbiage) {
+                return (
+                  <BlurView intensity={40} style={styles.maskVerbiageContainer}>
+                    {/* <Text style={styles.maskVerbiageTitle}>Analysis Details</Text> */}
+                    {Array.isArray(concernDetails.maskVerbiage) ? (
+                      concernDetails.maskVerbiage.map((verbiage, index) => (
+                        <View key={index} style={styles.maskVerbiageItem}>
+                          <View style={styles.maskVerbiageBullet} />
+                          <Text style={styles.maskVerbiageText}>
+                            {verbiage}
+                          </Text>
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.maskVerbiageText}>
+                        {concernDetails.maskVerbiage}
+                      </Text>
+                    )}
+                  </BlurView>
+                );
+              }
+            }
+            return null;
+          })()}
         </View>
       </View>
 
@@ -539,7 +607,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scrollView: {
-    flex: 1,
+    //flex: 1,
   },
   scrollContent: {
     alignItems: 'center',
@@ -549,7 +617,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     // paddingVertical: 40,
-    marginBottom: 100,
+   // marginBottom: 100,
   },
   maskImageContainer: {
     width: IMAGE_SIZE,
@@ -608,7 +676,7 @@ const styles = StyleSheet.create({
   },
   zoomControlsContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+   // paddingVertical: 20,
   },
   zoomControls: {
     flexDirection: 'row',
@@ -616,7 +684,7 @@ const styles = StyleSheet.create({
   },
   zoomButton: {
     width: 40,
-    height: 40,
+   // height: 40,
     borderRadius: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
@@ -628,15 +696,15 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   currentLabelContainer: {
-    position: 'absolute',
-    bottom: 120,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
+   // position: 'absolute',
+    // bottom: 120,
+    // left: 0,
+    // right: 0,
+   // alignItems: 'center',
   },
   currentLabel: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    // paddingVertical: 12,
     borderRadius: 25,
     alignItems: 'center',
     minWidth: 120,
@@ -660,7 +728,7 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
   },
   bottomContainer: {
-    position: 'absolute',
+  //  position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
@@ -700,5 +768,42 @@ const styles = StyleSheet.create({
     height: 3,
     backgroundColor: colors.primary,
     borderRadius: 1.5,
+  },
+  maskVerbiageContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    // marginTop: 10,
+    width: '90%',
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  maskVerbiageTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  maskVerbiageItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  maskVerbiageBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginRight: 8,
+  },
+  maskVerbiageText: {
+    color: 'white',
+    fontSize: 13,
+    lineHeight: 16,
   },
 }); 

@@ -1237,6 +1237,15 @@ export default function MetricDetailScreen() {
                       return guidanceText;
                     }
 
+                    // Special handling for eye age - use age considerations
+                    if (metricKey === 'eyeAge' && currentConcernDetails?.ageConsiderations) {
+                      // Display the age considerations content directly
+                      // Since ageConsiderations contains general eye aging information, not age-specific ranges
+                      return currentConcernDetails.ageConsiderations.earlierAging || 
+                             currentConcernDetails.ageConsiderations.prevention || 
+                             'Your eye age indicates specific considerations for eye care and maintenance.';
+                    }
+
                     // Special handling for skin type - prioritize type descriptions
                     if (metricKey === 'skinType' && currentConcernDetails?.typeDescriptions) {
                       const typeDesc = currentConcernDetails.typeDescriptions[metricValue];
@@ -1350,6 +1359,11 @@ export default function MetricDetailScreen() {
         {(() => {
           const conditionName = getConditionNameForMetric(metricKey);
           
+          // Don't show mask image for perceived eye age
+          if (metricKey === 'eyeAge') {
+            return null;
+          }
+          
           // Check if we have mask images data - use fetched mask images
           let maskImageData = null;
           
@@ -1383,9 +1397,9 @@ export default function MetricDetailScreen() {
               <View style={{ marginHorizontal: 16 }}>
                 <Text style={styles.sectionTitle}>Face Mask</Text>
                 <View style={styles.metricCard}>
-                  <Text style={styles.maskImageDescription}>
+                  {/* <Text style={styles.maskImageDescription}>
                     This mask shows the analyzed areas for {formatMetricName(metricKey).toLowerCase()} on your face.
-                  </Text>
+                  </Text> */}
                   
                   {/* Show loading indicator while fetching mask images */}
                   {maskImagesLoading && (
@@ -1439,12 +1453,28 @@ export default function MetricDetailScreen() {
                       </View>
                     )}
                   </View>
-                  <Text style={styles.maskImageNote}>
+                  {/* <Text style={styles.maskImageNote}>
                     {maskImageData?.mask_img_url 
                       ? `Highlighted areas indicate regions where ${formatMetricName(metricKey).toLowerCase()} was detected and analyzed.`
                       : `Analysis visualization for ${formatMetricName(metricKey).toLowerCase()}.`
                     }
-                  </Text>
+                  </Text> */}
+                  {/* <Text style={styles.maskImageNote}> */}
+                    {currentConcernDetails?.maskVerbiage && Array.isArray(currentConcernDetails.maskVerbiage) ? (
+                      <View style={styles.maskVerbiageContainer}>
+                        {currentConcernDetails.maskVerbiage.map((verbiage, index) => (
+                          <View key={index} style={styles.maskVerbiageItem}>
+                            <View style={styles.maskVerbiageBullet} />
+                            <Text style={styles.maskVerbiageText}>
+                              {verbiage}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      currentConcernDetails?.maskVerbiage || `Analysis visualization for ${formatMetricName(metricKey).toLowerCase()}.`
+                    )}
+                  {/* </Text> */}
                 </View>
               </View>
             );
@@ -1453,12 +1483,12 @@ export default function MetricDetailScreen() {
         })()}
         
         {/* Trend/History Card - Show for skin score metrics and perceived age */}
-        {(!currentConcernDetails?._isProfileMetric || metricKey === 'perceivedAge') && (
+        {(!currentConcernDetails?._isProfileMetric || metricKey === 'perceivedAge' || metricKey === 'eyeAge') && (
           <View style={{ marginHorizontal: 16 }}>
             <Text style={styles.sectionTitle}>Trend</Text>
             <View style={styles.metricCard}>
               {trendScores && trendScores.length > 0 ? (
-                metricKey === 'perceivedAge' ? (
+                metricKey === 'perceivedAge' || metricKey === 'eyeAge' ? (
                   <PerceivedAgeChart photos={trendScores} />
                 ) : (
                   <MetricsSeries_simple
@@ -1476,50 +1506,6 @@ export default function MetricDetailScreen() {
               ) : (
                 <Text style={styles.trendPlaceholderText}>No trend data available.</Text>
               )}
-            {/* </View> */}
-                          
-              {/* Age Guidance Section - Show for perceived age metrics */}
-              {/* {metricKey === 'perceivedAge' && currentConcernDetails?.ageGuidance && (
-                <View style={styles.ageGuidanceContainer}>
-                  <Text style={styles.ageGuidanceTitle}>Age Analysis</Text>
-                  
-                  
-                  {(() => {
-                    const actualAge = calculateActualAge(profile?.birth_date);
-                    const perceivedAge = Number(metricValue);
-                    
-                    if (!actualAge || !perceivedAge || isNaN(perceivedAge)) {
-                      return (
-                        <Text style={styles.ageGuidanceText}>
-                          Unable to compare ages. Please ensure your birth date is set in your profile.
-                        </Text>
-                      );
-                    }
-                    
-                    const ageDifference = perceivedAge - actualAge;
-                    let guidanceKey = 'matchesActual';
-                    let guidanceText = currentConcernDetails.ageGuidance.matchesActual;
-                    
-                    if (ageDifference < -2) {
-                      guidanceKey = 'youngerThanActual';
-                      guidanceText = currentConcernDetails.ageGuidance.youngerThanActual;
-                    } else if (ageDifference > 2) {
-                      guidanceKey = 'olderThanActual';
-                      guidanceText = currentConcernDetails.ageGuidance.olderThanActual;
-                    }
-                    
-                    return (
-                      <View style={styles.ageGuidanceContent}>
-                    
-                        
-                        <View style={styles.guidanceTextContainer}>
-                          <Text style={styles.guidanceText}>{guidanceText}</Text>
-                        </View>
-                      </View>
-                    );
-                  })()}
-                </View>
-              )}  */}
             </View>
           </View>
         )}
@@ -1535,6 +1521,106 @@ export default function MetricDetailScreen() {
             </>
           
         </View>
+
+        {/* Skin Type Details Section */}
+        {metricKey === 'skinType' && currentConcernDetails?.typeDescriptions && (
+          <View style={styles.contentSectionContainer}>
+            <Text style={styles.contentSectionTitle}>Skin Type Details</Text>
+            <View style={styles.descriptionCard}>
+              {currentConcernDetails?.typeDescriptions[metricValue] && (
+                <>
+                  <View style={styles.descriptionHeader}>
+                    {/* <View style={styles.descriptionIconContainer}>
+                      <Feather name="droplet" size={20} color={colors.primary} />
+                    </View> */}
+                    <Text style={styles.descriptionTitle}>{metricValue}</Text>
+                  </View>
+                  <Text style={styles.descriptionText}>
+                    {currentConcernDetails?.typeDescriptions[metricValue]?.description}
+                  </Text>
+                  {currentConcernDetails?.typeDescriptions[metricValue]?.characteristics && (
+                    <View style={styles.characteristicsContainer}>
+                      <Text style={styles.characteristicsTitle}>Key Characteristics:</Text>
+                      {Array.isArray(currentConcernDetails?.typeDescriptions[metricValue]?.characteristics) ? (
+                        currentConcernDetails.typeDescriptions[metricValue].characteristics.map((char, index) => (
+                          <View key={index} style={styles.characteristicItem}>
+                            <View style={styles.characteristicBullet} />
+                            <Text style={styles.characteristicText}>{char}</Text>
+                          </View>
+                        ))
+                      ) : (
+                        <View style={styles.characteristicItem}>
+                          <View style={styles.characteristicBullet} />
+                          <Text style={styles.characteristicText}>
+                            {currentConcernDetails?.typeDescriptions[metricValue]?.characteristics}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                  {currentConcernDetails?.typeDescriptions[metricValue]?.careApproach && (
+                    <View style={styles.careApproachContainer}>
+                      <Text style={styles.careApproachTitle}>Care Approach:</Text>
+                      <Text style={styles.careApproachText}>
+                        {currentConcernDetails.typeDescriptions[metricValue].careApproach}
+                      </Text>
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Skin Tone Details Section */}
+        {metricKey === 'skinTone' && currentConcernDetails?.toneDescriptions && (
+          <View style={styles.contentSectionContainer}>
+            <Text style={styles.contentSectionTitle}>Skin Tone Details</Text>
+            <View style={styles.descriptionCard}>
+              {currentConcernDetails?.toneDescriptions[metricValue] && (
+                <>
+                  <View style={styles.descriptionHeader}>
+                    {/* <View style={styles.descriptionIconContainer}>
+                      <Feather name="palette" size={20} color={colors.primary} />
+                    </View> */}
+                    <Text style={styles.descriptionTitle}>{metricValue}</Text>
+                  </View>
+                  <Text style={styles.descriptionText}>
+                    {currentConcernDetails?.toneDescriptions[metricValue]?.description}
+                  </Text>
+                  {currentConcernDetails?.toneDescriptions[metricValue]?.characteristics && (
+                    <View style={styles.characteristicsContainer}>
+                      <Text style={styles.characteristicsTitle}>Key Characteristics:</Text>
+                      {Array.isArray(currentConcernDetails?.toneDescriptions[metricValue]?.characteristics) ? (
+                        currentConcernDetails.toneDescriptions[metricValue].characteristics.map((char, index) => (
+                          <View key={index} style={styles.characteristicItem}>
+                            <View style={styles.characteristicBullet} />
+                            <Text style={styles.characteristicText}>{char}</Text>
+                          </View>
+                        ))
+                      ) : (
+                        <View style={styles.characteristicItem}>
+                          <View style={styles.characteristicBullet} />
+                          <Text style={styles.characteristicText}>
+                            {currentConcernDetails?.toneDescriptions[metricValue]?.characteristics}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                  {currentConcernDetails?.toneDescriptions[metricValue]?.considerations && (
+                    <View style={styles.considerationsContainer}>
+                      <Text style={styles.considerationsTitle}>Special Considerations:</Text>
+                      <Text style={styles.considerationsText}>
+                        {currentConcernDetails.toneDescriptions[metricValue].considerations}
+                      </Text>
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* New Consolidated Section: What You Can Do */}
         {/* {currentConcernDetails && (
@@ -1665,33 +1751,33 @@ export default function MetricDetailScreen() {
                   const ingredientName = colonIndex > 0 ? ingredient.substring(0, colonIndex) : ingredient;
                   const ingredientDesc = colonIndex > 0 ? ingredient.substring(colonIndex + 1).trim() : '';
                   
-                  const handleIngredientPress = () => {
-                    // Create a personalized message about the ingredient
-                    let initialMessage = '';
+                  // const handleIngredientPress = () => {
+                  //   // Create a personalized message about the ingredient
+                  //   let initialMessage = '';
                     
-                    if (ingredientDesc) {
-                      // If we have a description, use it to create a more specific message
-                      initialMessage = `I'm interested in learning more about ${ingredientName}. ${ingredientDesc} Can you tell me more about how this ingredient works and how I can incorporate it into my skincare routine?`;
-                    } else {
-                      // Fallback message if no description
-                      initialMessage = `I'd like to learn more about ${ingredientName} and how it can benefit my skin. Can you explain how this ingredient works and provide recommendations for products that contain it?`;
-                    }
+                  //   if (ingredientDesc) {
+                  //     // If we have a description, use it to create a more specific message
+                  //     initialMessage = `I'm interested in learning more about ${ingredientName}. ${ingredientDesc} Can you tell me more about how this ingredient works and how I can incorporate it into my skincare routine?`;
+                  //   } else {
+                  //     // Fallback message if no description
+                  //     initialMessage = `I'd like to learn more about ${ingredientName} and how it can benefit my skin. Can you explain how this ingredient works and provide recommendations for products that contain it?`;
+                  //   }
                     
-                    // Navigate to thread chat
-                    router.push({
-                      pathname: '/(authenticated)/threadChat',
-                      params: {
-                        chatType: 'general_chat',
-                        initialMessage: initialMessage
-                      }
-                    });
-                  };
+                  //   // Navigate to thread chat
+                  //   router.push({
+                  //     pathname: '/(authenticated)/threadChat',
+                  //     params: {
+                  //       chatType: 'general_chat',
+                  //       initialMessage: initialMessage
+                  //     }
+                  //   });
+                  // };
 
                   return (
-                    <TouchableOpacity 
+                    <View 
                       key={index} 
                       style={styles.adviceCard}
-                      onPress={handleIngredientPress}
+                      // onPress={handleIngredientPress}
                       activeOpacity={0.8}
                     >
                       <View style={styles.adviceCardContent}>
@@ -1706,9 +1792,9 @@ export default function MetricDetailScreen() {
                             )} */}
                           </View>
                         </View>
-                        <Feather name="chevron-right" size={20} color="#999" />
+                        {/* <Feather name="chevron-right" size={20} color="#999" /> */}
                       </View>
-                    </TouchableOpacity>
+                    </View>
                   );
                 })}
               </View>
@@ -2541,6 +2627,165 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     lineHeight: 18,
+  },
+
+  // Description card styles for skin type and tone
+  descriptionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    marginBottom: 8,
+  },
+  descriptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  descriptionIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f8f9ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  descriptionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+    flex: 1,
+  },
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#555',
+    marginBottom: 20,
+    // textAlign: 'justify',
+  },
+  characteristicsContainer: {
+    backgroundColor: '#fafbfc',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e8eaed',
+  },
+  characteristicsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  characteristicItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  characteristicBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginTop: 8,
+    marginRight: 12,
+    flexShrink: 0,
+  },
+  characteristicText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#555',
+    flex: 1,
+  },
+
+  // Care Approach styles for skin type
+  careApproachContainer: {
+    backgroundColor: '#fff8f0',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#ffe4b3',
+    marginTop: 16,
+  },
+  careApproachTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#d97706',
+    marginBottom: 8,
+  },
+  careApproachText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#92400e',
+    textAlign: 'justify',
+  },
+
+  // Considerations styles for skin tone
+  considerationsContainer: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    marginTop: 16,
+  },
+  considerationsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0369a1',
+    marginBottom: 8,
+  },
+  considerationsText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#0c4a6e',
+    textAlign: 'justify',
+  },
+
+  // Mask verbiage styles
+  maskVerbiageContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+    paddingHorizontal: 16,
+  },
+  maskVerbiageItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    width: '100%',
+  },
+  maskVerbiageBullet: {
+    width: 7,
+    height: 7,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginRight: 10,
+    marginTop: 8,
+    flexShrink: 0,
+  },
+  maskVerbiageText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#333',
+    textAlign: 'left',
+    fontWeight: '500',
+    flex: 1,
+    flexWrap: 'wrap',
   },
 
 });
