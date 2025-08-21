@@ -1241,16 +1241,33 @@ export default function MetricDetailScreen() {
                     if (metricKey === 'eyeAge' && currentConcernDetails?.ageConsiderations) {
                       // Display the age considerations content directly
                       // Since ageConsiderations contains general eye aging information, not age-specific ranges
-                      return currentConcernDetails.ageConsiderations.earlierAging || 
-                             currentConcernDetails.ageConsiderations.prevention || 
-                             'Your eye age indicates specific considerations for eye care and maintenance.';
+                      // return currentConcernDetails.ageConsiderations.earlierAging || 
+                      //        currentConcernDetails.ageConsiderations.prevention || 
+                      //        'Your eye age indicates specific considerations for eye care and maintenance.';
+                      const actualAge = calculateActualAge(profile?.birth_date);
+                      const perceivedAge = Number(metricValue);
+                      
+                      if (!actualAge || !perceivedAge || isNaN(perceivedAge)) {
+                        return 'Unable to compare ages. Please ensure your birth date is set in your profile.';
+                      }
+                      
+                      const ageDifference = perceivedAge - actualAge;
+                      let guidanceText = currentConcernDetails.ageGuidance.matchesActual;
+                      
+                      if (ageDifference < -2) {
+                        guidanceText = currentConcernDetails.ageGuidance.youngerThanActual;
+                      } else if (ageDifference > 2) {
+                        guidanceText = currentConcernDetails.ageGuidance.olderThanActual;
+                      }
+                      
+                      return guidanceText;
                     }
 
                     // Special handling for skin type - prioritize type descriptions
                     if (metricKey === 'skinType' && currentConcernDetails?.typeDescriptions) {
-                      const typeDesc = currentConcernDetails.typeDescriptions[metricValue];
-                      if (typeDesc && typeDesc.description) {
-                        return typeDesc.description;
+                      const typeDesc = currentConcernDetails.scoreLevels[metricValue];
+                      if (typeDesc && typeDesc.text) {
+                        return typeDesc.text;
                       }
                     }
 
@@ -1585,9 +1602,9 @@ export default function MetricDetailScreen() {
                     </View> */}
                     <Text style={styles.descriptionTitle}>{metricValue}</Text>
                   </View>
-                  <Text style={styles.descriptionText}>
+                  {/* <Text style={styles.descriptionText}>
                     {currentConcernDetails?.toneDescriptions[metricValue]?.description}
-                  </Text>
+                  </Text> */}
                   {currentConcernDetails?.toneDescriptions[metricValue]?.characteristics && (
                     <View style={styles.characteristicsContainer}>
                       <Text style={styles.characteristicsTitle}>Key Characteristics:</Text>
@@ -1729,7 +1746,7 @@ export default function MetricDetailScreen() {
                 {/* Advice Details Section */}
         {currentConcernDetails?.advice && (
           <View style={styles.contentSectionContainer}>
-            {/* <Text style={styles.contentSectionTitle}>Recommendation</Text> */}
+            <Text style={styles.contentSectionTitle}>For your Consideration</Text>
             
             {/* Disclaimer - Moved to top with attractive styling */}
             {currentConcernDetails.advice?.disclaimer && (

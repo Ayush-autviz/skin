@@ -26,33 +26,30 @@ const formatTimestamp = (timestamp) => {
   if (!timestamp) return '';
   
   try {
-    // If timestamp is a string (UTC from API), display it directly without conversion
+    let date;
+    
+    // If timestamp is a string (UTC from API), parse it
     if (typeof timestamp === 'string') {
-      // Parse the ISO string to get just the time part (HH:MM)
-      const date = new Date(timestamp);
-      if (isNaN(date.getTime())) {
-        console.warn('Invalid timestamp:', timestamp);
-        return '';
-      }
-      // Extract just the time part from the ISO string and remove seconds
-      const timeString = timestamp.split('T')[1]; // Get "HH:MM:SS.mmmZ" part
-      const timeWithoutSeconds = timeString.split(':').slice(0, 2).join(':'); // Keep only HH:MM
-      return timeWithoutSeconds; // Return "HH:MM" format
+      date = new Date(timestamp);
+    } else if (timestamp instanceof Date) {
+      date = timestamp;
+    } else {
+      return '';
     }
     
-    // If it's a Date object, format it to match API format without seconds
-    if (timestamp instanceof Date) {
-      if (isNaN(timestamp.getTime())) {
-        console.warn('Invalid timestamp:', timestamp);
-        return '';
-      }
-      // Format to match API timestamp format but without seconds
-      const timeString = timestamp.toISOString().split('T')[1];
-      const timeWithoutSeconds = timeString.split(':').slice(0, 2).join(':'); // Keep only HH:MM
-      return timeWithoutSeconds;
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid timestamp:', timestamp);
+      return '';
     }
     
-    return '';
+    // Convert to local time and format as HH:MM
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    
   } catch (error) {
     console.error('Error formatting timestamp:', error, timestamp);
     return '';

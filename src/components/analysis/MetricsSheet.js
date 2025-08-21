@@ -67,6 +67,8 @@ const MetricsSheet = forwardRef(({
   if (!selectedSnapshot) {
     console.log('⚠️ MetricsSheet: No selectedSnapshot available');
   }
+
+  console.log('🔵 MetricsSheet - photoData:', photoData);
   
   // Derive threadId safely
   // const threadId = selectedSnapshot?.threadId;
@@ -617,8 +619,8 @@ const MetricsSheet = forwardRef(({
                 pathname: '/(authenticated)/threadChat',
                 params: {
                   chatType: 'snapshot_feedback',
-                  imageId: photoData?.id || photoData?.image_id,
-                  initialMessage: 'Analyze my score'
+                  imageId: photoData?.image_id,
+                  initialMessage: summary
                 }
               });
             }

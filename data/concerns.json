@@ -211,6 +211,11 @@
           "text": "Your eye area shows significant aging characteristics with pronounced lines and texture changes. While this represents advanced aging, specialized eye treatments can still provide meaningful improvements."
         }
       },
+      "ageGuidance": {
+        "youngerThanActual": "Your eye area condition appears younger than your chronological age, indicating good skin health and effective protection against aging factors.",
+        "matchesActual": "Your eye area condition aligns with your chronological age, showing typical aging progression for your age group.",
+        "olderThanActual": "Your eye area condition appears older than your chronological age, which may indicate accelerated aging from factors like sun exposure, lifestyle, or genetics."
+      },
       "eyeSpecificFactors": [
         "Thinner skin around eyes (10x thinner than face)",
         "Constant muscle movement from expressions",
@@ -317,7 +322,7 @@
       "displayName": "Acne",
       "associatedMetric": "Acne score <90",
       "overview": "Breakouts occur when pores get clogged by oil and dead skin cells, allowing bacteria to thrive and cause inflammation. This complex issue is influenced by hormones, genetics, diet, and stress, requiring a multi‑faceted approach to manage effectively.",
-      "maskVerbiage": ["The highlighted regions highlight detected acne regions"],
+      "maskVerbiage": ["The highlighted regions indicate detected acne regions"],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -419,7 +424,7 @@
         }
       ],
       "advice": {
-        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "disclaimer": "Remember, Magic Mirror does not provide medical advice",
         "ingredients": [
           "Benzoyl Peroxide: Kills acne‑causing bacteria and helps unclog pores.",
           "Salicylic Acid: Penetrates pores to dissolve debris and reduce inflammation.",
@@ -531,7 +536,7 @@
         }
       ],
       "advice": {
-        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice and in light of failure to diagnose skin cancer (melanoma) in cases of persistent pigmentation, do consult a Dermatologist to be safe)",
+        "disclaimer": "Remember, Magic Mirror does not provide medical advice and in light of failure to diagnose skin cancer (melanoma) in cases of persistent pigmentation, do consult a Dermatologist to be safe",
         "ingredients": [
          "Vitamin C (Ascorbic Acid): Antioxidant can help fade the appearance of pigmentation.",
          "Niacinamide: can help manage the appearance of pigmentation, inflammation, and support collagen",
@@ -566,7 +571,7 @@
         "good": {
           "max": 80,
           "min": 71,
-          "text": "Info to come"
+          "text": "Visible skin texture non‑uniformness"
         },
         "average": {
           "max": 70,
@@ -641,7 +646,7 @@
         }
       ],
       "advice": {
-        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "disclaimer": "Remember, Magic Mirror does not provide medical advice",
         "ingredients": [
           "Retinol: can help manage the appearance of pigmentation and skin texture",
           "Niacinamide: can help manage the appearance of pigmentation, inflammation, and support collagen",
@@ -750,7 +755,7 @@
         }
       ],
       "advice": {
-        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "disclaimer": "Remember, Magic Mirror does not provide medical advice",
         "ingredients": [
          "Simplify your routine during flare-ups as they may be caused by products you are using and should cease using. Adding new ingredients should be a subsequent step so look for products with minimal ingredients, avoiding fragrance and alcohol.",
          "Niacinamide: Inhibits melanin transfer and has anti‑inflammatory properties.",
@@ -774,7 +779,7 @@
       "displayName": "Lines",
       "associatedMetric": "Lines score <75",
       "overview": "Wrinkles are visible lines or creases that form due to aging, sun damage, and repeated facial expressions, resulting from the loss of collagen and elastin. Addressing wrinkles involves protecting the skin and using ingredients that support skin structure and renewal.",
-      "maskVerbiage": ["The green zones highlight deep wrinkle regions", "The blue zones highlight fine wrinkle lines", "The yellow zones highlight sagging contours"],
+      "maskVerbiage": ["The red zones highlight deep wrinkle regions Comment start", "The green zones highlight fine wrinkle lines", "The yellow zones highlight sagging contours"],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -864,7 +869,7 @@
         }
       ],
       "advice": {
-        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "disclaimer": "Remember, Magic Mirror does not provide medical advice",
         "ingredients": [
           "Retinol: Support collagen and accelerate cell turnover.",
           "Hyaluronic acid: Adds hydration for skin suppleness.",
@@ -876,7 +881,7 @@
           "Prioritize sun protection for prevention.",
           "Incorporate peptides and antioxidants into your routine.",
           "Maintain skin hydration.",
-          "Consider seeking professional care which may include peels, microneedling,and  injectablesfor significant results."
+          "Consider seeking professional care which may include peels, microneedling,and  injectables for significant results."
         ]
       }
     },
@@ -1333,7 +1338,7 @@
         }
       ],
       "advice": {
-        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "disclaimer": "Remember, Magic Mirror does not provide medical advice",
         "ingredients": [
           "Salicylic Acid: Help reduce buildup ",
           "Retinols: Helps improve  cell turnover.",
@@ -1592,7 +1597,7 @@
       "displayName": "Hydration",
       "associatedMetric": "Hydration score <70",
       "overview": "Dewiness refers to the skin's ability to retain and balance moisture, which is essential for maintaining a healthy, resilient barrier. Well-moisturized skin appears plump, smooth, and radiant, while dryness can lead to dullness, rough texture, increased sensitivity, and the appearance of fine lines. Factors such as climate, skincare habits, diet, and age can all impact your skin's hydration levels.",
-      "maskVerbiage": ["Vectorized heatmap mask of dehydration"],
+      "maskVerbiage": ["The highlighted regions indicate areas of low moisture"],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -1676,7 +1681,7 @@
         }
       ],
       "advice": {
-        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "disclaimer": "Remember, Magic Mirror does not provide medical advice",
         "ingredients": [
          "Hyaluronic Acid: Attracts and retains water in the skin, providing deep hydration.",
          "Glycerin: A powerful humectant that draws moisture into the skin and helps maintain softness.",
@@ -1686,7 +1691,9 @@
         "Behavior": [
           "Drink adequate water throughout the day to support skin hydration from within.",
           "Use a humidifier in dry environments to prevent moisture loss.",
-          "Avoid over-cleansing or using harsh soaps, which can strip the skin's natural moisture."
+          "Avoid over-cleansing or using harsh soaps, which can strip the skin's natural moisture.",
+          "Apply moisturizer immediately after cleansing to lock in moisture."
+
         ]
       }
     },
@@ -1698,8 +1705,8 @@
       "scoreLevels": {
         "excellent": { "max": 100, "min": 90, "text": "Relatively good eye area skin condition"},
         "great": { "max": 89, "min": 80, "text": "Relatively good eye area skin condition"},
-        "good": { "max": 79, "min": 70, "text": "Info to come"},
-        "average": { "max": 69, "min": 50, "text": "Info to come"},
+        "good": { "max": 79, "min": 70, "text": "Moderately concerning eye area skin condition"},
+        "average": { "max": 69, "min": 50, "text": "Moderately concerning eye area skin condition"},
         "poor": { "max": 49, "min": 30, "text": "Alerting eye area condition; may require specialist attention"},
         "bad": { "max": 29, "min": 0, "text": "Alerting eye area condition; may require specialist attention"}
       },
@@ -1730,7 +1737,7 @@
         }
       ],
       "advice": {
-        "disclaimer": "For your Consideration (Remember, Magic Mirror does not provide medical advice)",
+        "disclaimer": "Remember, Magic Mirror does not provide medical advice",
         "ingredients": [
          "Use gentle eye creams and daily sun protection.",
          "Look for ingredients like peptides, hyaluronic acid, and caffeine in eye products."
