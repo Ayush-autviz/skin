@@ -253,14 +253,17 @@ const getHeaderNameForMetric = (metricKey) => {
   const mapping = {
     'rednessScore': 'Redness',
     'hydrationScore': 'Dewiness', 
-    'eyeAge': 'Eye Bags',
+    'eyeAge': 'Perceived Eye Age',
     'poresScore': 'Visible Pores',
     'acneScore': 'Breakouts',
     'linesScore': 'Lines',
     'translucencyScore': 'Translucency',
     'pigmentationScore': 'Pigmentation',
     'uniformnessScore': 'Evenness',
-    'eyeAreaCondition': 'Eye Area Condition'
+    'eyeAreaCondition': 'Eye Area Condition',
+    'perceivedAge': 'Perceived Age',
+    'skinTone': 'Skin Tone',
+    'skinType': 'Skin Type'
   };
   
   return mapping[metricKey] || null;
@@ -1177,7 +1180,7 @@ export default function MetricDetailScreen() {
                   </Text>
                 </View>
                 {/* Context Text - below the box */}
-                <Text style={{ fontSize: 14, lineHeight: 20, color: '#555' }}>
+                {/* <Text style={{ fontSize: 14, lineHeight: 20, color: '#555' }}>
                   {(() => {
                     // First try to use scoreLevels if available for profile metrics
                     if (currentConcernDetails.scoreLevels) {
@@ -1193,6 +1196,74 @@ export default function MetricDetailScreen() {
                         // console.log('Profile metric - checking scoreLevels for value:', numericValue);
                         const scoreLevel = metricHelpers.getScoreLevelForValue(currentConcernDetails.scoreLevels, numericValue);
                         // console.log('Found scoreLevel:', scoreLevel);
+                        if (scoreLevel && scoreLevel.text) {
+                          return scoreLevel.text;
+                        }
+                      }
+                    }
+                    
+                    // Fallback to type-specific descriptions
+                    if (currentConcernDetails.metricType === 'category' && currentConcernDetails.typeDescriptions) {
+                      // For skinType and skinTone - use specific descriptions
+                      const typeDesc = currentConcernDetails.typeDescriptions[metricValue];
+                      return typeDesc ? typeDesc.description : currentConcernDetails.contextText;
+                    } else if (currentConcernDetails.metricType === 'age') {
+                      // For age metrics - use contextText as fallback
+                      return currentConcernDetails.contextText;
+                    }
+                    return currentConcernDetails.contextText;
+                  })()}
+                </Text> */}
+                 <Text style={{ fontSize: 14, lineHeight: 20, color: '#555' }}>
+                  {(() => {
+                    // Special handling for perceived age - use age guidance logic
+                    if (metricKey === 'perceivedAge' && currentConcernDetails?.ageGuidance) {
+                      const actualAge = calculateActualAge(profile?.birth_date);
+                      const perceivedAge = Number(metricValue);
+                      
+                      if (!actualAge || !perceivedAge || isNaN(perceivedAge)) {
+                        return 'Unable to compare ages. Please ensure your birth date is set in your profile.';
+                      }
+                      
+                      const ageDifference = perceivedAge - actualAge;
+                      let guidanceText = currentConcernDetails.ageGuidance.matchesActual;
+                      
+                      if (ageDifference < -2) {
+                        guidanceText = currentConcernDetails.ageGuidance.youngerThanActual;
+                      } else if (ageDifference > 2) {
+                        guidanceText = currentConcernDetails.ageGuidance.olderThanActual;
+                      }
+                      
+                      return guidanceText;
+                    }
+
+                    // Special handling for skin type - prioritize type descriptions
+                    if (metricKey === 'skinType' && currentConcernDetails?.typeDescriptions) {
+                      const typeDesc = currentConcernDetails.typeDescriptions[metricValue];
+                      if (typeDesc && typeDesc.description) {
+                        return typeDesc.description;
+                      }
+                    }
+
+                     // Special handling for skin tone - prioritize type descriptions
+                     if (metricKey === 'skinTone' && currentConcernDetails?.toneDescriptions) {
+                      const toneDesc = currentConcernDetails.toneDescriptions[metricValue];
+                      if (toneDesc && toneDesc.description) {
+                        return toneDesc.description;
+                      }
+                    }
+                    
+                    // For other profile metrics, use existing logic
+                    if (currentConcernDetails.scoreLevels) {
+                      // For categorical metrics (like skin type), try direct lookup
+                      if (currentConcernDetails.metricType === 'category' && currentConcernDetails.scoreLevels[metricValue]) {
+                        return currentConcernDetails.scoreLevels[metricValue].text;
+                      }
+                      
+                      // For numeric metrics (like age), use range lookup
+                      const numericValue = Number(metricValue);
+                      if (!isNaN(numericValue)) {
+                        const scoreLevel = metricHelpers.getScoreLevelForValue(currentConcernDetails.scoreLevels, numericValue);
                         if (scoreLevel && scoreLevel.text) {
                           return scoreLevel.text;
                         }
@@ -1405,21 +1476,68 @@ export default function MetricDetailScreen() {
               ) : (
                 <Text style={styles.trendPlaceholderText}>No trend data available.</Text>
               )}
+            {/* </View> */}
+                          
+              {/* Age Guidance Section - Show for perceived age metrics */}
+              {/* {metricKey === 'perceivedAge' && currentConcernDetails?.ageGuidance && (
+                <View style={styles.ageGuidanceContainer}>
+                  <Text style={styles.ageGuidanceTitle}>Age Analysis</Text>
+                  
+                  
+                  {(() => {
+                    const actualAge = calculateActualAge(profile?.birth_date);
+                    const perceivedAge = Number(metricValue);
+                    
+                    if (!actualAge || !perceivedAge || isNaN(perceivedAge)) {
+                      return (
+                        <Text style={styles.ageGuidanceText}>
+                          Unable to compare ages. Please ensure your birth date is set in your profile.
+                        </Text>
+                      );
+                    }
+                    
+                    const ageDifference = perceivedAge - actualAge;
+                    let guidanceKey = 'matchesActual';
+                    let guidanceText = currentConcernDetails.ageGuidance.matchesActual;
+                    
+                    if (ageDifference < -2) {
+                      guidanceKey = 'youngerThanActual';
+                      guidanceText = currentConcernDetails.ageGuidance.youngerThanActual;
+                    } else if (ageDifference > 2) {
+                      guidanceKey = 'olderThanActual';
+                      guidanceText = currentConcernDetails.ageGuidance.olderThanActual;
+                    }
+                    
+                    return (
+                      <View style={styles.ageGuidanceContent}>
+                    
+                        
+                        <View style={styles.guidanceTextContainer}>
+                          <Text style={styles.guidanceText}>{guidanceText}</Text>
+                        </View>
+                      </View>
+                    );
+                  })()}
+                </View>
+              )}  */}
             </View>
           </View>
         )}
         
-        {/* Content Section: Overview */}
+        {/* Content Section: Overview or Age Guidance */}
         <View style={styles.contentSectionContainer}>
-          <Text style={styles.contentSectionTitle}>Overview</Text>
-          <Text style={styles.contentSectionText}>
-            {currentConcernDetails ? currentConcernDetails.overview : 'Loading overview...'}
-          </Text>
-          {/* Placeholder for learn more if needed */}
+         
+            <>
+              <Text style={styles.contentSectionTitle}>Overview</Text>
+              <Text style={styles.contentSectionText}>
+                {currentConcernDetails ? currentConcernDetails.overview : 'Loading overview...'}
+              </Text>
+            </>
+          
         </View>
 
         {/* New Consolidated Section: What You Can Do */}
-        {currentConcernDetails && (
+        {/* {currentConcernDetails && (
           <View style={styles.contentSectionContainer}>
             <Text style={styles.contentSectionTitle}>
               {currentConcernDetails._isProfileMetric ? 'Further Steps' : 'What You Can Do'}
@@ -1431,7 +1549,7 @@ export default function MetricDetailScreen() {
               }
             </Text>
             
-            {/* Profile Metrics: Show Related Topics */}
+            
             {currentConcernDetails._isProfileMetric && currentConcernDetails.relatedTopics ? (
               currentConcernDetails.relatedTopics.map((topic, index) => (
                 <View key={index} style={{ marginBottom: 12 }}>
@@ -1442,9 +1560,7 @@ export default function MetricDetailScreen() {
                     iconColor="#6E46FF"
                     showChevron={true}
                     onPress={() => {
-                      // console.log(`Tapped on profile topic: ${topic.title}`);
-                      
-                      // Create more informative initial message
+              
                       let initialMessage = '';
                       const metricDisplayName = formatMetricName(metricKey);
                       
@@ -1459,11 +1575,11 @@ export default function MetricDetailScreen() {
                       } else if (topic.title.includes('Seasonal') || topic.title.includes('Environmental')) {
                         initialMessage = `Your skin's needs can change based on environmental factors, seasons, and lifestyle. Your ${metricDisplayName.toLowerCase()} indicates certain characteristics that may require adjustments over time. Would you like tips on adapting your routine to different conditions?`;
                       } else {
-                        // Generic fallback
+                        
                         initialMessage = `${topic.description} This relates to your ${metricDisplayName.toLowerCase()} of ${metricValue}. Would you like me to provide more detailed information about this topic?`;
                       }
                       
-                      // Get firstName from profile or user
+
                       const firstName = profile?.user_name || user?.user_name || 'there';
                       
                       router.push({
@@ -1478,9 +1594,9 @@ export default function MetricDetailScreen() {
                 </View>
               ))
             ) : (
-              /* Score Metrics: Show What You Can Do */
+              
               currentConcernDetails.whatYouCanDo && currentConcernDetails.whatYouCanDo.map((item, index) => {
-                // Choose icon based on type to match routine
+                
                 let iconName = 'help-circle';
                 let iconColor = '#666';
                 
@@ -1503,9 +1619,9 @@ export default function MetricDetailScreen() {
                       iconColor={iconColor}
                       showChevron={true}
                       onPress={() => {
-                        // console.log(`Tapped on recommendation: ${item.text}`);
+                      
                         const message = item.initialChatMessage || `Tell me more about how ${item.text.toLowerCase()} can help my skin.`;
-                        // Get firstName from profile or user
+                      
                         const firstName = profile?.user_name || user?.user_name || 'there';
                         
                         router.push({
@@ -1522,12 +1638,12 @@ export default function MetricDetailScreen() {
               })
             )}
           </View>
-        )}
+        )} */}
 
                 {/* Advice Details Section */}
         {currentConcernDetails?.advice && (
           <View style={styles.contentSectionContainer}>
-            <Text style={styles.contentSectionTitle}>Recommendation</Text>
+            {/* <Text style={styles.contentSectionTitle}>Recommendation</Text> */}
             
             {/* Disclaimer - Moved to top with attractive styling */}
             {currentConcernDetails.advice?.disclaimer && (
@@ -1542,21 +1658,66 @@ export default function MetricDetailScreen() {
             {/* Ingredients */}
             {currentConcernDetails.advice?.ingredients && currentConcernDetails.advice.ingredients.length > 0 && (
               <View style={styles.adviceItem}>
-                <Text style={styles.adviceLabel}>Ingredients</Text>
-                {currentConcernDetails.advice.ingredients.map((ingredient, index) => (
-                  <View key={index} style={styles.adviceListItem}>
-                    <Text style={styles.adviceListItemText}>•</Text>
-                    <Text style={styles.adviceListItemText}>{ingredient}</Text>
+                <Text style={styles.adviceLabel}>Key Ingredients</Text>
+                {currentConcernDetails.advice.ingredients.map((ingredient, index) => {
+                  // Parse ingredient to get name and description
+                  const colonIndex = ingredient.indexOf(':');
+                  const ingredientName = colonIndex > 0 ? ingredient.substring(0, colonIndex) : ingredient;
+                  const ingredientDesc = colonIndex > 0 ? ingredient.substring(colonIndex + 1).trim() : '';
+                  
+                  const handleIngredientPress = () => {
+                    // Create a personalized message about the ingredient
+                    let initialMessage = '';
+                    
+                    if (ingredientDesc) {
+                      // If we have a description, use it to create a more specific message
+                      initialMessage = `I'm interested in learning more about ${ingredientName}. ${ingredientDesc} Can you tell me more about how this ingredient works and how I can incorporate it into my skincare routine?`;
+                    } else {
+                      // Fallback message if no description
+                      initialMessage = `I'd like to learn more about ${ingredientName} and how it can benefit my skin. Can you explain how this ingredient works and provide recommendations for products that contain it?`;
+                    }
+                    
+                    // Navigate to thread chat
+                    router.push({
+                      pathname: '/(authenticated)/threadChat',
+                      params: {
+                        chatType: 'general_chat',
+                        initialMessage: initialMessage
+                      }
+                    });
+                  };
 
-                  </View>
-                ))}
+                  return (
+                    <TouchableOpacity 
+                      key={index} 
+                      style={styles.adviceCard}
+                      onPress={handleIngredientPress}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.adviceCardContent}>
+                        <View style={styles.adviceCardLeft}>
+                          {/* <View style={styles.adviceCardIcon}>
+                            <Feather name="bottle-tonic-outline" size={20} color={colors.primary} />
+                          </View> */}
+                          <View style={styles.adviceCardText}>
+                            <Text style={styles.adviceCardTitle}>{ingredient}</Text>
+                            {/* {ingredientDesc && (
+                              <Text style={styles.adviceCardSubtitle}>{ingredientDesc}</Text>
+                            )} */}
+                          </View>
+                        </View>
+                        <Feather name="chevron-right" size={20} color="#999" />
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             )}
 
             {/* Behavior */}
             {currentConcernDetails.advice?.Behavior && currentConcernDetails.advice.Behavior.length > 0 && (
               <View style={styles.adviceItem}>
-                <Text style={styles.adviceLabel}>Behavior</Text>
+                <Text style={styles.adviceLabel}>Lifestyle Tips</Text>
                 {currentConcernDetails.advice.Behavior.map((behavior, index) => (
                   <View key={index} style={styles.adviceListItem}>
                     <Text style={styles.adviceListItemText}>•</Text>
@@ -1835,9 +1996,10 @@ const styles = StyleSheet.create({
   },
   adviceLabel: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontWeight: '700',
+    marginBottom: 16,
     color: '#333',
+    textAlign: 'center',
   },
   adviceText: {
     fontSize: 14,
@@ -2209,6 +2371,68 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     marginLeft: 24,
   },
+    // Age Guidance styles
+    ageGuidanceContainer: {
+      marginTop: 20,
+      paddingTop: 20,
+      borderTopWidth: 1,
+      borderTopColor: '#eee',
+    },
+    ageGuidanceTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#333',
+      marginBottom: 16,
+      textAlign: 'center',
+    },
+    ageGuidanceContent: {
+      alignItems: 'center',
+    },
+    ageComparisonRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+      flexWrap: 'wrap',
+    },
+    ageComparisonItem: {
+      alignItems: 'center',
+      marginHorizontal: 8,
+      minWidth: 60,
+    },
+    ageComparisonLabel: {
+      fontSize: 12,
+      color: '#666',
+      marginBottom: 4,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    ageComparisonValue: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#333',
+      textAlign: 'center',
+    },
+    ageComparisonDivider: {
+      marginHorizontal: 8,
+      paddingVertical: 4,
+    },
+    guidanceTextContainer: {
+      backgroundColor: '#f8f9fa',
+      padding: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#e9ecef',
+      width: '100%',
+    },
+    guidanceText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: '#555',
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
+  
   gridContainer: {
     position: 'absolute',
     top: 0,
@@ -2268,4 +2492,55 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
   },
+  adviceCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  adviceCardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flex: 1,
+  },
+  adviceCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+  },
+  adviceCardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  adviceCardText: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  adviceCardTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  adviceCardSubtitle: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+  },
+
 });

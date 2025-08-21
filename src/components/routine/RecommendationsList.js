@@ -153,6 +153,21 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
     );
   };
 
+  // Render ingredient item from advice
+  const renderIngredientItem = (ingredient, itemIndex, concernKey) => {
+    return (
+      <View key={`${concernKey}-ingredient-${itemIndex}`} style={{ marginBottom: 12 }}>
+        <ListItem
+          title={ingredient}
+          icon="bottle-tonic-outline"
+          iconColor={colors.primary}
+          showChevron={false}
+          onPress={() => {}}
+        />
+      </View>
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       {/* TEMPORARILY COMMENTED OUT - Concerns filters confusing users */}
@@ -169,18 +184,24 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
       </View>
 
       {filteredConcerns.map((concern, concernIndex) => {
+        // Use ingredients from advice if available, otherwise fall back to recommendations
+        const itemsToShow = concern.advice?.ingredients || concern.whatYouCanDo || [];
         const isExpanded = expandedConcerns.has(concern.keyForLookup);
-        const recommendations = concern.whatYouCanDo;
-        const visibleRecommendations = isExpanded ? recommendations : recommendations.slice(0, 3);
-        const hasMore = recommendations.length > 3;
+        const visibleItems = isExpanded ? itemsToShow : itemsToShow.slice(0, 3);
+        const hasMore = itemsToShow.length > 3;
 
         return (
           <View key={concern.keyForLookup} style={styles.concernSection}>
             <Text style={styles.concernTitle}>{concern.displayName}</Text>
             <View style={styles.itemsContainer}>
-              {visibleRecommendations.map((item, itemIndex) => 
-                renderRecommendationItem(item, itemIndex, concern.keyForLookup)
-              )}
+              {visibleItems.map((item, itemIndex) => {
+                // If it's an ingredient string, render as ingredient item
+                if (typeof item === 'string') {
+                  return renderIngredientItem(item, itemIndex, concern.keyForLookup);
+                }
+                // Otherwise render as regular recommendation item
+                return renderRecommendationItem(item, itemIndex, concern.keyForLookup);
+              })}
               
               {hasMore && (
                 <TouchableOpacity 
@@ -188,7 +209,7 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
                   onPress={() => toggleExpanded(concern.keyForLookup)}
                 >
                   <Text style={styles.showMoreText}>
-                    {isExpanded ? 'Show less' : `Show ${recommendations.length - 3} more`}
+                    {isExpanded ? 'Show less' : `Show ${itemsToShow.length - 3} more`}
                   </Text>
                 </TouchableOpacity>
               )}

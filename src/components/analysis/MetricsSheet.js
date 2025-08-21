@@ -294,6 +294,17 @@ const MetricsSheet = forwardRef(({
   // Update the helper function to format metric key names
   const formatMetricName = (key, inScoresSection = false) => {
     // Custom mapping for specific metric names
+    // const customNames = {
+    //   'acneScore': 'Breakouts',
+    //   'rednessScore': 'Redness',
+    //   'eyeAreaCondition': 'Eye Area Condition',
+    //   'linesScore': 'Lines',
+    //   'pigmentationScore': 'Pigmentation',
+    //   'poresScore': 'Visible Pores',
+    //   'hydrationScore': 'Dewiness',
+    //   'uniformnessScore': 'Evenness'
+    // };
+
     const customNames = {
       'acneScore': 'Breakouts',
       'rednessScore': 'Redness',
@@ -302,7 +313,9 @@ const MetricsSheet = forwardRef(({
       'pigmentationScore': 'Pigmentation',
       'poresScore': 'Visible Pores',
       'hydrationScore': 'Dewiness',
-      'uniformnessScore': 'Evenness'
+      'uniformnessScore': 'Evenness',
+      'eyeAge': 'Perceived Eye Age',
+      'perceivedAge': 'Perceived Age'
     };
     
     // Return custom name if it exists

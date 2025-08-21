@@ -65,13 +65,13 @@
       "contextText": "This analysis looks at oil production patterns, pore size, and texture to classify your skin type. Skin type can change over time due to factors like age, hormones, climate, and skincare habits.",
       "scoreLevels": {
         "Normal": {
-          "text": "Your skin produces a balanced amount of oil, resulting in healthy, well-maintained skin with minimal imperfections. This balanced type typically responds well to a wide range of products and requires consistent but not intensive care."
+          "text": "Your skin has  a balanced amount of oil, resulting in healthy, well-maintained skin with minimal imperfections. This balanced type typically responds well to a wide range of products and requires consistent but not intensive care."
         },
         "Dry": {
-          "text": "Your skin produces less oil than average, which can result in a tighter feeling and more visible texture. This type benefits from rich moisturizers and gentle, hydrating ingredients to support the skin barrier."
+          "text": "Your skin tends to feel drier, which can result in a tighter feeling and more visible texture. This type benefits from rich moisturizers and gentle, hydrating ingredients to support the skin barrier."
         },
         "Oily": {
-          "text": "Your skin produces more oil than average, typically resulting in a shinier appearance, especially in the T-zone. This resilient type can handle stronger ingredients but needs balanced hydration to avoid over-drying."
+          "text": "Your skin tends to feel oily, typically resulting in a shinier appearance, especially in the T-zone. This resilient type can handle stronger ingredients but needs balanced hydration to avoid over-drying."
         },
         "Combination": {
           "text": "Your skin shows characteristics of multiple types, typically oily in the T-zone and normal to dry on the cheeks. This type requires a targeted approach with different products for different facial areas."
@@ -92,7 +92,7 @@
           "careApproach": "Emphasize hydration and barrier repair with richer moisturizers"
         },
         "Oily": {
-          "description": "Your skin produces more oil than average, typically resulting in a shinier appearance, especially in the T-zone.",
+          "description": " Your skin produces more oil than average, typically resulting in a shinier appearance, especially in the T-zone.",
           "characteristics": "Larger pores, shiny appearance, more resilient to environmental factors",
           "careApproach": "Balance oil production without over-drying, use lightweight hydration"
         },
@@ -779,7 +779,7 @@
         "great": {
           "max": 90,
           "min": 81,
-          "text": "YMultiple fine lines or a few deep lines"
+          "text": "Multiple fine lines or a few deep lines"
         },
         "good": {
           "max": 80,
@@ -1585,7 +1585,7 @@
       "keyForLookup": "hydrationScore",
       "displayName": "Hydration",
       "associatedMetric": "Hydration score <70",
-      "overview": "Hydration refers to the skin's ability to retain and balance moisture, which is essential for maintaining a healthy, resilient barrier. Well-hydrated skin appears plump, smooth, and radiant, while dehydration can lead to dullness, rough texture, increased sensitivity, and the appearance of fine lines. Factors such as climate, skincare habits, diet, and age can all impact your skin's hydration levels.",
+      "overview": "Dewiness refers to the skin's ability to retain and balance moisture, which is essential for maintaining a healthy, resilient barrier. Well-moisturized skin appears plump, smooth, and radiant, while dryness can lead to dullness, rough texture, increased sensitivity, and the appearance of fine lines. Factors such as climate, skincare habits, diet, and age can all impact your skin's hydration levels.",
       "scoreLevels": {
         "excellent": {
           "max": 100,

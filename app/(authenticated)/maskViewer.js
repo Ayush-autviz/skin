@@ -287,15 +287,56 @@ export default function MaskViewerScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
 
   // Prepare mask data - filter out options with "Unknown" mask_img_url
-  const maskOptions = [
-    { skin_condition_name: 'none', mask_img_url: parsedPhotoData?.storageUrl, displayName: 'Original', image_url: parsedPhotoData?.maskImages[0]?.image_url },
-    ...(parsedPhotoData?.maskImages || [])
-      .filter(mask => mask.mask_img_url !== "Unknown")
-      .map((mask) => ({
-        ...mask,
-        displayName: formatConditionName(mask.skin_condition_name)
-      }))
-  ];
+  // const maskOptions = [
+  //   { skin_condition_name: 'none', mask_img_url: parsedPhotoData?.storageUrl, displayName: 'Original', image_url: parsedPhotoData?.maskImages[0]?.image_url },
+  //   ...(parsedPhotoData?.maskImages || [])
+  //     .filter(mask => mask.mask_img_url !== "Unknown")
+  //     .map((mask) => ({
+  //       ...mask,
+  //       displayName: formatConditionName(mask.skin_condition_name)
+  //     }))
+  // ];
+
+
+    // Prepare mask data - filter out options with "Unknown" mask_img_url and sort by desired order
+    const maskOptions = [
+      { skin_condition_name: 'none', mask_img_url: parsedPhotoData?.storageUrl, displayName: 'Original', image_url: parsedPhotoData?.maskImages[0]?.image_url },
+      ...(parsedPhotoData?.maskImages || [])
+        .filter(mask => mask.mask_img_url !== "Unknown")
+        .map((mask) => ({
+          ...mask,
+          displayName: formatConditionName(mask.skin_condition_name)
+        }))
+        .sort((a, b) => {
+          // Define the desired order for mask conditions
+          const order = [
+            'none',
+            'uniformness',
+            'pigmentation', 
+            'redness',
+            'pores',
+            'acne',
+            'lines',
+            'hydration',
+            'eye_bags'
+          ];
+          
+          const indexA = order.indexOf(a.skin_condition_name);
+          const indexB = order.indexOf(b.skin_condition_name);
+          
+          // If both are in the order array, sort by their position
+          if (indexA !== -1 && indexB !== -1) {
+            return indexA - indexB;
+          }
+          
+          // If only one is in the order array, prioritize it
+          if (indexA !== -1) return -1;
+          if (indexB !== -1) return 1;
+          
+          // If neither is in the order array, sort alphabetically
+          return a.skin_condition_name.localeCompare(b.skin_condition_name);
+        })
+    ];
 
   console.log('🔵 maskOptions:', maskOptions);
 
@@ -333,7 +374,7 @@ export default function MaskViewerScreen() {
       <SafeAreaView  style={styles.headerContainer}>
         <BlurView intensity={20} style={styles.header}>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Skin Analysis</Text>
+            <Text style={styles.headerTitle}>Face Mask</Text>
             <TouchableOpacity 
               style={styles.closeButton}
               onPress={() => router.back()}
