@@ -72,6 +72,8 @@ export default function ThreadChatScreen() {
   const initialMessage = params.initialMessage;
   const imageId = params.imageId;
 
+  console.log("🔵 ThreadChatScreen - params:", params);
+
   // State
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -120,7 +122,7 @@ export default function ThreadChatScreen() {
     try {
       setIsInitializing(true);
       setError(null);
-
+      console.log("🔵 initializeChat", chatType, imageId, initialMessage);
       // Special handling for snapshot_feedback type
       if (chatType === 'snapshot_feedback' && imageId) {
         await loadExistingChatHistory();

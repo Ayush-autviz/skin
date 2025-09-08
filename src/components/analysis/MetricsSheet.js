@@ -619,7 +619,7 @@ const MetricsSheet = forwardRef(({
                 pathname: '/(authenticated)/threadChat',
                 params: {
                   chatType: 'snapshot_feedback',
-                  imageId: photoData?.image_id,
+                  imageId: photoData?.imageId,
                   initialMessage: summary
                 }
               });

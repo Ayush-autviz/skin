@@ -561,22 +561,22 @@
         "excellent": {
           "max": 100,
           "min": 91,
-          "text": "Relatively good skin condition (uniform texture)"
+          "text": "Excellent skin condition (uniform texture)"
         },
         "great": {
           "max": 90,
           "min": 81,
-          "text": "Relatively good skin condition (uniform texture)"
+          "text": "Very Good skin condition (uniform texture)"
         },
         "good": {
           "max": 80,
           "min": 71,
-          "text": "Visible skin texture non‑uniformness"
+          "text": "Moderate visible skin texture non‑uniformness"
         },
         "average": {
           "max": 70,
           "min": 51,
-          "text": "Visible skin texture non‑uniformness"
+          "text": "Significant visible skin texture non‑uniformness"
         },
         "poor": {
           "max": 50,
@@ -1701,14 +1701,14 @@
       "keyForLookup": "eyeAreaCondition",
       "displayName": "Eye Area Condition",
       "overview": "Your eye area condition score reflects the overall health of the skin around your eyes, including lines, puffiness, and dark circles. This metric provides a holistic view of the eye area's skin quality, which is often the first to show signs of aging and fatigue.",
-      "maskVerbiage": ["The red zones highlight detected dark circles under the eyes", "The blue zones highlight detected puffiness or eye bags", "The green zones highlight detected lacrimal groove areas"],
+      "maskVerbiage": ["The green zones highlight detected dark circles under the eyes", "The yellow zones highlight detected puffiness or eye bags", "The white zones highlight detected lacrimal groove areas"],
       "scoreLevels": {
-        "excellent": { "max": 100, "min": 90, "text": "Relatively good eye area skin condition"},
-        "great": { "max": 89, "min": 80, "text": "Relatively good eye area skin condition"},
+        "excellent": { "max": 100, "min": 91, "text": "Excellent eye area skin condition"},
+        "great": { "max": 90, "min": 81, "text": "Very good eye area skin condition"},
         "good": { "max": 79, "min": 70, "text": "Moderately concerning eye area skin condition"},
         "average": { "max": 69, "min": 50, "text": "Moderately concerning eye area skin condition"},
-        "poor": { "max": 49, "min": 30, "text": "Alerting eye area condition; may require specialist attention"},
-        "bad": { "max": 29, "min": 0, "text": "Alerting eye area condition; may require specialist attention"}
+        "poor": { "max": 49, "min": 30, "text": "Significant concerns regarding eye area condition; may require specialist attention"},
+        "bad": { "max": 29, "min": 0, "text": "Significant concerns regarding eye area condition; may require specialist attention"}
       },
       "whatYouCanDo": [
         {

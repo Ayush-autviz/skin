@@ -4,7 +4,7 @@
 import axios from "axios";
 import useAuthStore from "../stores/authStore";
 
-const BASE_URL = "http://44.198.183.94:9000/api/v1";
+const BASE_URL = "http://44.198.183.94:8000/api/v1";
 
 // Create axios instance with enhanced configuration
 const apiClient = axios.create({
