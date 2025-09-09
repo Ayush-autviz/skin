@@ -1490,7 +1490,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   label: {
     fontSize: 16,
@@ -1525,13 +1525,13 @@ const styles = StyleSheet.create({
   chipButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 25,
     borderWidth: 2,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
-    minHeight: 52,
+    //minHeight: 52,
     gap: 10,
     shadowColor: '#000',
     shadowOffset: {
@@ -1646,7 +1646,7 @@ const styles = StyleSheet.create({
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+  //  marginBottom: 16,
   },
   checkbox: {
     width: 20,
@@ -1705,16 +1705,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
   stepContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   stepCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1734,16 +1734,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   stepLine: {
-    width: 40,
+    width: 24,
     height: 2,
     backgroundColor: '#E5E7EB',
-    marginHorizontal: 8,
+    marginHorizontal: 4,
   },
   stepLineActive: {
     backgroundColor: colors.primary,
   },
   stepContent: {
-    minHeight: 300,
+    //minHeight: 300,
   },
   stepTitle: {
     fontSize: 24,
