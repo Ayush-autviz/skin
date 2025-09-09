@@ -1,6 +1,6 @@
-projectKey=magic_mirror
+projectKey=adminPanel
 serverUrl=http://127.0.0.1:9000
 serverVersion=25.6.0.109173
-dashboardUrl=http://127.0.0.1:9000/dashboard?id=magic_mirror
-ceTaskId=4a9633cd-b9bf-4b6f-8cf5-9e42b37bf743
-ceTaskUrl=http://127.0.0.1:9000/api/ce/task?id=4a9633cd-b9bf-4b6f-8cf5-9e42b37bf743
+dashboardUrl=http://127.0.0.1:9000/dashboard?id=adminPanel
+ceTaskId=a703f51d-3a6c-4eab-960c-f2c52e9d11a1
+ceTaskUrl=http://127.0.0.1:9000/api/ce/task?id=a703f51d-3a6c-4eab-960c-f2c52e9d11a1

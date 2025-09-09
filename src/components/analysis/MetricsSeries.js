@@ -118,6 +118,7 @@ import { useRouter } from 'expo-router'; // Import router
 import { getImageChatSummary } from '../../services/chatApiService';
 import { colors } from '../../styles';
 import useAuthStore from '../../stores/authStore';
+import { ChevronRightIcon } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 const DATE_CARD_WIDTH = 115;  // 100 * 1.15 = 115 (15% increase)
@@ -145,10 +146,10 @@ const METRIC_LABELS = {
   eyeAreaCondition: 'Eye Area Condition',
   linesScore: 'Lines',
   pigmentationScore: 'Pigmentation',
-  poresScore: 'Pores',
-  hydrationScore: 'Hydration',
+  poresScore: 'Visible Pores',
+  hydrationScore: 'Dewiness',
   uniformnessScore: 'Evenness',
-  eyeAge: 'Eye Age',
+  eyeAge: 'Perceived Eye Age',
   perceivedAge: 'Perceived Age'
 };
 
@@ -236,6 +237,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onLongPress }) =
   
   const isSelected = index === selectedIndex;
   const scaleAnim = useRef(new Animated.Value(1)).current; // Animated value for scale
+  const [showHint, setShowHint] = useState(false);
 
   // Animate scale based on isSelected changes
   useEffect(() => {
@@ -245,6 +247,25 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onLongPress }) =
       useNativeDriver: true, // Use native driver for performance
     }).start();
   }, [isSelected, scaleAnim]);
+
+  // Show hint after a short delay for first-time users
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowHint(true);
+    }, 2000); // Show hint after 2 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Keep hint visible - only hide on long press
+  const handlePress = () => {
+    onPress();
+  };
+
+  const handleLongPress = () => {
+    setShowHint(false);
+    onLongPress?.(photo, index);
+  };
 
   // Date formatting - use created_at field from API response
   let date;
@@ -273,8 +294,8 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onLongPress }) =
     // Apply animated scale to TouchableOpacity
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}> 
       <TouchableOpacity 
-        onPress={onPress}
-        onLongPress={() => onLongPress?.(photo, index)}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
         // Apply conditional styles: base + selected (shadows, border, zIndex)
         style={[ 
           styles.photoThumbCard, 
@@ -292,6 +313,13 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onLongPress }) =
             memoryCachePolicy="memory-only"
             priority="high"
           />
+          
+          {/* Long Press Hint Overlay */}
+          {showHint && !isSelected && (
+            <View style={styles.longPressHint}>
+              <Text style={styles.hintText}>Hold for details</Text>
+            </View>
+          )}
         </View>
         <View style={styles.thumbDateContainer}> 
           <Text style={[styles.thumbDateText, isSelected && styles.selectedThumbDateText]}>
@@ -614,7 +642,9 @@ const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScr
     <View style={styles.card}>
       {/* Title Section with average and percentage change */}
       <View style={styles.titleRow}>
-        <TouchableOpacity onPress={() => {
+        <TouchableOpacity
+        style={{flexDirection: 'row', alignItems: 'center'}}
+        onPress={() => {
   // Navigate to metric detail with proper parameters
   if (selectedIndex !== null && photos[selectedIndex]) {
     const selectedPhoto = photos[selectedIndex];
@@ -658,6 +688,7 @@ const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScr
   }
 }}>
           <Text style={styles.categoryText}>{METRIC_LABELS[metric.metricName] || metric.metricName}</Text>
+          <ChevronRightIcon size={16} color="#8B7355" strokeWidth={3}/>
         </TouchableOpacity>
         <View style={styles.metricStatsContainer}>
           {mockAverage !== null && (
@@ -1418,6 +1449,29 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     alignItems: 'flex-end',
     marginLeft: 24,
+  },
+  
+  // Long Press Hint Styles
+  longPressHint: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  hintText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
 

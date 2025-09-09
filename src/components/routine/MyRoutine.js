@@ -59,6 +59,29 @@ const staticAiMessages = [
     }
 ];
 
+// Define concerns options
+const concernsOptions = [
+    'Evenness',
+    'Redness', 
+    'Visible Pores',
+    'Lines',
+    'Eye Area',
+    'Condition',
+    'Skin Type',
+    'Skin Tone',
+    'Perceived Age',
+    'Perceived Eye Age'
+];
+
+// Define stop reasons
+const stopReasons = [
+    'Not effective',
+    'Doesn\'t feel right',
+    'Allergy',
+    'Too expensive',
+    'Other'
+];
+
 // Helper function to calculate usage duration
 const calculateUsageDuration = (dateStarted) => {
   let start;
@@ -111,8 +134,12 @@ const MyRoutine = forwardRef((props, ref) => {
   const [newItemFrequency, setNewItemFrequency] = useState('Daily');
   const [newItemDateStarted, setNewItemDateStarted] = useState(null);
   const [newItemDateStopped, setNewItemDateStopped] = useState(null);
+  const [newItemConcerns, setNewItemConcerns] = useState([]);
+  const [isStopped, setIsStopped] = useState(false);
+  const [stopReason, setStopReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
 
   // State for Date Pickers
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -145,19 +172,23 @@ const MyRoutine = forwardRef((props, ref) => {
     const typeMap = {
       'product': 'Product',
       'activity': 'Activity', 
-      'nutrition': 'Nutrition'
+      'nutrition': 'Nutrition',
+      'treatment_facial': 'Treatment / Facial',
+      'treatment_injection': 'Treatment / Injection',
+      'treatment_other': 'Treatment / Other'
     };
     
     const usageMap = {
       'am': 'AM',
       'pm': 'PM',
-      'both': 'Both'
+      'both': 'AM + PM',
+      'as_needed': 'As needed'
     };
     
     const frequencyMap = {
       'daily': 'Daily',
       'weekly': 'Weekly',
-      'as_needed': 'As Needed'
+      'as_needed': 'As needed'
     };
 
     return {
@@ -166,8 +197,10 @@ const MyRoutine = forwardRef((props, ref) => {
       type: typeMap[apiItem.type] || apiItem.type,
       usage: usageMap[apiItem.usage] || apiItem.usage,
       frequency: frequencyMap[apiItem.frequency] || apiItem.frequency,
+      concerns: apiItem.extra?.concerns || [],
       dateStarted: apiItem.extra?.dateStarted ? new Date(apiItem.extra.dateStarted) : null,
       dateStopped: apiItem.extra?.dateStopped ? new Date(apiItem.extra.dateStopped) : null,
+      stopReason: apiItem.extra?.stopReason || '',
       dateCreated: apiItem.extra?.dateCreated ? new Date(apiItem.extra.dateCreated) : new Date(),
       extra: apiItem.extra || {}
     };
@@ -330,6 +363,45 @@ const MyRoutine = forwardRef((props, ref) => {
     });
   };
 
+  // Toggle logic for concerns selection
+  const handleConcernToggle = (concern) => {
+    setNewItemConcerns(currentConcerns => {
+      const isSelected = currentConcerns.includes(concern);
+      if (isSelected) {
+        // Deselect: remove it from the array
+        return currentConcerns.filter(c => c !== concern);
+      } else {
+        // Select: add it to the array
+        return [...currentConcerns, concern];
+      }
+    });
+  };
+
+  // Step navigation functions
+  const nextStep = () => {
+    if (currentStep < 6) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const canProceedToNext = () => {
+    switch (currentStep) {
+      case 1: return newItemType; // Category selected
+      case 2: return newItemName.trim(); // Name entered
+      case 3: return newItemConcerns.length > 0; // At least one concern selected
+      case 4: return newItemFrequency; // Frequency selected
+      case 5: return newItemUsage.length > 0; // At least one usage time selected
+      case 6: return newItemDateStarted; // Start date selected
+      default: return true;
+    }
+  };
+
   // Date picker handlers
   const handleStartDateChange = (event, selectedDate) => {
    // setShowStartDatePicker(false);
@@ -394,6 +466,12 @@ const MyRoutine = forwardRef((props, ref) => {
       return;
     }
 
+    // Start date is now required
+    if (!newItemDateStarted) {
+      Alert.alert('Error', 'Please select a start date.');
+      return;
+    }
+
     // Validate dates if both are present
     if (newItemDateStarted && newItemDateStopped && newItemDateStopped < newItemDateStarted) {
       Alert.alert('Error', 'Stop date cannot be before start date.');
@@ -403,25 +481,29 @@ const MyRoutine = forwardRef((props, ref) => {
     let finalUsage = 'AM';
     const includesAM = newItemUsage.includes('AM');
     const includesPM = newItemUsage.includes('PM');
-    if (includesAM && includesPM) finalUsage = 'Both';
-    else if (includesPM) finalUsage = 'PM';
-    else if (includesAM) finalUsage = 'AM';
+    if (includesAM && includesPM) finalUsage = 'both';
+    else if (includesPM) finalUsage = 'pm';
+    else if (includesAM) finalUsage = 'am';
+    else if (newItemUsage.includes('As needed')) finalUsage = 'as_needed';
 
     // Format parameters for backend
     const formatParameter = (value) => {
       if (!value) return value;
-      // Capitalize first letter for frequency
-      if (value === 'Daily' || value === 'Weekly' || value === 'As Needed') {
-        return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+      // Handle frequency
+      if (value === 'Daily' || value === 'Weekly' || value === 'As needed') {
+        return value === 'As needed' ? 'as_needed' : value.toLowerCase();
       }
-      // Keep AM/PM as is (both capital letters)
-      if (value === 'AM' || value === 'PM' || value === 'Both') {
-        return value;
+      // Handle usage
+      if (value === 'AM' || value === 'PM' || value === 'AM + PM' || value === 'As needed') {
+        return value === 'AM + PM' ? 'both' : value === 'As needed' ? 'as_needed' : value.toLowerCase();
       }
-      // Capitalize first letter for Product, Activity, Nutrition
+      // Handle type
       if (value === 'Product' || value === 'Activity' || value === 'Nutrition') {
-        return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+        return value.toLowerCase();
       }
+      if (value === 'Treatment / Facial') return 'treatment_facial';
+      if (value === 'Treatment / Injection') return 'treatment_injection';
+      if (value === 'Treatment / Other') return 'treatment_other';
       return value;
     };
 
@@ -429,11 +511,13 @@ const MyRoutine = forwardRef((props, ref) => {
     const apiItemData = {
       name: newItemName.trim(),
       type: formatParameter(newItemType),
-      usage: formatParameter(finalUsage),
+      usage: finalUsage,
       frequency: formatParameter(newItemFrequency),
       extra: {
+        concerns: newItemConcerns,
         dateStarted: newItemDateStarted?.toISOString(),
         dateStopped: newItemDateStopped?.toISOString(),
+        stopReason: stopReason,
         dateCreated: editingItem?.dateCreated?.toISOString() || new Date().toISOString()
       }
     };
@@ -587,20 +671,23 @@ const MyRoutine = forwardRef((props, ref) => {
       return [];
     }
 
+    // Filter out stopped items for active routines
+    const activeItems = routineItems.filter(item => !item.dateStopped || new Date(item.dateStopped) > new Date());
+
     // Define desired order
-    const sectionOrder = ['Daily', 'Weekly', 'As Needed'];
+    const sectionOrder = ['Daily', 'Weekly', 'As needed'];
     const grouped = {
       'Daily': [],
       'Weekly': [],
-      'As Needed': [],
+      'As needed': [],
     };
 
-    routineItems.forEach(item => {
-      const freq = item.frequency || 'As Needed';
+    activeItems.forEach(item => {
+      const freq = item.frequency || 'As needed';
       if (grouped[freq]) {
         grouped[freq].push(item);
       } else {
-        grouped['As Needed'].push(item);
+        grouped['As needed'].push(item);
       }
     });
 
@@ -646,8 +733,10 @@ const MyRoutine = forwardRef((props, ref) => {
     setNewItemType(item.type || 'Product');
     
     // Handle usage conversion
-    if (item.usage === 'Both') {
+    if (item.usage === 'AM + PM' || item.usage === 'Both') {
       setNewItemUsage(['AM', 'PM']);
+    } else if (item.usage === 'As needed') {
+      setNewItemUsage(['As needed']);
     } else if (item.usage) {
       setNewItemUsage([item.usage]);
     } else {
@@ -655,6 +744,9 @@ const MyRoutine = forwardRef((props, ref) => {
     }
     
     setNewItemFrequency(item.frequency || 'Daily');
+    setNewItemConcerns(item.concerns || []);
+    setIsStopped(!!item.dateStopped);
+    setStopReason(item.stopReason || '');
 
     // Handle null dates - CustomDateInput expects Date objects or null
     setNewItemDateStarted(item.dateStarted || null);
@@ -672,8 +764,12 @@ const MyRoutine = forwardRef((props, ref) => {
     setNewItemFrequency('Daily');
     setNewItemDateStarted(null); 
     setNewItemDateStopped(null); 
+    setNewItemConcerns([]);
+    setIsStopped(false);
+    setStopReason('');
     setShowStopDatePicker(false);
     setShowStartDatePicker(false);
+    setCurrentStep(1);
   };
 
   // Update the openAddModalWithFrequency function with proper mapping
@@ -692,7 +788,7 @@ const MyRoutine = forwardRef((props, ref) => {
         mappedFrequency = 'Weekly';
         break;
       case 'as needed':
-        mappedFrequency = 'As Needed';
+        mappedFrequency = 'As needed';
         break;
       default:
         mappedFrequency = frequency; // fallback to original value
@@ -705,6 +801,10 @@ const MyRoutine = forwardRef((props, ref) => {
     setNewItemFrequency(mappedFrequency); // Use mapped frequency
     setNewItemDateStarted(null);
     setNewItemDateStopped(null);
+    setNewItemConcerns([]);
+    setIsStopped(false);
+    setStopReason('');
+    setCurrentStep(1);
   };
 
   // Also update the regular openAddModal function for consistency
@@ -719,6 +819,10 @@ const MyRoutine = forwardRef((props, ref) => {
     setNewItemFrequency('Daily');
     setNewItemDateStarted(null);
     setNewItemDateStopped(null);
+    setNewItemConcerns([]);
+    setIsStopped(false);
+    setStopReason('');
+    setCurrentStep(1);
   };
 
   // Update the renderSectionHeader function
@@ -822,6 +926,28 @@ const MyRoutine = forwardRef((props, ref) => {
         </View>
       ) : (
         <>
+        {/* Archived Section */}
+        {routineItems.some(item => item.dateStopped && new Date(item.dateStopped) <= new Date()) && (
+          <TouchableOpacity
+            style={styles.archivedSection}
+            onPress={() => router.push('/(authenticated)/archived-routines')}
+          >
+            <View style={styles.archivedContent}>
+              <MaterialCommunityIcons 
+                name="archive" 
+                size={20} 
+                color={colors.textSecondary} 
+              />
+              <Text style={styles.archivedText}>Previously used products</Text>
+              <MaterialCommunityIcons 
+                name="chevron-right" 
+                size={20} 
+                color={colors.textSecondary} 
+              />
+            </View>
+          </TouchableOpacity>
+        )}
+        
         <SectionList
           style={styles.sectionsList}
           sections={routineSections}
@@ -859,95 +985,57 @@ const MyRoutine = forwardRef((props, ref) => {
       <ModalBottomSheet
         isVisible={isModalVisible}
         onClose={closeModal}
-      //  title={editingItem ? "Edit Routine Item" : "Add to your routine"}
-        primaryActionLabel={editingItem ? "Update" : "Save"}
-        onPrimaryAction={handleSaveItem}
+        title={editingItem ? "Edit Routine Item" : "Add to your routine"}
+        primaryActionLabel={currentStep === 6 ? (editingItem ? "Update" : "Save") : "Next"}
+        onPrimaryAction={currentStep === 6 ? handleSaveItem : nextStep}
         isPrimaryActionLoading={isSaving}
-        isPrimaryActionDisabled={!newItemName.trim() || isSaving || isDeleting}
-        secondaryActionLabel="Cancel"
+        isPrimaryActionDisabled={!canProceedToNext() || isSaving || isDeleting}
+        secondaryActionLabel={currentStep === 1 ? "Cancel" : "Back"}
+        onSecondaryAction={currentStep === 1 ? closeModal : prevStep}
         destructiveActionLabel={editingItem ? "Delete Item" : undefined}
         onDestructiveAction={editingItem ? () => handleDeleteItemRequest(editingItem) : undefined}
       >
         <View style={styles.modalInputContainer}>
-          {/* Header with icon */}
-          {/* <View style={styles.modalHeader}> */}
-            {/* <View style={styles.modalHeaderIcon}>
-              <FlaskConical size={24} color="#8B7355" />
-            </View>
-            <Text style={styles.modalHeaderTitle}>
-              {editingItem ? "Edit Routine Item" : "Add to your routine"}
-            </Text> */}
-            {/* <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-              <X size={20} color="#6B7280" />
-            </TouchableOpacity> */}
-          {/* </View> */}
-
-          {/* Item Name Input with Icon */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Item Name</Text>
-            <View style={styles.inputWrapper}>
-              <FlaskConical 
-                size={20} 
-                color="#6B7280" 
-                style={styles.inputIcon} 
-              />
-              <TextInput
-                style={styles.textInput}
-                placeholder="What do you use or do?"
-                value={newItemName}
-                onChangeText={setNewItemName}
-                placeholderTextColor="#9CA3AF"
-                autoFocus={true}
-                returnKeyType="next"
-              />
-            </View>
+          {/* Step Indicator */}
+          <View style={styles.stepIndicator}>
+            {[1, 2, 3, 4, 5, 6].map((step) => (
+              <View key={step} style={styles.stepContainer}>
+                <View style={[
+                  styles.stepCircle,
+                  currentStep >= step && styles.stepCircleActive
+                ]}>
+                  <Text style={[
+                    styles.stepText,
+                    currentStep >= step && styles.stepTextActive
+                  ]}>
+                    {step}
+                  </Text>
+                </View>
+                {step < 6 && (
+                  <View style={[
+                    styles.stepLine,
+                    currentStep > step && styles.stepLineActive
+                  ]} />
+                )}
+              </View>
+            ))}
           </View>
 
-          {/* Item Type Selector */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Category</Text>
-            <View style={styles.chipSelectorContainer}>
-              {[
-                { name: 'Product', icon: FlaskConical, color: '#8B7355' },
-                { name: 'Activity', icon: Dumbbell, color: '#009688' },
-                { name: 'Nutrition', icon: Apple, color: '#FF6B35' }
-              ].map(({ name, icon: Icon, color }) => {
-                const isActive = newItemType === name;
-                
-                return (
-                  <TouchableOpacity
-                    key={name}
-                    style={[
-                      styles.chipButton,
-                      isActive && styles.chipButtonActive
-                    ]}
-                    onPress={() => setNewItemType(name)}
-                  >
-                    <Icon 
-                      size={20} 
-                      color={isActive ? '#FFFFFF' : '#6B7280'} 
-                    />
-                    <Text style={[
-                      styles.chipButtonText,
-                      isActive && styles.chipButtonTextActive
-                    ]}>
-                      {name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-                      {/* Usage Time Selector */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Time of Day</Text>
+          {/* Step 1: Category Selection */}
+          {currentStep === 1 && (
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>What category is this?</Text>
+              <Text style={styles.stepSubtitle}>Choose the type of item you want to add</Text>
               <View style={styles.chipSelectorContainer}>
                 {[
-                  { name: 'AM', icon: Sun, color: '#F59E0B' },
-                  { name: 'PM', icon: Moon, color: '#6366F1' }
+                  { name: 'Product', icon: FlaskConical, color: '#8B7355' },
+                  { name: 'Activity', icon: Dumbbell, color: '#009688' },
+                  { name: 'Nutrition', icon: Apple, color: '#FF6B35' },
+                  { name: 'Treatment / Facial', icon: FlaskConical, color: '#8B7355' },
+                  { name: 'Treatment / Injection', icon: FlaskConical, color: '#8B7355' },
+                  { name: 'Treatment / Other', icon: FlaskConical, color: '#8B7355' }
                 ].map(({ name, icon: Icon, color }) => {
-                  const isActive = newItemUsage.includes(name);
+                  const isActive = newItemType === name;
                   
                   return (
                     <TouchableOpacity
@@ -956,7 +1044,7 @@ const MyRoutine = forwardRef((props, ref) => {
                         styles.chipButton,
                         isActive && styles.chipButtonActive
                       ]}
-                      onPress={() => handleUsageToggle(name)}
+                      onPress={() => setNewItemType(name)}
                     >
                       <Icon 
                         size={20} 
@@ -973,15 +1061,75 @@ const MyRoutine = forwardRef((props, ref) => {
                 })}
               </View>
             </View>
+          )}
 
-                      {/* Frequency Selector */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Frequency</Text>
+          {/* Step 2: Name Input */}
+          {currentStep === 2 && (
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>What's the name?</Text>
+              <Text style={styles.stepSubtitle}>
+                Enter the name of your {newItemType.toLowerCase()}
+              </Text>
+              <View style={styles.inputWrapper}>
+                <FlaskConical 
+                  size={20} 
+                  color="#6B7280" 
+                  style={styles.inputIcon} 
+                />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder={`Enter ${newItemType.toLowerCase()} name`}
+                  value={newItemName}
+                  onChangeText={setNewItemName}
+                  placeholderTextColor="#9CA3AF"
+                  autoFocus={true}
+                  returnKeyType="next"
+                />
+              </View>
+            </View>
+          )}
+
+          {/* Step 3: Concerns Selection */}
+          {currentStep === 3 && (
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>Why are you starting this?</Text>
+              <Text style={styles.stepSubtitle}>Select all concerns that apply (you can choose multiple)</Text>
+              <View style={styles.chipSelectorContainer}>
+                {concernsOptions.map((concern) => {
+                  const isActive = newItemConcerns.includes(concern);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={concern}
+                      style={[
+                        styles.chipButton,
+                        isActive && styles.chipButtonActive
+                      ]}
+                      onPress={() => handleConcernToggle(concern)}
+                    >
+                      <Text style={[
+                        styles.chipButtonText,
+                        isActive && styles.chipButtonTextActive
+                      ]}>
+                        {concern}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Step 4: Frequency Selection */}
+          {currentStep === 4 && (
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>How often do you use it?</Text>
+              <Text style={styles.stepSubtitle}>Select the frequency of usage</Text>
               <View style={styles.chipSelectorContainer}>
                 {[
                   { name: 'Daily', icon: CheckCircle, color: '#10B981' },
                   { name: 'Weekly', icon: CalendarDays, color: '#3B82F6' },
-                  { name: 'As Needed', icon: HelpCircle, color: '#8B5CF6' }
+                  { name: 'As needed', icon: HelpCircle, color: '#8B5CF6' }
                 ].map(({ name, icon: Icon, color }) => {
                   const isActive = newItemFrequency === name;
                   
@@ -1009,75 +1157,165 @@ const MyRoutine = forwardRef((props, ref) => {
                 })}
               </View>
             </View>
-
-                      {/* Start Date Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Start Date (Optional)</Text>
-              <View style={styles.inputWrapper}>
-                <Calendar 
-                  size={20} 
-                  color="#6B7280" 
-                  style={styles.inputIcon} 
-                />
-                <TouchableOpacity
-                  style={styles.dateInputButton}
-                  onPress={() => setShowStartDatePicker(!showStartDatePicker)}
-                >
-                  <Text style={[styles.dateText, !newItemDateStarted && styles.dateTextPlaceholder]}>
-                    {newItemDateStarted ? newItemDateStarted.toDateString() : 'Select start date'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-          {showStartDatePicker && (
-            <DateTimePicker
-              value={newItemDateStarted || new Date()}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleStartDateChange}
-              maximumDate={new Date()}
-              minimumDate={new Date(new Date().getFullYear() - 10, 0, 1)}
-              textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
-              style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
-              themeVariant="light"
-            />
           )}
 
-                      {/* Stop Date Input */}
-            <View >
-              <Text style={styles.label}>Stop Date (Optional)</Text>
-              <View style={styles.inputWrapper}>
-                <CalendarX 
-                  size={20} 
-                  color="#6B7280" 
-                  style={styles.inputIcon} 
-                />
-                <TouchableOpacity
-                  style={styles.dateInputButton}
-                  onPress={() => setShowStopDatePicker(!showStopDatePicker)}
-                >
-                  <Text style={[styles.dateText, !newItemDateStopped && styles.dateTextPlaceholder]}>
-                    {newItemDateStopped ? newItemDateStopped.toDateString() : 'Select stop date'}
-                  </Text>
-                </TouchableOpacity>
+          {/* Step 5: Time of Day Selection */}
+          {currentStep === 5 && (
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>When do you use it?</Text>
+              <Text style={styles.stepSubtitle}>Select the time of day (you can choose multiple)</Text>
+              <View style={styles.chipSelectorContainer}>
+                {[
+                  { name: 'AM', icon: Sun, color: '#F59E0B' },
+                  { name: 'PM', icon: Moon, color: '#6366F1' },
+                  { name: 'As needed', icon: HelpCircle, color: '#8B5CF6' }
+                ].map(({ name, icon: Icon, color }) => {
+                  const isActive = newItemUsage.includes(name);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={name}
+                      style={[
+                        styles.chipButton,
+                        isActive && styles.chipButtonActive
+                      ]}
+                      onPress={() => handleUsageToggle(name)}
+                    >
+                      <Icon 
+                        size={20} 
+                        color={isActive ? '#FFFFFF' : '#6B7280'} 
+                      />
+                      <Text style={[
+                        styles.chipButtonText,
+                        isActive && styles.chipButtonTextActive
+                      ]}>
+                        {name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
-
-          {showStopDatePicker && (
-            <DateTimePicker
-              value={newItemDateStopped || new Date()}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleStopDateChange}
-              maximumDate={new Date()}
-              minimumDate={newItemDateStarted || new Date(new Date().getFullYear() - 10, 0, 1)}
-              textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
-              style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
-              themeVariant="light"
-            />
           )}
 
+          {/* Step 6: Start Date and Optional Stop Date */}
+          {currentStep === 6 && (
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>When did you start?</Text>
+              <Text style={styles.stepSubtitle}>Select your start date (required)</Text>
+              
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Calendar 
+                    size={20} 
+                    color="#6B7280" 
+                    style={styles.inputIcon} 
+                  />
+                  <TouchableOpacity
+                    style={styles.dateInputButton}
+                    onPress={() => setShowStartDatePicker(!showStartDatePicker)}
+                  >
+                    <Text style={[styles.dateText, !newItemDateStarted && styles.dateTextPlaceholder]}>
+                      {newItemDateStarted ? newItemDateStarted.toDateString() : 'Select start date'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {showStartDatePicker && (
+                <DateTimePicker
+                  value={newItemDateStarted || new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handleStartDateChange}
+                  maximumDate={new Date()}
+                  minimumDate={new Date(new Date().getFullYear() - 10, 0, 1)}
+                  textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
+                  style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
+                  themeVariant="light"
+                />
+              )}
+
+              {/* Stopped Checkbox */}
+              <View style={styles.inputContainer}>
+                <TouchableOpacity
+                  style={styles.checkboxContainer}
+                  onPress={() => setIsStopped(!isStopped)}
+                >
+                  <View style={[styles.checkbox, isStopped && styles.checkboxChecked]}>
+                    {isStopped && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.checkboxLabel}>Stopped using it</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Stop Date - Only show if stopped */}
+              {isStopped && (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>When did you stop?</Text>
+                  <View style={styles.inputWrapper}>
+                    <CalendarX 
+                      size={20} 
+                      color="#6B7280" 
+                      style={styles.inputIcon} 
+                    />
+                    <TouchableOpacity
+                      style={styles.dateInputButton}
+                      onPress={() => setShowStopDatePicker(!showStopDatePicker)}
+                    >
+                      <Text style={[styles.dateText, !newItemDateStopped && styles.dateTextPlaceholder]}>
+                        {newItemDateStopped ? newItemDateStopped.toDateString() : 'Select stop date'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {showStopDatePicker && (
+                <DateTimePicker
+                  value={newItemDateStopped || new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handleStopDateChange}
+                  maximumDate={new Date()}
+                  minimumDate={newItemDateStarted || new Date(new Date().getFullYear() - 10, 0, 1)}
+                  textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
+                  style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
+                  themeVariant="light"
+                />
+              )}
+
+              {/* Stop Reason - Only show if stopped */}
+              {isStopped && (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Why did you stop using it?</Text>
+                  <View style={styles.chipSelectorContainer}>
+                    {stopReasons.map((reason) => {
+                      const isActive = stopReason === reason;
+                      
+                      return (
+                        <TouchableOpacity
+                          key={reason}
+                          style={[
+                            styles.chipButton,
+                            isActive && styles.chipButtonActive
+                          ]}
+                          onPress={() => setStopReason(reason)}
+                        >
+                          <Text style={[
+                            styles.chipButtonText,
+                            isActive && styles.chipButtonTextActive
+                          ]}>
+                            {reason}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
         </View>
       </ModalBottomSheet>
     </View>
@@ -1282,26 +1520,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    justifyContent: 'center',
   },
   chipButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    borderWidth: 2,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
-    minHeight: 48,
-    gap: 8,
+    minHeight: 52,
+    gap: 10,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   chipButtonActive: {
     backgroundColor: '#8B7355',
@@ -1316,13 +1555,13 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   chipButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6B7280',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   chipButtonTextActive: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   dateInputButton: {
     flex: 1,
@@ -1403,5 +1642,121 @@ const styles = StyleSheet.create({
   arrowIcon: {
     fontSize: 16,
     marginLeft: 8,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#8B7355',
+    borderRadius: 4,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#8B7355',
+  },
+  checkmark: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: '#1F2937',
+    fontWeight: '500',
+  },
+  archivedSection: {
+    backgroundColor: colors.white,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    marginTop: 5,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  archivedContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  archivedText: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: '500',
+    marginLeft: 12,
+  },
+  stepIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
+    paddingHorizontal: 20,
+  },
+  stepContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stepCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  stepCircleActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  stepText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  stepTextActive: {
+    color: '#FFFFFF',
+  },
+  stepLine: {
+    width: 40,
+    height: 2,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 8,
+  },
+  stepLineActive: {
+    backgroundColor: colors.primary,
+  },
+  stepContent: {
+    minHeight: 300,
+  },
+  stepTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  stepSubtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: 32,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 }); 
