@@ -1715,6 +1715,18 @@ export const createRoutineItem = async (itemData) => {
     formData.append("type", itemData.type.toLowerCase());
     formData.append("usage", itemData.usage.toLowerCase());
     formData.append("frequency", itemData.frequency.toLowerCase().replace(" ", "_"));
+    
+    // Add new fields for updated API
+    if (itemData.concern && Array.isArray(itemData.concern)) {
+      formData.append("concern", JSON.stringify(itemData.concern));
+    }
+    if (itemData.start_date) {
+      formData.append("start_date", itemData.start_date);
+    }
+    if (itemData.end_date) {
+      formData.append("end_date", itemData.end_date);
+    }
+    
     formData.append("extra", JSON.stringify(itemData.extra || {}));
 
     const response = await apiClient.post("/routine/", formData, {
@@ -1763,6 +1775,18 @@ export const updateRoutineItem = async (itemId, itemData) => {
     formData.append("type", itemData.type.toLowerCase());
     formData.append("usage", itemData.usage.toLowerCase());
     formData.append("frequency", itemData.frequency.toLowerCase().replace(" ", "_"));
+    
+    // Add new fields for updated API
+    if (itemData.concern && Array.isArray(itemData.concern)) {
+      formData.append("concern", JSON.stringify(itemData.concern));
+    }
+    if (itemData.start_date) {
+      formData.append("start_date", itemData.start_date);
+    }
+    if (itemData.end_date) {
+      formData.append("end_date", itemData.end_date);
+    }
+    
     formData.append("extra", JSON.stringify(itemData.extra || {}));
 
     const response = await apiClient.patch(`/routine/${itemId}`, formData, {

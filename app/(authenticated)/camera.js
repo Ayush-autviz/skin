@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Button, ActivityIndicator, Alert, Linking, Image, Dimensions } from 'react-native';
-import { Camera, CameraType, useCameraPermissions } from 'expo-camera';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Linking, Dimensions } from 'react-native';
+import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { router } from 'expo-router';
-import { CameraView } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import useAuthStore from '../../src/stores/authStore';
 import Svg, { Path, Defs, Mask, Rect } from 'react-native-svg';
@@ -151,20 +150,28 @@ const FaceOverlay = () => {
 };
 
 export default function CameraScreen() {
-  // Only the hooks we actually use
   const { user } = useAuthStore();
-  const [hasPermission, setHasPermission] = useState(null);
-  const [camera, setCamera] = useState(null);
-  const [isCameraActive, setIsCameraActive] = useState(true);
-  const [facing, setFacing] = useState('front');
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const device = useCameraDevice('front');
+  const cameraRef = useRef(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    console.log('📸 Camera screen loaded');
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
-  }, []);
+    console.log('📸 Vision Camera screen loaded');
+
+    // Request permission if not granted
+    if (!hasPermission) {
+      requestPermission();
+    }
+
+    // Set initializing to false after a short delay to show proper loading state
+    const timer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [hasPermission, requestPermission]);
 
   // Monitor authentication state
   useEffect(() => {
@@ -173,55 +180,99 @@ export default function CameraScreen() {
       uid: user?.user_id,
       email: user?.email
     });
-    
-    // Test API connection if user is authenticated
-    if (user?.user_id) {
-      testUserRegistration(user.user_id, user.email);
-    }
   }, [user]);
 
-  // Test if user is properly registered in external API
-  const testUserRegistration = async (userId, userEmail) => {
-    try {
-      console.log('🔵 TEST: Testing user registration in external API');
-      
-              // Try to create user subject (this will fail if user already exists, which is fine)
-        // const { subjectId } = await createUserSubject(userId, userEmail);
-        console.log('✅ TEST: User registration check skipped (already registered)');
-      
-    } catch (error) {
-      if (error.message.includes('already exists') || error.message.includes('duplicate')) {
-        console.log('✅ TEST: User already exists in external API (this is expected)');
-      } else {
-        console.error('🔴 TEST: User registration test failed:', error);
-        Alert.alert(
-          'API Connection Issue', 
-          'Unable to connect to analysis service. Please check your internet connection and try again.',
-          [
-            { text: 'OK', onPress: () => console.log('User acknowledged API issue') }
-          ]
-        );
-      }
-    }
-  };
-
-  // Add cleanup effect
-  useEffect(() => {
-    return () => {
-      // Ensure shutdown is called on unmount
-      (async () => {
-         await shutdownCamera();
-      })();
-    };
+  // Camera ready callback
+  const onCameraReady = useCallback(() => {
+    console.log('✅ VISION CAMERA: Camera is ready');
+    setIsCameraReady(true);
   }, []);
 
-  // Add debug logs
-  //console.log('🔵 CAMERA: hasPermission:', hasPermission);
-  //console.log('🔵 CAMERA: isCameraActive:', isCameraActive);
+  // Show loading state while checking permissions or initializing
+  if (isInitializing || !hasPermission) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.message}>
+          {isInitializing ? 'Initializing camera...' : 'Requesting camera permission...'}
+        </Text>
+        {!hasPermission && (
+          <TouchableOpacity
+            style={styles.button}
+            onPress={requestPermission}
+          >
+            <Text style={styles.buttonText}>Grant Camera Access</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
 
-  // Wait for permission check
-  if (hasPermission === null) {
-    return null;
+  // Handle denied permission
+  if (hasPermission === false) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.message}>Camera access denied</Text>
+        <Text style={styles.debugText}>
+          Please grant camera permission to use this feature
+        </Text>
+        <View style={styles.permissionButtonContainer}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => Linking.openSettings()}
+          >
+            <Text style={styles.buttonText}>Open Settings</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.replace('/')}
+          >
+            <Text style={styles.buttonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Check if device is available
+  if (!device) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.message}>No camera device available</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.replace('/')}
+        >
+          <Text style={styles.buttonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Check if user is authenticated
+  if (!user?.user_id) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.message}>Authentication Required</Text>
+        <Text style={styles.debugText}>
+          Please sign in to use the camera
+        </Text>
+        <View style={styles.permissionButtonContainer}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.replace('/auth/sign-in')}
+          >
+            <Text style={styles.buttonText}>Sign In</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.replace('/')}
+          >
+            <Text style={styles.buttonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   }
 
   // Handle denied permission
@@ -280,20 +331,8 @@ export default function CameraScreen() {
     );
   }
 
-  const shutdownCamera = async () => {
-    setIsCameraActive(false);
-    if (camera) {
-      try {
-        await camera.pausePreview();
-      } catch (e) {
-        console.error('🔴 CAMERA: Error during pausePreview():', e);
-      }
-      setCamera(null);
-    }
-  };
-
   // Shared function for processing photos with Haut.ai API
-  const processPhoto = async (photo) => {
+  const processPhoto = useCallback(async (photo) => {
     try {
       // Get user ID from Zustand store
       if (!user?.user_id) {
@@ -305,56 +344,52 @@ export default function CameraScreen() {
 
       const userId = user.user_id;
       console.log('🔵 PROCESS: User ID found:', userId);
-      
+
       const photoId = `${Date.now()}`;
-      
-      await shutdownCamera();
-      await new Promise(resolve => setTimeout(resolve, 200)); 
-      
+
       // Navigate to snapshot screen immediately with photo data
-      // The snapshot screen will handle Haut.ai API processing and polling for results
-      router.push({ 
-        pathname: '/(authenticated)/snapshot', 
-        params: { 
-          photoId, 
-          localUri: photo.uri,
+      router.push({
+        pathname: '/(authenticated)/snapshot',
+        params: {
+          photoId,
+          localUri: photo.path,
           userId: userId,
           timestamp: new Date().toISOString()
-        } 
+        }
       });
 
       console.log('✅ PROCESS: Navigated to snapshot screen for Haut.ai processing');
-      
+
     } catch (error) {
       console.error('🔴 PROCESS ERROR (General):', error);
       Alert.alert('Error', `Failed to process photo: ${error.message}`);
     }
-  };
+  }, [user]);
 
-  // Update capture handler to use shared function
-  const handleCapture = async () => {
-    if (!camera) {
+  // Capture handler for Vision Camera
+  const handleCapture = useCallback(async () => {
+    if (!cameraRef.current || !isCameraReady) {
+      console.log('🔴 VISION CAMERA: Camera not ready for capture');
+      Alert.alert('Camera Not Ready', 'Please wait for the camera to initialize.');
       return;
     }
 
     try {
-      const photo = await camera.takePictureAsync({
-        quality: 0.7,
-        base64: true,
-        exif: false
+      console.log('📸 VISION CAMERA: Taking picture...');
+      const photo = await cameraRef.current.takePhoto({
+        qualityPrioritization: 'speed',
+        flash: 'off',
+        enableShutterSound: false
       });
 
-      // Use the shared processing function
+      console.log('✅ VISION CAMERA: Photo captured successfully:', photo.path);
       await processPhoto(photo);
 
     } catch (error) {
-      console.error('🔴 CAMERA ERROR:', error.message);
-      console.error('🔴 CAMERA ERROR Stack:', error.stack);
+      console.error('🔴 VISION CAMERA ERROR:', error.message);
       Alert.alert('Error', 'Failed to capture photo. Please try again.');
-      // Ensure camera is reactivated if processPhoto failed early
-      setIsCameraActive(true); 
     }
-  };
+  }, [isCameraReady, processPhoto]);
 
   // Update handleUpload to use shared function
   const handleUpload = async () => {
@@ -412,44 +447,49 @@ export default function CameraScreen() {
   
   return (
     <View style={styles.container}>
-      {isCameraActive ? (
-        <>
-          <CameraView 
-            ref={ref => setCamera(ref)}
-            style={styles.camera}
-            facing={facing}
-            active={isCameraActive}
-          />
-          <FaceOverlay />
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={styles.textButton}
-              onPress={async () => {
-                await shutdownCamera();
-                router.back();
-              }}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.captureButton}
-              onPress={handleCapture}
-            >
-              <View style={styles.captureButtonInner} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.textButton}
-              onPress={handleUpload}
-            >
-              <Text style={styles.buttonText}>Upload</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      ) : (
-        <View style={[styles.container, { backgroundColor: 'black' }]} />
+      <Camera
+        ref={cameraRef}
+        style={styles.camera}
+        device={device}
+        isActive={true}
+        photo={true}
+        onInitialized={onCameraReady}
+        onError={(error) => {
+          console.error('🔴 VISION CAMERA: Camera error:', error);
+          Alert.alert('Camera Error', 'Failed to initialize camera');
+        }}
+      />
+      <FaceOverlay />
+      {/* Show loading overlay while camera is initializing */}
+      {!isCameraReady && (
+        <View style={styles.cameraLoadingOverlay}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.cameraLoadingText}>Preparing camera...</Text>
+        </View>
       )}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.textButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.buttonText}>Cancel</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.captureButton, !isCameraReady && styles.captureButtonDisabled]}
+          onPress={handleCapture}
+          disabled={!isCameraReady}
+        >
+          <View style={styles.captureButtonInner} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.textButton}
+          onPress={handleUpload}
+        >
+          <Text style={styles.buttonText}>Upload</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -537,6 +577,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     fontFamily: 'monospace',
+  },
+  cameraLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraLoadingText: {
+    color: 'white',
+    fontSize: 16,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  captureButtonDisabled: {
+    opacity: 0.5,
   },
   // Removed legacy Firebase uploading styles
   // spinnerContainer, uploadingText, uploadingImage, uploadingOverlay

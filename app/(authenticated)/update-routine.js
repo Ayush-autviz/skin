@@ -1,0 +1,896 @@
+// update-routine.js
+// Single scrollable screen for updating routine items
+
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  Platform,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  ActivityIndicator,
+} from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { BlurView } from 'expo-blur';
+import { 
+  FlaskConical, 
+  Dumbbell, 
+  Apple, 
+  Sun, 
+  Moon, 
+  Calendar, 
+  CalendarX,
+  CheckCircle,
+  CalendarDays,
+  HelpCircle,
+  ArrowLeft,
+  Save,
+  Trash2
+} from 'lucide-react-native';
+import { colors, fontSize, spacing, typography, borderRadius, shadows } from '../../src/styles';
+import { updateRoutineItem, deleteRoutineItem } from '../../src/services/newApiService';
+
+// Define concerns options
+const concernsOptions = [
+  'Evenness',
+  'Redness', 
+  'Visible Pores',
+  'Lines',
+  'Eye Area',
+  'Condition',
+  'Skin Type',
+  'Skin Tone',
+  'Perceived Age',
+  'Perceived Eye Age'
+];
+
+// Define stop reasons
+const stopReasons = [
+  'Not effective',
+  'Doesn\'t feel right',
+  'Allergy',
+  'Too expensive',
+  'Other'
+];
+
+export default function UpdateRoutineScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  
+  // Form state
+  const [itemName, setItemName] = useState('');
+  const [itemType, setItemType] = useState('Product');
+  const [itemUsage, setItemUsage] = useState(['AM']);
+  const [itemFrequency, setItemFrequency] = useState('Daily');
+  const [itemConcerns, setItemConcerns] = useState([]);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [isStopped, setIsStopped] = useState(false);
+  const [stopReason, setStopReason] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Date picker states
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
+  // Initialize form with existing data
+  useEffect(() => {
+    if (params.itemData) {
+      try {
+        const itemData = JSON.parse(params.itemData);
+        setItemName(itemData.name || '');
+        setItemType(itemData.type || 'Product');
+        
+        // Handle usage conversion
+        if (itemData.usage === 'AM + PM' || itemData.usage === 'Both') {
+          setItemUsage(['AM', 'PM']);
+        } else if (itemData.usage === 'As needed') {
+          setItemUsage(['As needed']);
+        } else if (itemData.usage) {
+          setItemUsage([itemData.usage]);
+        } else {
+          setItemUsage(['AM']);
+        }
+        
+        setItemFrequency(itemData.frequency || 'Daily');
+        setItemConcerns(itemData.concerns || []);
+        setIsStopped(!!itemData.dateStopped);
+        setStopReason(itemData.stopReason || '');
+
+        // Handle dates
+        if (itemData.dateStarted) {
+          setStartDate(new Date(itemData.dateStarted));
+        }
+        if (itemData.dateStopped) {
+          setEndDate(new Date(itemData.dateStopped));
+        }
+      } catch (error) {
+        console.error('Error parsing item data:', error);
+        Alert.alert('Error', 'Failed to load routine item data');
+        router.back();
+      }
+    }
+  }, [params.itemData]);
+
+  // Toggle logic for AM/PM usage
+  const handleUsageToggle = (tappedUsage) => {
+    setItemUsage(currentUsage => {
+      const isSelected = currentUsage.includes(tappedUsage);
+      if (isSelected) {
+        return currentUsage.filter(u => u !== tappedUsage);
+      } else {
+        return [...currentUsage, tappedUsage].sort();
+      }
+    });
+  };
+
+  // Toggle logic for concerns selection
+  const handleConcernToggle = (concern) => {
+    setItemConcerns(currentConcerns => {
+      const isSelected = currentConcerns.includes(concern);
+      if (isSelected) {
+        return currentConcerns.filter(c => c !== concern);
+      } else {
+        return [...currentConcerns, concern];
+      }
+    });
+  };
+
+  // Date picker handlers
+  const handleStartDateChange = (event, selectedDate) => {
+    setShowStartDatePicker(false);
+    if (event.type === 'dismissed') return;
+    if (selectedDate) {
+      setStartDate(selectedDate);
+    }
+  };
+
+  const handleEndDateChange = (event, selectedDate) => {
+    setShowEndDatePicker(false);
+    if (event.type === 'dismissed') return;
+    if (selectedDate) {
+      setEndDate(selectedDate);
+    }
+  };
+
+  // Format parameters for backend
+  const formatParameter = (value) => {
+    if (!value) return value;
+    // Handle frequency
+    if (value === 'Daily' || value === 'Weekly' || value === 'As needed') {
+      return value === 'As needed' ? 'as_needed' : value.toLowerCase();
+    }
+    // Handle usage
+    if (value === 'AM' || value === 'PM' || value === 'AM + PM' || value === 'As needed') {
+      return value === 'AM + PM' ? 'both' : value === 'As needed' ? 'as_needed' : value.toLowerCase();
+    }
+    // Handle type
+    if (value === 'Product' || value === 'Activity' || value === 'Nutrition') {
+      return value.toLowerCase();
+    }
+    if (value === 'Treatment / Facial') return 'treatment_facial';
+    if (value === 'Treatment / Injection') return 'treatment_injection';
+    if (value === 'Treatment / Other') return 'treatment_other';
+    return value;
+  };
+
+  // Update routine item
+  const handleUpdate = async () => {
+    // Validation with better UX
+    if (!itemName.trim()) {
+      Alert.alert('Missing Information', 'Please enter a name for your routine item.');
+      return;
+    }
+
+    if (!itemType.trim()) {
+      Alert.alert('Missing Information', 'Please select what type of item this is.');
+      return;
+    }
+
+    if (itemConcerns.length === 0) {
+      Alert.alert('Missing Information', 'Please select at least one concern to help track your progress.');
+      return;
+    }
+
+    if (!startDate) {
+      Alert.alert('Missing Information', 'Please select when you started using this item.');
+      return;
+    }
+
+    // Validate dates if both are present
+    if (startDate && endDate && endDate < startDate) {
+      Alert.alert('Invalid Date', 'The end date cannot be before the start date.');
+      return;
+    }
+
+    let finalUsage = 'AM';
+    const includesAM = itemUsage.includes('AM');
+    const includesPM = itemUsage.includes('PM');
+    if (includesAM && includesPM) finalUsage = 'both';
+    else if (includesPM) finalUsage = 'pm';
+    else if (includesAM) finalUsage = 'am';
+    else if (itemUsage.includes('As needed')) finalUsage = 'as_needed';
+
+    // Prepare data for API
+    const apiItemData = {
+      name: itemName.trim(),
+      type: formatParameter(itemType),
+      usage: finalUsage,
+      frequency: formatParameter(itemFrequency),
+      concern: itemConcerns,
+      start_date: startDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+      end_date: endDate ? endDate.toISOString().split('T')[0] : '',
+      extra: {
+        concerns: itemConcerns,
+        dateStarted: startDate?.toISOString(),
+        dateStopped: endDate?.toISOString(),
+        stopReason: stopReason,
+        dateCreated: params.itemData ? JSON.parse(params.itemData).dateCreated : new Date().toISOString()
+      }
+    };
+
+    setIsSaving(true);
+    try {
+      const response = await updateRoutineItem(params.itemId, apiItemData);
+      console.log('🟡 UpdateRoutine: Update response:', response);
+      
+      if (response.success) {
+        Alert.alert('Success!', 'Your routine item has been updated successfully.', [
+          {
+            text: 'Continue',
+            onPress: () => router.back()
+          }
+        ]);
+      }
+    } catch (err) {
+      console.error('🔴 UpdateRoutine: Error updating item:', err);
+      Alert.alert('Error', err.message || 'Failed to update item. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Delete routine item
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Routine Item",
+      `Are you sure you want to delete "${itemName}"? This action cannot be undone.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              const response = await deleteRoutineItem(params.itemId);
+              
+              if (response.success) {
+                Alert.alert('Deleted', 'Routine item has been deleted successfully.', [
+                  {
+                    text: 'Continue',
+                    onPress: () => router.back()
+                  }
+                ]);
+              }
+            } catch (error) {
+              console.error('🔴 UpdateRoutine: Error deleting item:', error);
+              Alert.alert('Error', error.message || 'Could not delete the routine item.');
+            } finally {
+              setIsDeleting(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Header with BlurView */}
+      <View style={styles.headerContainer}>
+        <BlurView 
+          intensity={80} 
+          tint="light"
+          style={styles.blurContainer}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <View style={styles.iconContainer}>
+                <ArrowLeft size={22} color={colors.primary} />
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.titleContainer}>
+              <Text style={styles.headerTitle}>Edit routine item</Text>
+              <View style={styles.titleUnderline} />
+            </View>
+            
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleDelete}
+              disabled={isDeleting}
+            >
+              <View style={styles.iconContainer}>
+                {isDeleting ? (
+                  <ActivityIndicator size="small" color={colors.error} />
+                ) : (
+                  <Trash2 size={22} color={colors.error} />
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+        </BlurView>
+        <View style={styles.shadowContainer} />
+      </View>
+
+      <KeyboardAvoidingView 
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+        {/* Category Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>What category is this?</Text>
+          <Text style={styles.sectionSubtitle}>Choose the type of item you want to add to your routine</Text>
+          <View style={styles.chipSelectorContainer}>
+            {[
+              { name: 'Product', icon: FlaskConical, color: '#8B7355' },
+              { name: 'Activity', icon: Dumbbell, color: '#009688' },
+              { name: 'Nutrition', icon: Apple, color: '#FF6B35' },
+              { name: 'Treatment / Facial', icon: FlaskConical, color: '#8B7355' },
+              { name: 'Treatment / Injection', icon: FlaskConical, color: '#8B7355' },
+              { name: 'Treatment / Other', icon: FlaskConical, color: '#8B7355' }
+            ].map(({ name, icon: Icon, color }) => {
+              const isActive = itemType === name;
+              
+              return (
+                <TouchableOpacity
+                  key={name}
+                  style={[
+                    styles.chipButton,
+                    isActive && styles.chipButtonActive
+                  ]}
+                  onPress={() => setItemType(name)}
+                >
+                  <Icon 
+                    size={20} 
+                    color={isActive ? '#FFFFFF' : '#6B7280'} 
+                  />
+                  <Text style={[
+                    styles.chipButtonText,
+                    isActive && styles.chipButtonTextActive
+                  ]}>
+                    {name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Name Input */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>What's the name?</Text>
+          <Text style={styles.sectionSubtitle}>
+            Give your {itemType.toLowerCase()} a name so you can easily identify it
+          </Text>
+          <View style={styles.inputWrapper}>
+            <FlaskConical 
+              size={20} 
+              color="#6B7280" 
+              style={styles.inputIcon} 
+            />
+            <TextInput
+              style={styles.textInput}
+              placeholder={`Enter ${itemType.toLowerCase()} name`}
+              value={itemName}
+              onChangeText={setItemName}
+              placeholderTextColor="#9CA3AF"
+              returnKeyType="next"
+            />
+          </View>
+        </View>
+
+        {/* Concerns Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Concerns</Text>
+          <Text style={styles.sectionSubtitle}>Select all that apply</Text>
+          <View style={styles.chipSelectorContainer}>
+            {concernsOptions.map((concern) => {
+              const isActive = itemConcerns.includes(concern);
+              
+              return (
+                <TouchableOpacity
+                  key={concern}
+                  style={[
+                    styles.chipButton,
+                    isActive && styles.chipButtonActive
+                  ]}
+                  onPress={() => handleConcernToggle(concern)}
+                >
+                  <Text style={[
+                    styles.chipButtonText,
+                    isActive && styles.chipButtonTextActive
+                  ]}>
+                    {concern}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Frequency Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Usage Frequency</Text>
+          <Text style={styles.sectionSubtitle}>Select One</Text>
+          <View style={styles.chipSelectorContainer}>
+            {[
+              { name: 'Daily', icon: CheckCircle, color: '#10B981' },
+              { name: 'Weekly', icon: CalendarDays, color: '#3B82F6' },
+              { name: 'As needed', icon: HelpCircle, color: '#8B5CF6' }
+            ].map(({ name, icon: Icon, color }) => {
+              const isActive = itemFrequency === name;
+              
+              return (
+                <TouchableOpacity
+                  key={name}
+                  style={[
+                    styles.chipButton,
+                    isActive && styles.chipButtonActive
+                  ]}
+                  onPress={() => setItemFrequency(name)}
+                >
+                  <Icon 
+                    size={20} 
+                    color={isActive ? '#FFFFFF' : '#6B7280'} 
+                  />
+                  <Text style={[
+                    styles.chipButtonText,
+                    isActive && styles.chipButtonTextActive
+                  ]}>
+                    {name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Time of Day Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>When do you use it?</Text>
+          <Text style={styles.sectionSubtitle}>Select the time(s) of day you use this item (choose all that apply)</Text>
+          <View style={styles.chipSelectorContainer}>
+            {[
+              { name: 'AM', icon: Sun, color: '#F59E0B' },
+              { name: 'PM', icon: Moon, color: '#6366F1' },
+              { name: 'As needed', icon: HelpCircle, color: '#8B5CF6' }
+            ].map(({ name, icon: Icon, color }) => {
+              const isActive = itemUsage.includes(name);
+              
+              return (
+                <TouchableOpacity
+                  key={name}
+                  style={[
+                    styles.chipButton,
+                    isActive && styles.chipButtonActive
+                  ]}
+                  onPress={() => handleUsageToggle(name)}
+                >
+                  <Icon 
+                    size={20} 
+                    color={isActive ? '#FFFFFF' : '#6B7280'} 
+                  />
+                  <Text style={[
+                    styles.chipButtonText,
+                    isActive && styles.chipButtonTextActive
+                  ]}>
+                    {name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Start Date */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>When did you start?</Text>
+          <Text style={styles.sectionSubtitle}>When did you begin using this item? This helps track your progress</Text>
+          
+          <View style={styles.inputWrapper}>
+            <Calendar 
+              size={20} 
+              color="#6B7280" 
+              style={styles.inputIcon} 
+            />
+            <TouchableOpacity
+              style={styles.dateInputButton}
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <Text style={[styles.dateText, !startDate && styles.dateTextPlaceholder]}>
+                {startDate ? startDate.toDateString() : 'Select start date'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {showStartDatePicker && (
+            <DateTimePicker
+              value={startDate || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleStartDateChange}
+              maximumDate={new Date()}
+              minimumDate={new Date(new Date().getFullYear() - 10, 0, 1)}
+              textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
+              style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
+              themeVariant="light"
+            />
+          )}
+        </View>
+
+        {/* Stopped Checkbox */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => setIsStopped(!isStopped)}
+          >
+            <View style={[styles.checkbox, isStopped && styles.checkboxChecked]}>
+              {isStopped && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={styles.checkboxLabel}>Stopped using it</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* End Date - Only show if stopped */}
+        {isStopped && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>When did you stop?</Text>
+            <View style={styles.inputWrapper}>
+              <CalendarX 
+                size={20} 
+                color="#6B7280" 
+                style={styles.inputIcon} 
+              />
+              <TouchableOpacity
+                style={styles.dateInputButton}
+                onPress={() => setShowEndDatePicker(true)}
+              >
+                <Text style={[styles.dateText, !endDate && styles.dateTextPlaceholder]}>
+                  {endDate ? endDate.toDateString() : 'Select stop date'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {showEndDatePicker && (
+              <DateTimePicker
+                value={endDate || new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleEndDateChange}
+                maximumDate={new Date()}
+                minimumDate={startDate || new Date(new Date().getFullYear() - 10, 0, 1)}
+                textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
+                style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
+                themeVariant="light"
+              />
+            )}
+          </View>
+        )}
+
+        {/* Stop Reason - Only show if stopped */}
+        {isStopped && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Why did you stop using it?</Text>
+            <View style={styles.chipSelectorContainer}>
+              {stopReasons.map((reason) => {
+                const isActive = stopReason === reason;
+                
+                return (
+                  <TouchableOpacity
+                    key={reason}
+                    style={[
+                      styles.chipButton,
+                      isActive && styles.chipButtonActive
+                    ]}
+                    onPress={() => setStopReason(reason)}
+                  >
+                    <Text style={[
+                      styles.chipButtonText,
+                      isActive && styles.chipButtonTextActive
+                    ]}>
+                      {reason}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Update Button */}
+        <View style={styles.saveButtonContainer}>
+          <TouchableOpacity
+            style={[styles.saveButtonBottom, isSaving && styles.saveButtonDisabled]}
+            onPress={handleUpdate}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <>
+                <Save size={20} color={colors.white} />
+                <Text style={styles.saveButtonText}>Update Routine Item</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Bottom padding for scroll */}
+        <View style={styles.bottomPadding} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    height: 120,
+  },
+  blurContainer: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 15,
+    paddingHorizontal: spacing.lg,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(139, 115, 85, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  titleUnderline: {
+    width: 40,
+    height: 3,
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+    opacity: 0.8,
+  },
+  shadowContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: colors.primary,
+    opacity: 0.1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  keyboardContainer: {
+    flex: 1,
+    marginTop: 120,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  section: {
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.md,
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    ...shadows.sm,
+  },
+  sectionTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  sectionSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+    lineHeight: 20,
+  },
+  chipSelectorContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  chipButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    gap: spacing.xs,
+    minHeight: 40,
+  },
+  chipButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    ...shadows.sm,
+  },
+  chipButtonText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  chipButtonTextActive: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
+    minHeight: 50,
+  },
+  inputIcon: {
+    marginRight: spacing.sm,
+  },
+  textInput: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+    fontFamily: 'Inter',
+  },
+  dateInputButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    justifyContent: 'center',
+  },
+  dateText: {
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+    fontFamily: 'Inter',
+  },
+  dateTextPlaceholder: {
+    color: colors.textSecondary,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    marginRight: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  checkmark: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+    fontFamily: 'Inter',
+  },
+  bottomPadding: {
+    height: 100,
+  },
+  saveButtonContainer: {
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.lg,
+  },
+  saveButtonBottom: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.pill,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    minHeight: 50,
+    ...shadows.md,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    color: colors.white,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    fontFamily: 'Inter',
+  },
+});
