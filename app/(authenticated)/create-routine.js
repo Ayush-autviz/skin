@@ -68,7 +68,7 @@ export default function CreateRoutineScreen() {
   const [itemUsage, setItemUsage] = useState(['AM']);
   const [itemFrequency, setItemFrequency] = useState('Daily');
   const [itemConcerns, setItemConcerns] = useState([]);
-  const [startDate, setStartDate] = useState(null);
+  const [startDate, setStartDate] = useState(new Date()); // Default to today's date
   const [endDate, setEndDate] = useState(null);
   const [isStopped, setIsStopped] = useState(false);
   const [stopReason, setStopReason] = useState('');
@@ -200,6 +200,8 @@ export default function CreateRoutineScreen() {
         dateCreated: new Date().toISOString()
       }
     };
+
+    console.log('🟡 CreateRoutine: API Item Data:', apiItemData);
 
     setIsSaving(true);
     try {

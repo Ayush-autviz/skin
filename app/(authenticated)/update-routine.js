@@ -69,7 +69,7 @@ export default function UpdateRoutineScreen() {
   const [itemUsage, setItemUsage] = useState(['AM']);
   const [itemFrequency, setItemFrequency] = useState('Daily');
   const [itemConcerns, setItemConcerns] = useState([]);
-  const [startDate, setStartDate] = useState(null);
+  const [startDate, setStartDate] = useState(new Date()); // Default to today's date
   const [endDate, setEndDate] = useState(null);
   const [isStopped, setIsStopped] = useState(false);
   const [stopReason, setStopReason] = useState('');
@@ -107,6 +107,8 @@ export default function UpdateRoutineScreen() {
         // Handle dates
         if (itemData.dateStarted) {
           setStartDate(new Date(itemData.dateStarted));
+        } else {
+          setStartDate(new Date()); // Keep today's date as default if no existing date
         }
         if (itemData.dateStopped) {
           setEndDate(new Date(itemData.dateStopped));
