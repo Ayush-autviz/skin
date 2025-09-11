@@ -348,8 +348,8 @@ export default function UpdateRoutineScreen() {
         >
         {/* Category Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What category is this?</Text>
-          <Text style={styles.sectionSubtitle}>Choose the type of item you want to add to your routine</Text>
+          <Text style={styles.sectionTitle2}>Indicate if Product or Service</Text>
+          {/* <Text style={styles.sectionSubtitle}>Choose the type of item you want to add to your routine</Text> */}
           <View style={styles.chipSelectorContainer}>
             {[
               { name: 'Product', icon: FlaskConical, color: '#8B7355' },
@@ -388,7 +388,7 @@ export default function UpdateRoutineScreen() {
 
         {/* Name Input */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What's the name?</Text>
+          <Text style={styles.sectionTitle2}>What's the name?</Text>
           <Text style={styles.sectionSubtitle}>
             Give your {itemType.toLowerCase()} a name so you can easily identify it
           </Text>
@@ -477,9 +477,9 @@ export default function UpdateRoutineScreen() {
 
         {/* Time of Day Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>When do you use it?</Text>
-          <Text style={styles.sectionSubtitle}>Select the time(s) of day you use this item (choose all that apply)</Text>
-          <View style={styles.chipSelectorContainer}>
+          <Text style={styles.sectionTitle}>Time of Day</Text>
+          <Text style={styles.sectionSubtitle}>Select One</Text>
+            <View style={styles.chipSelectorContainer}>
             {[
               { name: 'AM', icon: Sun, color: '#F59E0B' },
               { name: 'PM', icon: Moon, color: '#6366F1' },
@@ -514,8 +514,8 @@ export default function UpdateRoutineScreen() {
 
         {/* Start Date */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>When did you start?</Text>
-          <Text style={styles.sectionSubtitle}>When did you begin using this item? This helps track your progress</Text>
+          <Text style={styles.sectionTitle}>Start Date</Text>
+          <Text style={styles.sectionSubtitle}>Required for Efficacy Validation</Text>
           
           <View style={styles.inputWrapper}>
             <Calendar 
@@ -557,14 +557,14 @@ export default function UpdateRoutineScreen() {
             <View style={[styles.checkbox, isStopped && styles.checkboxChecked]}>
               {isStopped && <Text style={styles.checkmark}>✓</Text>}
             </View>
-            <Text style={styles.checkboxLabel}>Stopped using it</Text>
+            <Text style={styles.checkboxLabel}>Stopped Using It?</Text>
           </TouchableOpacity>
         </View>
 
         {/* End Date - Only show if stopped */}
         {isStopped && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>When did you stop?</Text>
+            <Text style={styles.sectionSubtitle}>For Efficacy Validation Please Provide</Text>
             <View style={styles.inputWrapper}>
               <CalendarX 
                 size={20} 
@@ -600,7 +600,7 @@ export default function UpdateRoutineScreen() {
         {/* Stop Reason - Only show if stopped */}
         {isStopped && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Why did you stop using it?</Text>
+            <Text style={styles.sectionTitle2}>Why did you stop using it?</Text>
             <View style={styles.chipSelectorContainer}>
               {stopReasons.map((reason) => {
                 const isActive = stopReason === reason;
@@ -638,7 +638,6 @@ export default function UpdateRoutineScreen() {
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <>
-                <Save size={20} color={colors.white} />
                 <Text style={styles.saveButtonText}>Update Routine Item</Text>
               </>
             )}
@@ -765,6 +764,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textPrimary,
     marginBottom: spacing.xs,
+  },
+  sectionTitle2: {
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+    color: colors.textPrimary,
+   // marginBottom: spacing.xs,
+   marginBottom: spacing.md,
   },
   sectionSubtitle: {
     fontSize: fontSize.sm,

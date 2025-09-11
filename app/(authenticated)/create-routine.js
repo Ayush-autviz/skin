@@ -263,7 +263,7 @@ export default function CreateRoutineScreen() {
         >
         {/* Category Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Indicate if Product or Service</Text>
+          <Text style={styles.sectionTitle2}>Indicate if Product or Service</Text>
           {/* <Text style={styles.sectionSubtitle}>Choose the type of item you want to add to your routine</Text> */}
           <View style={styles.chipSelectorContainer}>
             {[
@@ -303,7 +303,7 @@ export default function CreateRoutineScreen() {
 
         {/* Name Input */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What's the name?</Text>
+          <Text style={styles.sectionTitle2}>What's the name?</Text>
           {/* <Text style={styles.sectionSubtitle}>
             Give your {itemType.toLowerCase()} a name so you can easily identify it
           </Text> */}
@@ -392,8 +392,8 @@ export default function CreateRoutineScreen() {
 
         {/* Time of Day Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>When do you use it?</Text>
-          <Text style={styles.sectionSubtitle}>Select the time(s) of day you use this item (choose all that apply)</Text>
+          <Text style={styles.sectionTitle}>Time of Day</Text>
+          <Text style={styles.sectionSubtitle}>Select One</Text>
           <View style={styles.chipSelectorContainer}>
             {[
               { name: 'AM', icon: Sun, color: '#F59E0B' },
@@ -429,8 +429,8 @@ export default function CreateRoutineScreen() {
 
         {/* Start Date */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>When did you start?</Text>
-          <Text style={styles.sectionSubtitle}>When did you begin using this item? This helps track your progress</Text>
+          <Text style={styles.sectionTitle}>Start Date</Text>
+          <Text style={styles.sectionSubtitle}>Required for Efficacy Validation</Text>
           
           <View style={styles.inputWrapper}>
             <Calendar 
@@ -472,14 +472,14 @@ export default function CreateRoutineScreen() {
             <View style={[styles.checkbox, isStopped && styles.checkboxChecked]}>
               {isStopped && <Text style={styles.checkmark}>✓</Text>}
             </View>
-            <Text style={styles.checkboxLabel}>Stopped using it</Text>
+            <Text style={styles.checkboxLabel}>Stopped Using It?</Text>
           </TouchableOpacity>
         </View>
 
         {/* End Date - Only show if stopped */}
         {isStopped && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>When did you stop?</Text>
+            <Text style={styles.sectionSubtitle}>For Efficacy Validation Please Provide</Text>
             <View style={styles.inputWrapper}>
               <CalendarX 
                 size={20} 
@@ -515,7 +515,7 @@ export default function CreateRoutineScreen() {
         {/* Stop Reason - Only show if stopped */}
         {isStopped && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Why did you stop using it?</Text>
+            <Text style={styles.sectionTitle2}>Why did you stop using it?</Text>
             <View style={styles.chipSelectorContainer}>
               {stopReasons.map((reason) => {
                 const isActive = stopReason === reason;
@@ -553,7 +553,6 @@ export default function CreateRoutineScreen() {
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <>
-                <Save size={20} color={colors.white} />
                 <Text style={styles.saveButtonText}>Save to Routine</Text>
               </>
             )}
@@ -679,8 +678,15 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     fontWeight: '600',
     color: colors.textPrimary,
+    marginBottom: spacing.xs,
+   // marginBottom: spacing.md,
+  },
+  sectionTitle2: {
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+    color: colors.textPrimary,
    // marginBottom: spacing.xs,
-    marginBottom: spacing.md,
+   marginBottom: spacing.md,
   },
   sectionSubtitle: {
     fontSize: fontSize.sm,

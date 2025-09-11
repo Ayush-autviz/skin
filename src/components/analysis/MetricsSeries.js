@@ -116,7 +116,8 @@ import { useThreadContext } from '../../contexts/ThreadContext'; // Import threa
 import { usePhotoContext } from '../../contexts/PhotoContext'; // Import photo context
 import { useRouter } from 'expo-router'; // Import router
 import { getImageChatSummary } from '../../services/chatApiService';
-import { colors } from '../../styles';
+import { colors, shadows } from '../../styles';
+import { Expand } from 'lucide-react-native';
 import useAuthStore from '../../stores/authStore';
 import { ChevronRightIcon } from 'lucide-react-native';
 
@@ -232,12 +233,11 @@ const processPhotoMetrics = (photos) => {
   };
 };
 
-const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onLongPress }) => {
+const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize }) => {
   if (!photo) return null;
   
   const isSelected = index === selectedIndex;
   const scaleAnim = useRef(new Animated.Value(1)).current; // Animated value for scale
-  const [showHint, setShowHint] = useState(false);
 
   // Animate scale based on isSelected changes
   useEffect(() => {
@@ -248,23 +248,8 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onLongPress }) =
     }).start();
   }, [isSelected, scaleAnim]);
 
-  // Show hint after a short delay for first-time users
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowHint(true);
-    }, 2000); // Show hint after 2 seconds
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Keep hint visible - only hide on long press
   const handlePress = () => {
     onPress();
-  };
-
-  const handleLongPress = () => {
-    setShowHint(false);
-    onLongPress?.(photo, index);
   };
 
   // Date formatting - use created_at field from API response
@@ -295,7 +280,6 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onLongPress }) =
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}> 
       <TouchableOpacity 
         onPress={handlePress}
-        onLongPress={handleLongPress}
         // Apply conditional styles: base + selected (shadows, border, zIndex)
         style={[ 
           styles.photoThumbCard, 
@@ -314,11 +298,18 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onLongPress }) =
             priority="high"
           />
           
-          {/* Long Press Hint Overlay */}
-          {showHint && !isSelected && (
-            <View style={styles.longPressHint}>
-              <Text style={styles.hintText}>Hold for details</Text>
-            </View>
+          {/* Maximize button - only show when selected */}
+          {isSelected && (
+            <TouchableOpacity
+              style={styles.thumbMaximizeButton}
+              onPress={(e) => {
+                e.stopPropagation(); // Prevent triggering the parent onPress
+                onMaximize?.(photo, index);
+              }}
+              activeOpacity={0.7}
+            >
+              <Expand size={16} color={colors.white} />
+            </TouchableOpacity>
           )}
         </View>
         <View style={styles.thumbDateContainer}> 
@@ -331,7 +322,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onLongPress }) =
   );
 };
 
-const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText, onLongPress }, ref) => {
+const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText, onMaximize }, ref) => {
   const flatListRef = useRef(null);
 
   // Debug photos array changes
@@ -378,7 +369,7 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
         onPress={() => {
           onSelectDate(index);
         }}
-        onLongPress={onLongPress}
+        onMaximize={onMaximize}
       />
     );
   };
@@ -899,7 +890,7 @@ const MetricsSeries = ({ photos }) => {
     setSelectedIndex(prevIndex => prevIndex === index ? null : index);
   };
 
-  const handleLongPress = (photo, index) => {
+  const handleMaximize = (photo, index) => {
     // Navigate to snapshot using same pattern as PhotoGrid
     // Don't remove .jpg - use the photo.id directly like PhotoGrid does
     const photoId = photo.id;
@@ -1066,7 +1057,7 @@ const MetricsSeries = ({ photos }) => {
         photos={photos}
         ref={timeSelectorRef}
         noteText={noteText} // Pass the summary/note text down
-        onLongPress={handleLongPress}
+        onMaximize={handleMaximize}
       />
       <ScrollView style={styles.metricsContainer}>
         {metrics.map((metric, index) => (
@@ -1451,27 +1442,19 @@ const styles = StyleSheet.create({
     marginLeft: 24,
   },
   
-  // Long Press Hint Styles
-  longPressHint: {
+  // Thumbnail Maximize Button Styles
+  thumbMaximizeButton: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
-  },
-  hintText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    ...shadows.sm,
   },
 });
 
