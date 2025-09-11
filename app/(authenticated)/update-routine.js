@@ -519,7 +519,7 @@ export default function UpdateRoutineScreen() {
           <Text style={styles.sectionTitle}>Start Date</Text>
           <Text style={styles.sectionSubtitle}>Required for Efficacy Validation</Text>
           
-          <View style={styles.inputWrapper}>
+          <TouchableOpacity onPress={() => setShowStartDatePicker(!showStartDatePicker)} style={styles.inputWrapper}>
             <Calendar 
               size={20} 
               color="#6B7280" 
@@ -527,13 +527,13 @@ export default function UpdateRoutineScreen() {
             />
             <TouchableOpacity
               style={styles.dateInputButton}
-              onPress={() => setShowStartDatePicker(true)}
+              onPress={() => setShowStartDatePicker(!showStartDatePicker)}
             >
               <Text style={[styles.dateText, !startDate && styles.dateTextPlaceholder]}>
                 {startDate ? startDate.toDateString() : 'Select start date'}
               </Text>
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
 
           {showStartDatePicker && (
             <DateTimePicker
@@ -567,7 +567,7 @@ export default function UpdateRoutineScreen() {
         {isStopped && (
           <View style={styles.section}>
             <Text style={styles.sectionSubtitle}>For Efficacy Validation Please Provide</Text>
-            <View style={styles.inputWrapper}>
+            <TouchableOpacity onPress={() => setShowEndDatePicker(!showEndDatePicker)} style={styles.inputWrapper}>
               <CalendarX 
                 size={20} 
                 color="#6B7280" 
@@ -575,13 +575,13 @@ export default function UpdateRoutineScreen() {
               />
               <TouchableOpacity
                 style={styles.dateInputButton}
-                onPress={() => setShowEndDatePicker(true)}
+                  onPress={() => setShowEndDatePicker(!showEndDatePicker)}
               >
                 <Text style={[styles.dateText, !endDate && styles.dateTextPlaceholder]}>
                   {endDate ? endDate.toDateString() : 'Select stop date'}
                 </Text>
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
 
             {showEndDatePicker && (
               <DateTimePicker
