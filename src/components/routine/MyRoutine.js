@@ -197,7 +197,7 @@ const MyRoutine = forwardRef((props, ref) => {
       type: typeMap[apiItem.type] || apiItem.type,
       usage: usageMap[apiItem.usage] || apiItem.usage,
       frequency: frequencyMap[apiItem.frequency] || apiItem.frequency,
-      concerns: apiItem.extra?.concerns || [],
+      concerns: apiItem.concern || [],
       dateStarted: apiItem.extra?.dateStarted ? new Date(apiItem.extra.dateStarted) : null,
       dateStopped: apiItem.extra?.dateStopped ? new Date(apiItem.extra.dateStopped) : null,
       stopReason: apiItem.extra?.stopReason || '',
@@ -977,7 +977,7 @@ const styles = StyleSheet.create({
   listContentContainerBase: {
     paddingTop: spacing.lg,
     paddingBottom: 200,
-    paddingHorizontal: 0,
+    paddingHorizontal: 20,
   },
   emptyListTopContainer: {
     paddingTop: 24,
@@ -998,7 +998,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xs,
     backgroundColor: '#FFF',
   },
   sectionHeaderContent: {
@@ -1315,8 +1315,8 @@ const styles = StyleSheet.create({
   archivedSection: {
     backgroundColor: colors.white,
     marginHorizontal: 16,
-    marginBottom: 10,
-    marginTop: 5,
+    marginBottom: 0,
+    marginTop: 25,
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderRadius: 16,

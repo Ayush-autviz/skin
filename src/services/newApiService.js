@@ -4,7 +4,7 @@
 import axios from "axios";
 import useAuthStore from "../stores/authStore";
 
-const BASE_URL = "http://44.198.183.94:8000/api/v1";
+const BASE_URL = "http://44.198.183.94:9000/api/v1";
 
 // Create axios instance with enhanced configuration
 const apiClient = axios.create({
@@ -1122,6 +1122,8 @@ export const getComparison = async (dateFilter = "older_than_6_months") => {
       `/comparison/?date_filter=${dateFilter}`
     );
 
+    console.log("🔵 response of getComparison: in apiService", response.data);
+
     if (response.data.status === 200) {
       console.log("✅ Comparison data fetched successfully");
       return {
@@ -1234,7 +1236,7 @@ export const getSkinTrendScores = async ({ skin_condition_name, sort_order = 'de
   const allowedConditions = [
     'hydration', 'uniformness', 'redness', 'translucency', 'lines', 
     'eye_bags', 'pores', 'skin_tone', 'pigmentation', 'acne', 
-    'eyes_age', 'age'
+    'eyes_age', 'age', 'skin_type'
   ];
   
   if (!allowedConditions.includes(skin_condition_name)) {

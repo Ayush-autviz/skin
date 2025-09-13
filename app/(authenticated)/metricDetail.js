@@ -301,7 +301,8 @@ const getSkinConditionNameForMetric = (metricKey) => {
     'uniformnessScore': 'uniformness',
     'eyeAreaCondition': 'eye_bags',
     'perceivedAge': 'age',
-    'skinTone': 'skin_tone'
+    'skinTone': 'skin_tone',
+    'skinType': 'skin_type'
   };
   
   return mapping[metricKey] || null;
