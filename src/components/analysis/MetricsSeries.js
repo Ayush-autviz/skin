@@ -381,7 +381,7 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
         flatListRef.current.scrollToIndex({
           index,
           animated: true,
-        //  viewPosition: 0.4 // Center the item in the viewport
+          viewPosition: 0.5 // Center the item in the viewport
         });
       } else {
          console.warn(`[TimeSelector] scrollToIndex failed: Invalid index ${index}. List length: ${photos?.length}. SelectedIndex prop: ${selectedIndex}.`);
@@ -454,6 +454,7 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
           onScrollToIndexFailed={(info) => {
               console.error("[TimeSelector] onScrollToIndexFailed:", info);
           }}
+          centerContent={false} // Disable centerContent to allow proper centering with viewPosition
         />
         {/* Note text INSIDE the grey container, below the FlatList */}
         <View style={{ alignItems: "center" }}>
@@ -1315,6 +1316,7 @@ const styles = StyleSheet.create({
   timeScrollContent: {
     paddingHorizontal: 16,
     paddingVertical: 16, // Keep vertical padding for FlatList items
+    paddingRight: 200, // Add extra right padding to allow last items to center
   },
   dateCard: {
     width: DATE_CARD_WIDTH,
