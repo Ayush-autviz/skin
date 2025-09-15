@@ -117,9 +117,10 @@ import { usePhotoContext } from '../../contexts/PhotoContext'; // Import photo c
 import { useRouter } from 'expo-router'; // Import router
 import { getImageChatSummary } from '../../services/chatApiService';
 import { colors, shadows } from '../../styles';
-import { Expand } from 'lucide-react-native';
+import { Expand, Flag, BookOpen, Book, FlagIcon } from 'lucide-react-native';
 import useAuthStore from '../../stores/authStore';
 import { ChevronRightIcon } from 'lucide-react-native';
+import TrendChart from './TrendChart';
 
 const { width } = Dimensions.get('window');
 const DATE_CARD_WIDTH = 115;  // 100 * 1.15 = 115 (15% increase)
@@ -237,19 +238,20 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize }) =>
   if (!photo) return null;
   
   const isSelected = index === selectedIndex;
-  const scaleAnim = useRef(new Animated.Value(1)).current; // Animated value for scale
-
-  // Animate scale based on isSelected changes
-  useEffect(() => {
-    Animated.timing(scaleAnim, {
-      toValue: isSelected ? 1.1 : 1, // Target scale: 110% if selected, 100% otherwise
-      duration: 200, // Animation duration (milliseconds)
-      useNativeDriver: true, // Use native driver for performance
-    }).start();
-  }, [isSelected, scaleAnim]);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipType, setTooltipType] = useState('');
 
   const handlePress = () => {
     onPress();
+  };
+
+  const handleIconPress = (type) => {
+    setTooltipType(type);
+    setShowTooltip(true);
+    // Hide tooltip after 2 seconds
+    setTimeout(() => {
+      setShowTooltip(false);
+    }, 2000);
   };
 
   // Date formatting - use created_at field from API response
@@ -276,49 +278,84 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize }) =>
   }
   
   return (
-    // Apply animated scale to TouchableOpacity
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}> 
-      <TouchableOpacity 
-        onPress={handlePress}
-        // Apply conditional styles: base + selected (shadows, border, zIndex)
-        style={[ 
-          styles.photoThumbCard, 
-          isSelected && styles.selectedPhotoThumbCard 
-        ]}
-        activeOpacity={0.8} // Can adjust opacity on press
-      >
-        <View style={styles.thumbContainer}>
-          <ExpoImage 
-            // Reverted to using the original storageUrl
-            source={photo.storageUrl} 
-            style={styles.thumbImage}
-            contentFit="cover"
-            cachePolicy="memory-disk" // Keep existing cache policy
-            memoryCachePolicy="memory-only"
-            priority="high"
-          />
+    <View style={styles.photoCardContainer}>
+        <TouchableOpacity 
+          onPress={handlePress}
+          // Apply conditional styles: base + selected (shadows, border, zIndex)
+          style={[ 
+            styles.photoThumbCard, 
+            isSelected && styles.selectedPhotoThumbCard 
+          ]}
+          activeOpacity={0.8} // Can adjust opacity on press
+        >
+          <View style={styles.thumbContainer}>
+            <ExpoImage 
+              // Reverted to using the original storageUrl
+              source={photo.storageUrl} 
+              style={styles.thumbImage}
+              contentFit="cover"
+              cachePolicy="memory-disk" // Keep existing cache policy
+              memoryCachePolicy="memory-only"
+              priority="high"
+            />
+            
+            {/* Maximize button - only show when selected */}
+            {isSelected && (
+              <TouchableOpacity
+                style={styles.thumbMaximizeButton}
+                onPress={(e) => {
+                  e.stopPropagation(); // Prevent triggering the parent onPress
+                  onMaximize?.(photo, index);
+                }}
+                activeOpacity={0.7}
+              >
+                <Expand size={13} color={colors.white} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.thumbDateContainer}> 
+            <Text style={[styles.thumbDateText, isSelected && styles.selectedThumbDateText]}>
+              {date.toLocaleString('default', { month: 'short', day: 'numeric' })}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        
+        {/* Icons below the card */}
+        <View style={styles.iconsContainer}>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => handleIconPress('flag')}
+            activeOpacity={0.7}
+          >
+            <Flag 
+              size={18} 
+              color={isSelected ? '#8B7355' : '#CCCCCC'} 
+              strokeWidth={2.5}
+            />
+          </TouchableOpacity>
           
-          {/* Maximize button - only show when selected */}
-          {isSelected && (
-            <TouchableOpacity
-              style={styles.thumbMaximizeButton}
-              onPress={(e) => {
-                e.stopPropagation(); // Prevent triggering the parent onPress
-                onMaximize?.(photo, index);
-              }}
-              activeOpacity={0.7}
-            >
-              <Expand size={16} color={colors.white} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => handleIconPress('book')}
+            activeOpacity={0.7}
+          >
+            <BookOpen 
+              size={18} 
+              color={isSelected ? '#8B7355' : '#CCCCCC'} 
+              strokeWidth={2.5}
+            />
+          </TouchableOpacity>
         </View>
-        <View style={styles.thumbDateContainer}> 
-          <Text style={[styles.thumbDateText, isSelected && styles.selectedThumbDateText]}>
-            {date.toLocaleString('default', { month: 'short', day: 'numeric' })}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
+        
+        {/* Tooltip - positioned below the image card */}
+        {showTooltip && (
+          <View style={styles.tooltip}>
+            <Text style={styles.tooltipText}>
+              {/* Empty text as requested */}
+            </Text>
+          </View>
+        )}
+      </View>
   );
 };
 
@@ -344,7 +381,7 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
         flatListRef.current.scrollToIndex({
           index,
           animated: true,
-          viewPosition: 0.5 // Center the item in the viewport
+        //  viewPosition: 0.4 // Center the item in the viewport
         });
       } else {
          console.warn(`[TimeSelector] scrollToIndex failed: Invalid index ${index}. List length: ${photos?.length}. SelectedIndex prop: ${selectedIndex}.`);
@@ -419,9 +456,68 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
           }}
         />
         {/* Note text INSIDE the grey container, below the FlatList */}
-        <Text style={styles.noteInsideCarouselArea}>
+        <View style={{ alignItems: "center" }}>
+  {/* Tooltip wrapper */}
+  <View style={{ position: "relative" }}>
+    {/* Triangle */}
+    <View
+      style={{
+        position: "absolute",
+        top: -10,
+        left: "50%",
+        marginLeft: -60,
+        width: 20,
+        height: 20,
+        backgroundColor: "white",
+        transform: [{ rotate: "45deg" }],
+        zIndex: 20,
+        borderLeftWidth: 1,
+       // borderRightWidth: 1,
+        borderTopWidth: 1,
+       // borderBottomWidth: 1,
+        borderColor: "#E8E8E8",
+        // shadowColor: "#000",
+        // shadowOpacity: 0.1,
+        // shadowRadius: 6,
+        // shadowOffset: { width: 0, height: 2 },
+        // elevation: 5,
+      }}
+    />
+
+    {/* Tooltip box */}
+    <View
+      style={{
+        backgroundColor: "white",
+        borderRadius: 12,
+        padding: 12,
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 3,
+        position: "relative",
+        zIndex: 1,
+        borderWidth: 1,
+        borderColor: "#E8E8E8",
+
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+        <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6 }} />
+        <Text style={{ color: "#333" }}>Started using SkinProPlus for Redness</Text>
+      </View>
+
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <BookOpen size={16} color="#8B7355" style={{ marginRight: 6 }} />
+        <Text style={{ color: "#333" }}>Returned from your trip to New York</Text>
+      </View>
+    </View>
+  </View>
+</View>
+
+        {/* <Text style={styles.noteInsideCarouselArea}>
           {noteText || ' '}
-        </Text>
+        </Text> */}
       </View>
       
       {/* Shadow layers remain visually below the grey container */}
@@ -1060,6 +1156,9 @@ const MetricsSeries = ({ photos }) => {
         onMaximize={handleMaximize}
       />
       <ScrollView style={styles.metricsContainer}>
+        {/* Add the Trend Chart at the top */}
+        <TrendChart />
+        
         {metrics.map((metric, index) => (
           <MetricRow 
             key={index} 
@@ -1081,7 +1180,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: width,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFAFA',
   },
   card: {
     backgroundColor: 'white',
@@ -1176,9 +1275,9 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   timeSelectorContainer: {
-    backgroundColor: '#FFFFFF', // Clean white background
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    backgroundColor: '#FAFAFA', // Clean white background
+   // borderBottomWidth: 1,
+   // borderBottomColor: '#E5E5E5',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -1292,23 +1391,24 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOffset: { width: 0, height: -2 }, // Negative height for top shadow only
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
     borderWidth: 1,
     borderColor: '#E8E8E8',
   },
   selectedPhotoThumbCard: {
     shadowColor: '#8B7355',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowOffset: { width: 0, height: -4 }, // Negative height for top shadow only
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
     zIndex: 10,
     borderWidth: 2,
     borderColor: '#8B7355',
-    transform: [{ scale: 1.05 }],
+    marginTop: -8, // Lift up by reducing top margin
+    height: DATE_CARD_HEIGHT + 8, // Increase height to maintain bottom alignment
   },
   thumbContainer: {
     flex: 1,
@@ -1445,16 +1545,59 @@ const styles = StyleSheet.create({
   // Thumbnail Maximize Button Styles
   thumbMaximizeButton: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
+    top: 4,
+    right: 4,
+    width: 24,
+    height: 24,
     borderRadius: 14,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
     ...shadows.sm,
+  },
+  
+  // New styles for the design
+  photoCardContainer: {
+    alignItems: 'center',
+  },
+  iconsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 0,
+  },
+  iconButton: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: 'transparent',
+  },
+  tooltip: {
+    position: 'absolute',
+    top: DATE_CARD_HEIGHT + 20, // Position below the image card
+    left: -20,
+    right: -20,
+    backgroundColor: '#f8f8f8',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    zIndex: 9999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 8,
+    minWidth: 80,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+  },
+  tooltipText: {
+    color: '#333',
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 

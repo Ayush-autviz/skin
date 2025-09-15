@@ -2,13 +2,16 @@
 // Screen to display archived (stopped) routine items
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, SectionList, ActivityIndicator, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { colors, spacing, typography } from '../../src/styles';
+import { View, Text, SectionList, ActivityIndicator, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { colors, spacing, typography, shadows } from '../../src/styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import ListItem from '../../src/components/ui/ListItem';
+import TabHeader from '../../src/components/ui/TabHeader';
 import { 
   getRoutineItems, 
   updateRoutineItem,
@@ -58,6 +61,7 @@ const ArchivedRoutines = () => {
   const router = useRouter();
   const [routineItems, setRoutineItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const insets = useSafeAreaInsets();
 
@@ -102,9 +106,13 @@ const ArchivedRoutines = () => {
   };
 
   // Fetch routine items from API
-  const fetchRoutineItems = async () => {
+  const fetchRoutineItems = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       
       const response = await getRoutineItems();
@@ -120,12 +128,20 @@ const ArchivedRoutines = () => {
         setRoutineItems([]);
       }
       
-      setLoading(false);
+      if (isRefresh) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     } catch (err) {
       console.error('🔴 ArchivedRoutines: Error fetching routine items:', err);
       setError(err.message || 'Failed to load archived routine items.');
       setRoutineItems([]);
-      setLoading(false);
+      if (isRefresh) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
@@ -140,6 +156,14 @@ const ArchivedRoutines = () => {
       fetchRoutineItems();
     }, [])
   );
+
+  const handleRefresh = () => {
+    fetchRoutineItems(true);
+  };
+
+  const handleMenuPress = () => {
+    router.back();
+  };
 
   // Group items by stop reason
   const archivedSections = useMemo(() => {
@@ -234,75 +258,100 @@ const ArchivedRoutines = () => {
     </View>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Archived Routines</Text>
-          <View style={styles.placeholder} />
+  // Enhanced Loading Component
+  const LoadingState = () => (
+    <View style={styles.loadingContainer}>
+      <LinearGradient
+        colors={[colors.primary + '20', colors.primary + '10']}
+        style={styles.loadingGradient}
+      >
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading archived routines...</Text>
+          <Text style={styles.loadingSubtext}>This may take a moment</Text>
         </View>
-        <ActivityIndicator size="large" color={colors.primary} style={styles.centered} />
-      </View>
-    );
-  }
+      </LinearGradient>
+    </View>
+  );
 
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Archived Routines</Text>
-          <View style={styles.placeholder} />
+  // Enhanced Error Component
+  const ErrorState = () => (
+    <View style={styles.errorContainer}>
+      <View style={styles.errorContent}>
+        <View style={styles.errorIconContainer}>
+          <Feather name="alert-circle" size={48} color={colors.error} />
         </View>
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={styles.errorText}>Unable to load archived routines</Text>
+        <Text style={styles.errorSubtext}>
+          {error?.message || 'Something went wrong while loading your archived routines'}
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => fetchRoutineItems()}>
+          <Feather name="refresh-cw" size={16} color={colors.textOnPrimary} />
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
       </View>
-    );
-  }
+    </View>
+  );
+
+  // Enhanced Empty State Component
+  const EmptyState = () => (
+    <View style={styles.noDataContainer}>
+      <View style={styles.emptyContent}>
+        <LinearGradient
+          colors={[colors.primary + '15', colors.primary + '05']}
+          style={styles.emptyIconContainer}
+        >
+          <Feather name="archive" size={48} color={colors.primary} />
+        </LinearGradient>
+        <Text style={styles.noDataText}>No Archived Routines</Text>
+        <Text style={styles.noDataSubtext}>
+          Items you stop using will appear here
+        </Text>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Archived Routines</Text>
-        <View style={styles.placeholder} />
-      </View>
+      <TabHeader
+        title="Archived Routines"
+        onMenuPress={handleMenuPress}
+        showBack={true}
+      />
 
-      {archivedSections.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons 
-            name="archive" 
-            size={64} 
-            color={colors.textSecondary} 
-            style={styles.emptyIcon}
+      <View style={styles.content}>
+        {loading ? (
+          <LoadingState />
+        ) : error ? (
+          <ErrorState />
+        ) : archivedSections.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <SectionList
+            style={styles.sectionsList}
+            sections={archivedSections}
+            renderItem={renderArchivedItem}
+            renderSectionHeader={renderSectionHeader}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={[
+              styles.listContentContainer,
+              { paddingBottom: insets.bottom + 20 }
+            ]}
+            stickySectionHeadersEnabled={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+              />
+            }
           />
-          <Text style={styles.emptyTitle}>No Archived Items</Text>
-          <Text style={styles.emptySubtitle}>
-            Items you stop using will appear here
-          </Text>
-        </View>
-      ) : (
-        <SectionList
-          style={styles.sectionsList}
-          sections={archivedSections}
-          renderItem={renderArchivedItem}
-          renderSectionHeader={renderSectionHeader}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={[
-            styles.listContentContainer,
-            { paddingBottom: insets.bottom + 20 }
-          ]}
-          stickySectionHeadersEnabled={false}
-        />
-      )}
+        )}
+      </View>
     </View>
   );
+
 };
 
 export default ArchivedRoutines;
@@ -310,27 +359,12 @@ export default ArchivedRoutines;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  placeholder: {
-    width: 40,
+  content: {
+    flex: 1,
+    marginTop: 120, // Space for header
+    marginBottom: 100, // Space for bottom nav
   },
   sectionsList: {
     flex: 1,
@@ -343,7 +377,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
     paddingHorizontal: spacing.lg,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.background,
   },
   sectionHeaderText: {
     ...typography.h3,
@@ -351,36 +385,118 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 18,
   },
-  emptyContainer: {
+
+  // Enhanced Loading Styles
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
+    padding: spacing.xl,
   },
-  emptyIcon: {
-    marginBottom: spacing.lg,
+  loadingGradient: {
+    borderRadius: 20,
+    padding: spacing.xl,
+    minWidth: 280,
+    alignItems: 'center',
+    ...shadows.md,
   },
-  emptyTitle: {
+  loadingContent: {
+    alignItems: 'center',
+  },
+  loadingText: {
     ...typography.h3,
     color: colors.textPrimary,
+    marginTop: spacing.lg,
     textAlign: 'center',
-    marginBottom: spacing.sm,
+    fontWeight: '600',
   },
-  emptySubtitle: {
+  loadingSubtext: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+
+  // Enhanced Error Styles
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  errorContent: {
+    alignItems: 'center',
+    maxWidth: 320,
+  },
+  errorIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.error + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  errorText: {
+    ...typography.h2,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  errorSubtext: {
     ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing.xl,
   },
-  errorText: {
-    ...typography.body,
-    color: colors.error,
-    textAlign: 'center',
-    marginTop: spacing.xl,
-    paddingHorizontal: spacing.md,
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 25,
+    ...shadows.sm,
   },
-  centered: {
+  retryButtonText: {
+    ...typography.button,
+    color: colors.textOnPrimary,
+    marginLeft: spacing.sm,
+    fontWeight: '600',
+  },
+
+  // Enhanced Empty State Styles
+  noDataContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing.xl,
+  },
+  emptyContent: {
+    alignItems: 'center',
+    maxWidth: 320,
+  },
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  noDataText: {
+    ...typography.h2,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  noDataSubtext: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

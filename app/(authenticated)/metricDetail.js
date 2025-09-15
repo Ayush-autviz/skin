@@ -19,6 +19,91 @@ DEVELOPMENT HISTORY
   - Initial implementation
 ------------------------------------------------------*/
 
+const dummyPhotos = [
+  {
+    skin_result_id: "1",
+    created_at: { seconds: 1694457600, nanoseconds: 0 }, // Sep 12, 2023
+    skin_type: "Dry",
+  },
+  {
+    skin_result_id: "2",
+    created_at: { seconds: 1695062400, nanoseconds: 0 }, // Sep 19, 2023
+    skin_type: "Normal",
+  },
+  {
+    skin_result_id: "3",
+    created_at: { seconds: 1695667200, nanoseconds: 0 }, // Sep 26, 2023
+    skin_type: "Combination",
+  },
+  {
+    skin_result_id: "4",
+    created_at: { seconds: 1696272000, nanoseconds: 0 }, // Oct 3, 2023
+    skin_type: "Oily",
+  },
+  {
+    skin_result_id: "5",
+    created_at: { seconds: 1696876800, nanoseconds: 0 }, // Oct 10, 2023
+    skin_type: "Dry",
+  },
+  {
+    skin_result_id: "1",
+    created_at: { seconds: 1694457600, nanoseconds: 0 }, // Sep 12, 2023
+    skin_type: "Dry",
+  },
+  {
+    skin_result_id: "2",
+    created_at: { seconds: 1695062400, nanoseconds: 0 }, // Sep 19, 2023
+    skin_type: "Normal",
+  },
+  {
+    skin_result_id: "3",
+    created_at: { seconds: 1695667200, nanoseconds: 0 }, // Sep 26, 2023
+    skin_type: "Combination",
+  },
+  {
+    skin_result_id: "4",
+    created_at: { seconds: 1696272000, nanoseconds: 0 }, // Oct 3, 2023
+    skin_type: "Oily",
+  },
+  {
+    skin_result_id: "5",
+    created_at: { seconds: 1696876800, nanoseconds: 0 }, // Oct 10, 2023
+    skin_type: "Dry",
+  },
+  {
+    skin_result_id: "1",
+    created_at: { seconds: 1694457600, nanoseconds: 0 }, // Sep 12, 2023
+    skin_type: "Dry",
+  },
+  {
+    skin_result_id: "2",
+    created_at: { seconds: 1695062400, nanoseconds: 0 }, // Sep 19, 2023
+    skin_type: "Normal",
+  },
+  {
+    skin_result_id: "3",
+    created_at: { seconds: 1695667200, nanoseconds: 0 }, // Sep 26, 2023
+    skin_type: "Combination",
+  },
+  {
+    skin_result_id: "4",
+    created_at: { seconds: 1696272000, nanoseconds: 0 }, // Oct 3, 2023
+    skin_type: "Oily",
+  },
+  {
+    skin_result_id: "5",
+    created_at: { seconds: 1696876800, nanoseconds: 0 }, // Oct 10, 2023
+    skin_type: "Dry",
+  },
+];
+
+const SKIN_TYPES = ['Oily', 'Combination', 'Normal', 'Dry'];
+
+
+const CHART_HEIGHT = 180;
+const PADDING = 25;
+
+
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
@@ -29,7 +114,8 @@ import {
   SafeAreaView,
   StatusBar,
   Image,
-  ActivityIndicator
+  ActivityIndicator,
+  Dimensions
 } from 'react-native';
 import SvgUri from 'react-native-svg-uri';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -41,6 +127,7 @@ import FloatingTooltip from '../../src/components/ui/FloatingTooltip';
 import { colors } from '../../src/styles';
 import useAuthStore from '../../src/stores/authStore';
 import { getSkinTrendScores, getHautMaskImages } from '../../src/services/newApiService';
+import { LineChart } from 'react-native-chart-kit';
 
 // Import the JSON data
 import concernsData from '../../data/concerns.json';
@@ -244,6 +331,186 @@ const PerceivedAgeChart = ({ photos }) => {
           })}
         </View>
       </ScrollView>
+    </View>
+  );
+};
+
+const SkinTypeTrendChart = ({ photos }) => {
+  // Process photos to get skin type data
+
+
+
+
+  const processedData = photos.map(photo => {
+    let dateValue;
+    const ts = photo.created_at;
+    if (ts?.seconds && typeof ts.seconds === 'number') {
+      dateValue = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0));
+    } else if (ts instanceof Date) {
+      dateValue = ts;
+    } else if (typeof ts === 'string' || typeof ts === 'number') {
+      dateValue = new Date(ts);
+    } else {
+      return null;
+    }
+    
+    if (!(dateValue instanceof Date && !isNaN(dateValue.getTime()))) {
+      return null;
+    }
+
+    return {
+      photoId: photo.skin_result_id,
+      date: dateValue,
+      skinType: photo.skin_type || photo.skinType || null,
+    };
+  }).filter(item => item !== null);
+
+  if (!processedData.length) {
+    return <Text style={styles.trendPlaceholderText}>No skin type data available.</Text>;
+  }
+
+  // Map skin types to numeric values for chart
+  const skinTypeMap = {
+    'Dry': 1,
+    'Normal': 2,
+    'Combination': 3,
+    'Combinational': 3, // Handle both spellings
+    'Oily': 4
+  };
+
+  // Prepare data for chart
+  const chartData = {
+    labels: processedData.map((_, index) => `${index + 1}`),
+    datasets: [{
+      data: processedData.map(item => {
+        if (!item.skinType || item.skinType === 'Unknown') return 2; // Default to Normal if no data
+        return skinTypeMap[item.skinType] || 2;
+      }),
+      color: () => `#8b7ba8`, // Purple color
+      strokeWidth: 3
+    }]
+  };
+
+  console.log("🔵 chartData of SkinTypeTrendChart: in metricDetail.js", chartData);
+
+  const screenWidth = Dimensions.get('window').width;
+  const chartWidth = screenWidth - 32; // Account for margins
+
+  const renderYAxisLabels = () => {
+    return <View style={{ flexDirection: 'column', gap: 15,paddingVertical:20,paddingHorizontal:10 }}>
+    {SKIN_TYPES.map((skinType, index) => {
+      const y = PADDING + (index / (SKIN_TYPES.length - 1)) * (CHART_HEIGHT - 2 * PADDING);
+      return (
+<View
+  style={{
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)", // light border
+    borderRadius: 16, // makes pill shape
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: "flex-start", // shrink to text size
+    opacity: 0.7, // highlight active one
+  }}
+>
+  <Text
+    key={skinType}
+    style={{
+      fontSize: 12,
+      color: "#333",
+      fontWeight: "500",
+    }}
+  >
+    {skinType}
+  </Text>
+</View>
+      );
+    })}
+    </View>
+  };
+
+  return (
+    <View style={styles.skinTypeChartContainer}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={{ height: 200 }}
+        //contentContainerStyle={{ paddingRight: 16 }}
+      >
+        <LineChart
+          data={chartData}
+          width={Math.max(chartWidth, processedData.length * 40)}
+          height={160}
+          chartConfig={{
+            backgroundColor: '#F8F8F8',
+            backgroundGradientFrom: '#F8F8F8',
+            backgroundGradientTo: '#F8F8F8',
+            decimalPlaces: 0,
+            color: (opacity = 1) => `rgba(110, 70, 255, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            style: {
+              borderRadius: 16
+            },
+            propsForDots: {
+              r: '6',                 // dot radius
+              strokeWidth: '2',       // border thickness
+              stroke: '#fff',      // border color (purple)
+              fill: '#8b7ba8',           // inside color (white makes border pop)
+            },
+            propsForBackgroundLines: {
+              strokeDasharray: '',
+              stroke: '#E0E0E0'
+            }
+          }}
+          style={{
+            marginVertical: 8,
+            borderRadius: 16,
+            marginLeft: 0
+          }}
+          bezier 
+          withVerticalLabels={false}   // ❌ removes Y-axis numbers
+          withHorizontalLabels={false} // ❌ removes X-axis numbers
+          withInnerLines={true}        // keep dashed lines if you want
+          withOuterLines={false}       // removes border lines
+          
+          yLabelsOffset={0}            // no extra spacing for labels
+           withDots={true}
+           withShadow={false}
+        //  withInnerLines={true}
+        //  withOuterLines={true}
+          withVerticalLines={false}
+          withHorizontalLines={true}
+          segments={3}
+          fromZero={false}
+          yAxisMin={0.5}
+          yAxisMax={4.5}
+          yAxisInterval={1}
+          // formatYLabel={(value) => {
+          //   const numValue = parseFloat(value);
+          //   if (numValue === 1) return 'Dry';
+          //   if (numValue === 2) return 'Normal';
+          //   if (numValue === 3) return 'Combination';
+          //   if (numValue === 4) return 'Oily';
+          //   return '';
+          // }}
+          // formatXLabel={(value) => {
+          //   const index = parseInt(value) - 1;
+          //   if (index >= 0 && index < processedData.length) {
+          //     const date = processedData[index].date;
+          //     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          //   }
+          //   return value;
+          // }}
+        />
+
+      </ScrollView>
+
+      <View style={styles.floatingYAxis}>
+          {renderYAxisLabels()}
+       </View>
+      
+      {/* Legend */}
+
     </View>
   );
 };
@@ -1501,13 +1768,15 @@ export default function MetricDetailScreen() {
         })()}
         
         {/* Trend/History Card - Show for skin score metrics and perceived age */}
-        {(!currentConcernDetails?._isProfileMetric || metricKey === 'perceivedAge' || metricKey === 'eyeAge') && (
+        {(!currentConcernDetails?._isProfileMetric || metricKey === 'perceivedAge' || metricKey === 'eyeAge' || metricKey === 'skinType') && (
           <View style={{ marginHorizontal: 16 }}>
             <Text style={styles.sectionTitle}>Trend</Text>
             <View style={styles.metricCard}>
               {trendScores && trendScores.length > 0 ? (
                 metricKey === 'perceivedAge' || metricKey === 'eyeAge' ? (
                   <PerceivedAgeChart photos={trendScores} />
+                ) : metricKey === 'skinType' ? (
+                  <SkinTypeTrendChart photos={trendScores} />
                 ) : (
                   <MetricsSeries_simple
                     photos={trendScores}
@@ -1527,6 +1796,8 @@ export default function MetricDetailScreen() {
             </View>
           </View>
         )}
+
+<SkinTypeTrendChart photos={dummyPhotos} />
         
         {/* Content Section: Overview or Age Guidance */}
         <View style={styles.contentSectionContainer}>
@@ -2563,10 +2834,11 @@ const styles = StyleSheet.create({
   },
   yAxisLabel: {
     fontSize: 10,
+   // padding:10,
     color: '#999',
     fontWeight: '500',
-    textAlign: 'right',
-    width: 25,
+   // textAlign: 'right',
+  
   },
   nullBarContainer: {
     position: 'absolute',
@@ -2614,6 +2886,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     flex: 1,
+  },
+  floatingYAxis: {
+    position: 'absolute',
+    top: 0,
+    left: 10,
+    right: 0,
+    bottom: 0,
+    pointerEvents: 'none',
   },
   adviceCardLeft: {
     flexDirection: 'row',
@@ -2804,6 +3084,26 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
     flexWrap: 'wrap',
+  },
+
+  // Skin Type Chart styles
+  skinTypeChartContainer: {
+    height: 240,
+    backgroundColor: '#F8F8F8',
+    marginHorizontal: 16,
+    borderRadius: 12,
+    padding: 8,
+    position: 'relative',
+  },
+  skinTypeLegend: {
+    alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 16,
+  },
+  skinTypeLegendText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
   },
 
 });
