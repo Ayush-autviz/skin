@@ -381,7 +381,7 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
         flatListRef.current.scrollToIndex({
           index,
           animated: true,
-          viewPosition: 0.5 // Center the item in the viewport
+          viewPosition: 0.45 // Center the item in the viewport
         });
       } else {
          console.warn(`[TimeSelector] scrollToIndex failed: Invalid index ${index}. List length: ${photos?.length}. SelectedIndex prop: ${selectedIndex}.`);
@@ -422,7 +422,7 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
               flatListRef.current.scrollToIndex({
                   index: selectedIndex,
                   animated: true,
-                  viewPosition: 0.5, // Center the item in the viewport
+                  viewPosition: 0.45, // Center the item in the viewport
               });
           }
       }, 50); // 50ms delay

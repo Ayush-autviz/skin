@@ -71,6 +71,7 @@ export default function UpdateRoutineScreen() {
   const [itemConcerns, setItemConcerns] = useState([]);
   const [startDate, setStartDate] = useState(new Date()); // Default to today's date
   const [endDate, setEndDate] = useState(null);
+  const [treatmentDate, setTreatmentDate] = useState(new Date()); // For treatment types
   const [isStopped, setIsStopped] = useState(false);
   const [stopReason, setStopReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -79,6 +80,7 @@ export default function UpdateRoutineScreen() {
   // Date picker states
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showTreatmentDatePicker, setShowTreatmentDatePicker] = useState(false);
 
   // Initialize form with existing data
   useEffect(() => {
@@ -104,14 +106,30 @@ export default function UpdateRoutineScreen() {
         setIsStopped(!!itemData.dateStopped);
         setStopReason(itemData.stopReason || '');
 
-        // Handle dates
-        if (itemData.dateStarted) {
-          setStartDate(new Date(itemData.dateStarted));
+        // Handle dates based on type
+        const isTreatment = itemData.type && (
+          itemData.type === 'Treatment / Facial' || 
+          itemData.type === 'Treatment / Injection' || 
+          itemData.type === 'Treatment / Other'
+        );
+        
+        if (isTreatment) {
+          // For treatment types, use treatment date
+          if (itemData.treatmentDate) {
+            setTreatmentDate(new Date(itemData.treatmentDate));
+          } else {
+            setTreatmentDate(new Date()); // Keep today's date as default if no existing date
+          }
         } else {
-          setStartDate(new Date()); // Keep today's date as default if no existing date
-        }
-        if (itemData.dateStopped) {
-          setEndDate(new Date(itemData.dateStopped));
+          // For non-treatment types, use start/end dates
+          if (itemData.dateStarted) {
+            setStartDate(new Date(itemData.dateStarted));
+          } else {
+            setStartDate(new Date()); // Keep today's date as default if no existing date
+          }
+          if (itemData.dateStopped) {
+            setEndDate(new Date(itemData.dateStopped));
+          }
         }
       } catch (error) {
         console.error('Error parsing item data:', error);
@@ -121,14 +139,14 @@ export default function UpdateRoutineScreen() {
     }
   }, [params.itemData]);
 
-  // Toggle logic for AM/PM usage
+  // Toggle logic for AM/PM usage - only allow one selection
   const handleUsageToggle = (tappedUsage) => {
     setItemUsage(currentUsage => {
       const isSelected = currentUsage.includes(tappedUsage);
       if (isSelected) {
-        return currentUsage.filter(u => u !== tappedUsage);
+        return []; // Deselect if already selected
       } else {
-        return [...currentUsage, tappedUsage].sort();
+        return [tappedUsage]; // Select only the tapped option
       }
     });
   };
@@ -160,6 +178,22 @@ export default function UpdateRoutineScreen() {
     if (selectedDate) {
       setEndDate(selectedDate);
     }
+  };
+
+  const handleTreatmentDateChange = (event, selectedDate) => {
+    if (event.type === 'dismissed') return;
+    if (selectedDate) {
+      setTreatmentDate(selectedDate);
+    }
+  };
+
+  // Check if current type is a treatment type
+  const isTreatmentType = () => {
+    return itemType && (
+      itemType === 'Treatment / Facial' || 
+      itemType === 'Treatment / Injection' || 
+      itemType === 'Treatment / Other'
+    );
   };
 
   // Format parameters for backend
@@ -201,42 +235,76 @@ export default function UpdateRoutineScreen() {
       return;
     }
 
-    if (!startDate) {
-      Alert.alert('Missing Information', 'Please select when you started using this item.');
-      return;
-    }
+    // For treatment types, validate treatment date
+    if (isTreatmentType()) {
+      if (!treatmentDate) {
+        Alert.alert('Missing Information', 'Please select the treatment date.');
+        return;
+      }
+    } else {
+      // For non-treatment types, validate usage and frequency
+      if (itemUsage.length === 0) {
+        Alert.alert('Missing Information', 'Please select a time of day.');
+        return;
+      }
+      
+      if (!itemFrequency) {
+        Alert.alert('Missing Information', 'Please select a usage frequency.');
+        return;
+      }
+      
+      // For non-treatment types, validate start date
+      if (!startDate) {
+        Alert.alert('Missing Information', 'Please select when you started using this item.');
+        return;
+      }
 
-    // Validate dates if both are present
-    if (startDate && endDate && endDate < startDate) {
-      Alert.alert('Invalid Date', 'The end date cannot be before the start date.');
-      return;
+      // Validate dates if both are present
+      if (startDate && endDate && endDate < startDate) {
+        Alert.alert('Invalid Date', 'The end date cannot be before the start date.');
+        return;
+      }
     }
-
-    let finalUsage = 'AM';
-    const includesAM = itemUsage.includes('AM');
-    const includesPM = itemUsage.includes('PM');
-    if (includesAM && includesPM) finalUsage = 'both';
-    else if (includesPM) finalUsage = 'pm';
-    else if (includesAM) finalUsage = 'am';
-    else if (itemUsage.includes('As needed')) finalUsage = 'as_needed';
 
     // Prepare data for API
     const apiItemData = {
       name: itemName.trim(),
       type: formatParameter(itemType),
-      usage: finalUsage,
-      frequency: formatParameter(itemFrequency),
       concern: itemConcerns,
-      start_date: startDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
-      end_date: endDate ? endDate.toISOString().split('T')[0] : '',
       extra: {
         concerns: itemConcerns,
-        dateStarted: startDate?.toISOString(),
-        dateStopped: endDate?.toISOString(),
-        stopReason: stopReason,
         dateCreated: params.itemData ? JSON.parse(params.itemData).dateCreated : new Date().toISOString()
       }
     };
+
+    // Add usage and frequency only for non-treatment types
+    if (!isTreatmentType()) {
+      let finalUsage = 'AM';
+      const includesAM = itemUsage.includes('AM');
+      const includesPM = itemUsage.includes('PM');
+      const includesAMPM = itemUsage.includes('AM & PM');
+      
+      if (includesAMPM) finalUsage = 'both';
+      else if (includesAM && includesPM) finalUsage = 'both';
+      else if (includesPM) finalUsage = 'pm';
+      else if (includesAM) finalUsage = 'am';
+      else if (itemUsage.includes('As needed')) finalUsage = 'as_needed';
+      
+      apiItemData.usage = finalUsage;
+      apiItemData.frequency = formatParameter(itemFrequency);
+    }
+
+    // Add date fields based on type
+    if (isTreatmentType()) {
+      apiItemData.treatment_date = treatmentDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      apiItemData.extra.treatmentDate = treatmentDate?.toISOString();
+    } else {
+      apiItemData.start_date = startDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      apiItemData.end_date = endDate ? endDate.toISOString().split('T')[0] : '';
+      apiItemData.extra.dateStarted = startDate?.toISOString();
+      apiItemData.extra.dateStopped = endDate?.toISOString();
+      apiItemData.extra.stopReason = stopReason;
+    }
 
     setIsSaving(true);
     try {
@@ -440,131 +508,177 @@ export default function UpdateRoutineScreen() {
           </View>
         </View>
 
-        {/* Frequency Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Usage Frequency</Text>
-          <Text style={styles.sectionSubtitle}>Select One</Text>
-          <View style={styles.chipSelectorContainer}>
-            {[
-              { name: 'Daily', icon: CheckCircle, color: '#10B981' },
-              { name: 'Weekly', icon: CalendarDays, color: '#3B82F6' },
-              { name: 'As needed', icon: HelpCircle, color: '#8B5CF6' }
-            ].map(({ name, icon: Icon, color }) => {
-              const isActive = itemFrequency === name;
-              
-              return (
-                <TouchableOpacity
-                  key={name}
-                  style={[
-                    styles.chipButton,
-                    isActive && styles.chipButtonActive
-                  ]}
-                  onPress={() => setItemFrequency(name)}
-                >
-                  <Icon 
-                    size={20} 
-                    color={isActive ? '#FFFFFF' : '#6B7280'} 
-                  />
-                  <Text style={[
-                    styles.chipButtonText,
-                    isActive && styles.chipButtonTextActive
-                  ]}>
-                    {name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Time of Day Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Time of Day</Text>
-          <Text style={styles.sectionSubtitle}>Select One</Text>
+        {/* Frequency Selection - Only show for non-treatment types */}
+        {!isTreatmentType() && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Usage Frequency</Text>
+            <Text style={styles.sectionSubtitle}>Select One</Text>
             <View style={styles.chipSelectorContainer}>
-            {[
-              { name: 'AM', icon: Sun, color: '#F59E0B' },
-              { name: 'PM', icon: Moon, color: '#6366F1' },
-              { name: 'As needed', icon: HelpCircle, color: '#8B5CF6' }
-            ].map(({ name, icon: Icon, color }) => {
-              const isActive = itemUsage.includes(name);
-              
-              return (
-                <TouchableOpacity
-                  key={name}
-                  style={[
-                    styles.chipButton,
-                    isActive && styles.chipButtonActive
-                  ]}
-                  onPress={() => handleUsageToggle(name)}
-                >
-                  <Icon 
-                    size={20} 
-                    color={isActive ? '#FFFFFF' : '#6B7280'} 
-                  />
-                  <Text style={[
-                    styles.chipButtonText,
-                    isActive && styles.chipButtonTextActive
-                  ]}>
-                    {name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Start Date */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Start Date</Text>
-          <Text style={styles.sectionSubtitle}>Required for Efficacy Validation</Text>
-          
-          <TouchableOpacity onPress={() => setShowStartDatePicker(!showStartDatePicker)} style={styles.inputWrapper}>
-            <Calendar 
-              size={20} 
-              color="#6B7280" 
-              style={styles.inputIcon} 
-            />
-            <TouchableOpacity
-              style={styles.dateInputButton}
-              onPress={() => setShowStartDatePicker(!showStartDatePicker)}
-            >
-              <Text style={[styles.dateText, !startDate && styles.dateTextPlaceholder]}>
-                {startDate ? startDate.toDateString() : 'Select start date'}
-              </Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-
-          {showStartDatePicker && (
-            <DateTimePicker
-              value={startDate || new Date()}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleStartDateChange}
-              maximumDate={new Date()}
-              minimumDate={new Date(new Date().getFullYear() - 10, 0, 1)}
-              textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
-              style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
-              themeVariant="light"
-            />
-          )}
-        </View>
-
-        {/* Stopped Checkbox */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.checkboxContainer}
-            onPress={() => setIsStopped(!isStopped)}
-          >
-            <View style={[styles.checkbox, isStopped && styles.checkboxChecked]}>
-              {isStopped && <Text style={styles.checkmark}>✓</Text>}
+              {[
+                { name: 'Daily', icon: CheckCircle, color: '#10B981' },
+                { name: 'Weekly', icon: CalendarDays, color: '#3B82F6' },
+                { name: 'As needed', icon: HelpCircle, color: '#8B5CF6' }
+              ].map(({ name, icon: Icon, color }) => {
+                const isActive = itemFrequency === name;
+                
+                return (
+                  <TouchableOpacity
+                    key={name}
+                    style={[
+                      styles.chipButton,
+                      isActive && styles.chipButtonActive
+                    ]}
+                    onPress={() => setItemFrequency(name)}
+                  >
+                    <Icon 
+                      size={20} 
+                      color={isActive ? '#FFFFFF' : '#6B7280'} 
+                    />
+                    <Text style={[
+                      styles.chipButtonText,
+                      isActive && styles.chipButtonTextActive
+                    ]}>
+                      {name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-            <Text style={styles.checkboxLabel}>Stopped Using It?</Text>
-          </TouchableOpacity>
-        </View>
+          </View>
+        )}
 
-        {/* End Date - Only show if stopped */}
-        {isStopped && (
+        {/* Time of Day Selection - Only show for non-treatment types */}
+        {!isTreatmentType() && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Time of Day</Text>
+            <Text style={styles.sectionSubtitle}>Select One</Text>
+            <View style={styles.chipSelectorContainer}>
+              {[
+                { name: 'AM', icon: Sun, color: '#F59E0B' },
+                { name: 'PM', icon: Moon, color: '#6366F1' },
+                { name: 'AM & PM', icon: HelpCircle, color: '#8B5CF6' },
+                { name: 'As needed', icon: HelpCircle, color: '#8B5CF6' }
+              ].map(({ name, icon: Icon, color }) => {
+                const isActive = itemUsage.includes(name);
+                
+                return (
+                  <TouchableOpacity
+                    key={name}
+                    style={[
+                      styles.chipButton,
+                      isActive && styles.chipButtonActive
+                    ]}
+                    onPress={() => handleUsageToggle(name)}
+                  >
+                    <Icon 
+                      size={20} 
+                      color={isActive ? '#FFFFFF' : '#6B7280'} 
+                    />
+                    <Text style={[
+                      styles.chipButtonText,
+                      isActive && styles.chipButtonTextActive
+                    ]}>
+                      {name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Date Selection - Different for treatment vs non-treatment types */}
+        {isTreatmentType() ? (
+          /* Treatment Date */
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Treatment Date</Text>
+            <Text style={styles.sectionSubtitle}>When did you receive this treatment?</Text>
+            
+            <TouchableOpacity onPress={() => setShowTreatmentDatePicker(!showTreatmentDatePicker)} style={styles.inputWrapper}>
+              <Calendar 
+                size={20} 
+                color="#6B7280" 
+                style={styles.inputIcon} 
+              />
+              <TouchableOpacity
+                style={styles.dateInputButton}
+                onPress={() => setShowTreatmentDatePicker(!showTreatmentDatePicker)}
+              >
+                <Text style={[styles.dateText, !treatmentDate && styles.dateTextPlaceholder]}>
+                  {treatmentDate ? treatmentDate.toDateString() : 'Select treatment date'}
+                </Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+
+            {showTreatmentDatePicker && (
+              <DateTimePicker
+                value={treatmentDate || new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleTreatmentDateChange}
+                maximumDate={new Date()}
+                minimumDate={new Date(new Date().getFullYear() - 10, 0, 1)}
+                textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
+                style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
+                themeVariant="light"
+              />
+            )}
+          </View>
+        ) : (
+          /* Start Date for non-treatment types */
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Start Date</Text>
+            <Text style={styles.sectionSubtitle}>Required for Efficacy Validation</Text>
+            
+            <TouchableOpacity onPress={() => setShowStartDatePicker(!showStartDatePicker)} style={styles.inputWrapper}>
+              <Calendar 
+                size={20} 
+                color="#6B7280" 
+                style={styles.inputIcon} 
+              />
+              <TouchableOpacity
+                style={styles.dateInputButton}
+                onPress={() => setShowStartDatePicker(!showStartDatePicker)}
+              >
+                <Text style={[styles.dateText, !startDate && styles.dateTextPlaceholder]}>
+                  {startDate ? startDate.toDateString() : 'Select start date'}
+                </Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+
+            {showStartDatePicker && (
+              <DateTimePicker
+                value={startDate || new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleStartDateChange}
+                maximumDate={new Date()}
+                minimumDate={new Date(new Date().getFullYear() - 10, 0, 1)}
+                textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
+                style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
+                themeVariant="light"
+              />
+            )}
+          </View>
+        )}
+
+        {/* Stopped Checkbox - Only show for non-treatment types */}
+        {!isTreatmentType() && (
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => setIsStopped(!isStopped)}
+            >
+              <View style={[styles.checkbox, isStopped && styles.checkboxChecked]}>
+                {isStopped && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.checkboxLabel}>Stopped Using It?</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* End Date - Only show if stopped and not treatment type */}
+        {!isTreatmentType() && isStopped && (
           <View style={styles.section}>
             <Text style={styles.sectionSubtitle}>For Efficacy Validation Please Provide</Text>
             <TouchableOpacity onPress={() => setShowEndDatePicker(!showEndDatePicker)} style={styles.inputWrapper}>
@@ -599,8 +713,8 @@ export default function UpdateRoutineScreen() {
           </View>
         )}
 
-        {/* Stop Reason - Only show if stopped */}
-        {isStopped && (
+        {/* Stop Reason - Only show if stopped and not treatment type */}
+        {!isTreatmentType() && isStopped && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle2}>Why did you stop using it?</Text>
             <View style={styles.chipSelectorContainer}>

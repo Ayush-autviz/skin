@@ -90,6 +90,13 @@ const ArchivedRoutines = () => {
       'as_needed': 'As needed'
     };
 
+    // Check if this is a treatment type
+    const isTreatment = apiItem.type && (
+      apiItem.type === 'treatment_facial' || 
+      apiItem.type === 'treatment_injection' || 
+      apiItem.type === 'treatment_other'
+    );
+
     return {
       id: apiItem.id,
       name: apiItem.name,
@@ -97,8 +104,14 @@ const ArchivedRoutines = () => {
       usage: usageMap[apiItem.usage] || apiItem.usage,
       frequency: frequencyMap[apiItem.frequency] || apiItem.frequency,
       concerns: apiItem.extra?.concerns || [],
-      dateStarted: apiItem.extra?.dateStarted ? new Date(apiItem.extra.dateStarted) : null,
-      dateStopped: apiItem.extra?.dateStopped ? new Date(apiItem.extra.dateStopped) : null,
+      // For treatment types, use treatment date; for others, use start/stop dates
+      dateStarted: isTreatment ? 
+        (apiItem.extra?.treatmentDate ? new Date(apiItem.extra.treatmentDate) : null) :
+        (apiItem.extra?.dateStarted ? new Date(apiItem.extra.dateStarted) : null),
+      dateStopped: isTreatment ? null : // Treatments don't have stop dates
+        (apiItem.extra?.dateStopped ? new Date(apiItem.extra.dateStopped) : null),
+      treatmentDate: isTreatment ? 
+        (apiItem.extra?.treatmentDate ? new Date(apiItem.extra.treatmentDate) : null) : null,
       stopReason: apiItem.extra?.stopReason || '',
       dateCreated: apiItem.extra?.dateCreated ? new Date(apiItem.extra.dateCreated) : new Date(),
       extra: apiItem.extra || {}
@@ -119,10 +132,22 @@ const ArchivedRoutines = () => {
       
       if (response.success && response.data) {
         const transformedItems = response.data.map(transformApiItem);
-        // Filter only stopped items
-        const stoppedItems = transformedItems.filter(item => 
-          item.dateStopped && new Date(item.dateStopped) <= new Date()
-        );
+        // Filter only stopped items (for non-treatment types) or all treatment items
+        const stoppedItems = transformedItems.filter(item => {
+          const isTreatment = item.type && (
+            item.type === 'Treatment / Facial' || 
+            item.type === 'Treatment / Injection' || 
+            item.type === 'Treatment / Other'
+          );
+          
+          if (isTreatment) {
+            // For treatments, include all items (they don't have stop dates)
+            return true;
+          } else {
+            // For non-treatments, only include stopped items
+            return item.dateStopped && new Date(item.dateStopped) <= new Date();
+          }
+        });
         setRoutineItems(stoppedItems);
       } else {
         setRoutineItems([]);
@@ -180,11 +205,28 @@ const ArchivedRoutines = () => {
       grouped[reason].push(item);
     });
 
-    // Sort items within each group by stop date (most recent first)
+    // Sort items within each group by date (most recent first)
     Object.keys(grouped).forEach(reason => {
       grouped[reason].sort((a, b) => {
-        const dateA = a.dateStopped ? new Date(a.dateStopped) : new Date(0);
-        const dateB = b.dateStopped ? new Date(b.dateStopped) : new Date(0);
+        // For treatment types, use treatment date; for others, use stop date
+        const isTreatmentA = a.type && (
+          a.type === 'Treatment / Facial' || 
+          a.type === 'Treatment / Injection' || 
+          a.type === 'Treatment / Other'
+        );
+        const isTreatmentB = b.type && (
+          b.type === 'Treatment / Facial' || 
+          b.type === 'Treatment / Injection' || 
+          b.type === 'Treatment / Other'
+        );
+        
+        const dateA = isTreatmentA ? 
+          (a.treatmentDate ? new Date(a.treatmentDate) : new Date(0)) :
+          (a.dateStopped ? new Date(a.dateStopped) : new Date(0));
+        const dateB = isTreatmentB ? 
+          (b.treatmentDate ? new Date(b.treatmentDate) : new Date(0)) :
+          (b.dateStopped ? new Date(b.dateStopped) : new Date(0));
+        
         return dateB - dateA;
       });
     });
@@ -204,19 +246,43 @@ const ArchivedRoutines = () => {
     let displayUsage = item.usage;
     if (item.usage === 'AM + PM') displayUsage = 'AM/PM';
     
+    // Check if this is a treatment type
+    const isTreatment = item.type && (
+      item.type === 'Treatment / Facial' || 
+      item.type === 'Treatment / Injection' || 
+      item.type === 'Treatment / Other'
+    );
+
     // Create chips array
     const chips = [];
-    if (item.usage) {
-      chips.push({ label: displayUsage, type: 'default' });
+    
+    // Only show usage and frequency for non-treatment types
+    if (!isTreatment) {
+      if (item.usage) {
+        chips.push({ label: displayUsage, type: 'default' });
+      }
+      if (item.frequency && item.frequency !== 'Daily') {
+        chips.push({ label: item.frequency, type: 'frequency' });
+      }
+      chips.push({ label: 'Stopped', type: 'stopped' });
     }
-    if (item.frequency && item.frequency !== 'Daily') {
-      chips.push({ label: item.frequency, type: 'frequency' });
-    }
-    chips.push({ label: 'Stopped', type: 'stopped' });
 
     // Format date info
     let dateInfo = null;
-    if (item.dateStarted && item.dateStopped) {
+    
+    if (isTreatment) {
+      // For treatment types, show treatment date
+      if (item.treatmentDate) {
+        const treatmentDate = new Date(item.treatmentDate);
+        const formattedTreatmentDate = treatmentDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+        dateInfo = `Received on ${formattedTreatmentDate}`;
+      }
+    } else if (item.dateStarted && item.dateStopped) {
+      // For non-treatment types, show start and stop dates
       const startDate = new Date(item.dateStarted);
       const stopDate = new Date(item.dateStopped);
       const formattedStartDate = startDate.toLocaleDateString('en-US', {

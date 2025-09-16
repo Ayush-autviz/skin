@@ -134,6 +134,7 @@ const MyRoutine = forwardRef((props, ref) => {
   const [newItemFrequency, setNewItemFrequency] = useState('Daily');
   const [newItemDateStarted, setNewItemDateStarted] = useState(null);
   const [newItemDateStopped, setNewItemDateStopped] = useState(null);
+  const [newItemTreatmentDate, setNewItemTreatmentDate] = useState(null); // For treatment types
   const [newItemConcerns, setNewItemConcerns] = useState([]);
   const [isStopped, setIsStopped] = useState(false);
   const [stopReason, setStopReason] = useState('');
@@ -397,7 +398,14 @@ const MyRoutine = forwardRef((props, ref) => {
       case 3: return newItemConcerns.length > 0; // At least one concern selected
       case 4: return newItemFrequency; // Frequency selected
       case 5: return newItemUsage.length > 0; // At least one usage time selected
-      case 6: return newItemDateStarted; // Start date selected
+      case 6: 
+        // For treatment types, check treatment date; for others, check start date
+        const isTreatment = newItemType && (
+          newItemType === 'Treatment / Facial' || 
+          newItemType === 'Treatment / Injection' || 
+          newItemType === 'Treatment / Other'
+        );
+        return isTreatment ? newItemTreatmentDate : newItemDateStarted;
       default: return true;
     }
   };
@@ -416,6 +424,13 @@ const MyRoutine = forwardRef((props, ref) => {
     if (event.type === 'dismissed') return;
     if (selectedDate) {
       setNewItemDateStopped(selectedDate);
+    }
+  };
+
+  const handleTreatmentDateChange = (event, selectedDate) => {
+    if (event.type === 'dismissed') return;
+    if (selectedDate) {
+      setNewItemTreatmentDate(selectedDate);
     }
   };
 
@@ -466,16 +481,24 @@ const MyRoutine = forwardRef((props, ref) => {
       return;
     }
 
-    // Start date is now required
-    if (!newItemDateStarted) {
-      Alert.alert('Error', 'Please select a start date.');
-      return;
-    }
+    // For treatment types, validate treatment date
+    if (isTreatmentType()) {
+      if (!newItemTreatmentDate) {
+        Alert.alert('Error', 'Please select the treatment date.');
+        return;
+      }
+    } else {
+      // For non-treatment types, validate start date
+      if (!newItemDateStarted) {
+        Alert.alert('Error', 'Please select a start date.');
+        return;
+      }
 
-    // Validate dates if both are present
-    if (newItemDateStarted && newItemDateStopped && newItemDateStopped < newItemDateStarted) {
-      Alert.alert('Error', 'Stop date cannot be before start date.');
-      return;
+      // Validate dates if both are present
+      if (newItemDateStarted && newItemDateStopped && newItemDateStopped < newItemDateStarted) {
+        Alert.alert('Error', 'Stop date cannot be before start date.');
+        return;
+      }
     }
 
     let finalUsage = 'AM';
@@ -485,6 +508,15 @@ const MyRoutine = forwardRef((props, ref) => {
     else if (includesPM) finalUsage = 'pm';
     else if (includesAM) finalUsage = 'am';
     else if (newItemUsage.includes('As needed')) finalUsage = 'as_needed';
+
+    // Check if current type is a treatment type
+    const isTreatmentType = () => {
+      return newItemType && (
+        newItemType === 'Treatment / Facial' || 
+        newItemType === 'Treatment / Injection' || 
+        newItemType === 'Treatment / Other'
+      );
+    };
 
     // Format parameters for backend
     const formatParameter = (value) => {
@@ -514,16 +546,23 @@ const MyRoutine = forwardRef((props, ref) => {
       usage: finalUsage,
       frequency: formatParameter(newItemFrequency),
       concern: newItemConcerns,
-      start_date: newItemDateStarted ? newItemDateStarted.toISOString().split('T')[0] : '',
-      end_date: newItemDateStopped ? newItemDateStopped.toISOString().split('T')[0] : '',
       extra: {
         concerns: newItemConcerns,
-        dateStarted: newItemDateStarted?.toISOString(),
-        dateStopped: newItemDateStopped?.toISOString(),
-        stopReason: stopReason,
         dateCreated: editingItem?.dateCreated?.toISOString() || new Date().toISOString()
       }
     };
+
+    // Add date fields based on type
+    if (isTreatmentType()) {
+      apiItemData.treatment_date = newItemTreatmentDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      apiItemData.extra.treatmentDate = newItemTreatmentDate?.toISOString();
+    } else {
+      apiItemData.start_date = newItemDateStarted ? newItemDateStarted.toISOString().split('T')[0] : '';
+      apiItemData.end_date = newItemDateStopped ? newItemDateStopped.toISOString().split('T')[0] : '';
+      apiItemData.extra.dateStarted = newItemDateStarted?.toISOString();
+      apiItemData.extra.dateStopped = newItemDateStopped?.toISOString();
+      apiItemData.extra.stopReason = stopReason;
+    }
 
     setIsSaving(true);
     try {

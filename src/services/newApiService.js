@@ -1722,11 +1722,25 @@ export const createRoutineItem = async (itemData) => {
     if (itemData.concern && Array.isArray(itemData.concern)) {
       formData.append("concern", JSON.stringify(itemData.concern));
     }
-    if (itemData.start_date) {
-      formData.append("start_date", itemData.start_date);
-    }
-    if (itemData.end_date) {
-      formData.append("end_date", itemData.end_date);
+    
+    // Handle treatment types differently - use treatment_date instead of start_date/end_date
+    const isTreatmentType = itemData.type && (
+      itemData.type.includes('treatment_facial') || 
+      itemData.type.includes('treatment_injection') || 
+      itemData.type.includes('treatment_other')
+    );
+    
+    if (isTreatmentType) {
+      if (itemData.treatment_date) {
+        formData.append("treatment_date", itemData.treatment_date);
+      }
+    } else {
+      if (itemData.start_date) {
+        formData.append("start_date", itemData.start_date);
+      }
+      if (itemData.end_date) {
+        formData.append("end_date", itemData.end_date);
+      }
     }
     
     formData.append("extra", JSON.stringify(itemData.extra || {}));
@@ -1782,11 +1796,25 @@ export const updateRoutineItem = async (itemId, itemData) => {
     if (itemData.concern && Array.isArray(itemData.concern)) {
       formData.append("concern", JSON.stringify(itemData.concern));
     }
-    if (itemData.start_date) {
-      formData.append("start_date", itemData.start_date);
-    }
-    if (itemData.end_date) {
-      formData.append("end_date", itemData.end_date);
+    
+    // Handle treatment types differently - use treatment_date instead of start_date/end_date
+    const isTreatmentType = itemData.type && (
+      itemData.type.includes('treatment_facial') || 
+      itemData.type.includes('treatment_injection') || 
+      itemData.type.includes('treatment_other')
+    );
+    
+    if (isTreatmentType) {
+      if (itemData.treatment_date) {
+        formData.append("treatment_date", itemData.treatment_date);
+      }
+    } else {
+      if (itemData.start_date) {
+        formData.append("start_date", itemData.start_date);
+      }
+      if (itemData.end_date) {
+        formData.append("end_date", itemData.end_date);
+      }
     }
     
     formData.append("extra", JSON.stringify(itemData.extra || {}));
