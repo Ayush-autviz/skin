@@ -303,6 +303,7 @@ const ArchivedRoutines = () => {
     }
     
     return (
+      <View style={styles.archivedItemContainer}>
       <ListItem
         title={item.name}
         subtitle={usageDuration || 'Recently stopped'}
@@ -314,6 +315,7 @@ const ArchivedRoutines = () => {
         onPress={() => {}} // No edit functionality for archived items
         dateInfo={dateInfo}
       />
+      </View>
     );
   };
 
@@ -564,5 +566,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  archivedItemContainer: {
+    marginHorizontal: 18,
   },
 });

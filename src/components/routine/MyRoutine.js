@@ -943,28 +943,6 @@ const MyRoutine = forwardRef((props, ref) => {
         </View>
       ) : (
         <>
-        {/* Archived Section */}
-        {routineItems.some(item => item.dateStopped && new Date(item.dateStopped) <= new Date()) && (
-          <TouchableOpacity
-            style={styles.archivedSection}
-            onPress={() => router.push('/(authenticated)/archived-routines')}
-          >
-            <View style={styles.archivedContent}>
-              <MaterialCommunityIcons 
-                name="archive" 
-                size={20} 
-                color={colors.textSecondary} 
-              />
-              <Text style={styles.archivedText}>Previously used products</Text>
-              <MaterialCommunityIcons 
-                name="chevron-right" 
-                size={20} 
-                color={colors.textSecondary} 
-              />
-            </View>
-          </TouchableOpacity>
-        )}
-        
         <SectionList
           style={styles.sectionsList}
           sections={routineSections}
@@ -976,6 +954,31 @@ const MyRoutine = forwardRef((props, ref) => {
             { paddingBottom: insets.bottom + fixedCardHeight }
           ]}
           stickySectionHeadersEnabled={false}
+          ListHeaderComponent={() => (
+            <>
+              {/* Archived Section */}
+              {routineItems.some(item => item.dateStopped && new Date(item.dateStopped) <= new Date()) && (
+                <TouchableOpacity
+                  style={styles.archivedSection}
+                  onPress={() => router.push('/(authenticated)/archived-routines')}
+                >
+                  <View style={styles.archivedContent}>
+                    <MaterialCommunityIcons 
+                      name="archive" 
+                      size={20} 
+                      color={colors.textSecondary} 
+                    />
+                    <Text style={styles.archivedText}>Previously used products</Text>
+                    <MaterialCommunityIcons 
+                      name="chevron-right" 
+                      size={20} 
+                      color={colors.textSecondary} 
+                    />
+                  </View>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         />
   {/* 
           {routineItems.length > 0 && ( */}
@@ -1354,8 +1357,8 @@ const styles = StyleSheet.create({
   archivedSection: {
     backgroundColor: colors.white,
     marginHorizontal: 16,
-    marginBottom: 0,
-    marginTop: 25,
+    marginBottom: 20,
+    marginTop: 0,
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderRadius: 16,
