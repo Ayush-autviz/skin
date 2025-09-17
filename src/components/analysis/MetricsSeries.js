@@ -724,42 +724,29 @@ const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPos
 
   // Sync scroll position when scrollPosition or selectedIndex changes
   useEffect(() => {
-    if (scrollViewRef.current && scrollPosition !== undefined && scrollPosition >= 0) {
-      // Calculate dimensions to match MetricRow
-      const rightPadding = 120; // Match MetricRow's contentContainerStyle paddingRight
+    if (
+      scrollViewRef.current && 
+      scrollPosition !== undefined && 
+      scrollPosition >= 0 &&
+      processedData.length > 0
+    ) {
+      // Only scroll if position is meaningful (not just 0 unless really needed)
+      if (scrollPosition === 0 && selectedIndex !== 0) {
+        return; // prevent unwanted reset to start
+      }
+  
+      const rightPadding = 120;
       const totalContentWidth = chartWidth + rightPadding;
       const viewportWidth = screenWidth;
       const maxScrollPosition = Math.max(0, totalContentWidth - viewportWidth);
       const boundedScrollPosition = Math.min(scrollPosition, maxScrollPosition);
-      
-      // Check if this is a forced sync (initial load) or normal interaction
-      const isForced = forceScrollSyncRef?.current;
-      const shouldAnimate = !isForced; // Don't animate on forced initial sync for speed
-      
-      // Log for debugging
-      console.log(`[SkinTypeTrendChart] Scroll sync:`, {
-        requestedScrollPos: scrollPosition,
-        boundedScrollPos: boundedScrollPosition,
-        chartWidth,
-        totalContentWidth,
-        maxScrollPos: maxScrollPosition,
-        viewportWidth,
-        dataLength: processedData.length,
-        isForced,
-        shouldAnimate,
-        selectedIndex
-      });
-      
-      // Scroll to the calculated position
+  
       setTimeout(() => {
-        if (scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ 
-            x: boundedScrollPosition, 
-            animated: shouldAnimate,
-            duration: shouldAnimate ? 200 : 0
-          });
-        }
-      }, isForced ? 0 : 50); // Minimal delay for non-forced scrolls
+        scrollViewRef.current.scrollTo({ 
+          x: boundedScrollPosition, 
+          animated: !forceScrollSyncRef?.current,
+        });
+      }, forceScrollSyncRef?.current ? 0 : 50);
     }
   }, [scrollPosition, selectedIndex, processedData.length, chartWidth]);
 
