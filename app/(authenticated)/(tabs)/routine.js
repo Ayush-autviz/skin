@@ -23,6 +23,7 @@ import SettingsDrawer from '../../../src/components/layout/SettingsDrawer';
 
 import MyRoutine from '../../../src/components/routine/MyRoutine';
 import RecommendationsList from '../../../src/components/routine/RecommendationsList';
+import ActivityList from '../../../src/components/routine/ActivityList';
 import { colors, spacing, typography } from '../../../src/styles';
 import { useRouter } from 'expo-router';
 
@@ -80,12 +81,20 @@ export default function RoutineTab() {
             <Text style={[styles.tabText, activeTab === 'recommendations' && styles.activeTabText]}>Ingredients</Text>
             {activeTab === 'recommendations' && <View style={styles.activeTabIndicator} />}
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.tabButton}
+            onPress={() => setActiveTab('activity')}
+          >
+            <Text style={[styles.tabText, activeTab === 'activity' && styles.activeTabText]}>Activity</Text>
+            {activeTab === 'activity' && <View style={styles.activeTabIndicator} />}
+          </TouchableOpacity>
         </ScrollView>
 
         {/* Tab Content */}
         <View style={styles.tabContentContainer}>
           {activeTab === 'myRoutine' && <MyRoutine ref={myRoutineRef} />}
           {activeTab === 'recommendations' && <RecommendationsList />}
+          {activeTab === 'activity' && <ActivityList />}
         </View>
       </View>
 

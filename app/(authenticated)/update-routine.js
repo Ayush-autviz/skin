@@ -458,7 +458,7 @@ export default function UpdateRoutineScreen() {
 
         {/* Name Input */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle2}>What's the name?</Text>
+          <Text style={styles.sectionTitle2}>Name</Text>
           <Text style={styles.sectionSubtitle}>
             Give your {itemType.toLowerCase()} a name so you can easily identify it
           </Text>

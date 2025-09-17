@@ -397,7 +397,7 @@ const SkinTypeTrendChart = ({ photos }) => {
   const chartWidth = screenWidth - 32; // Account for margins
 
   const renderYAxisLabels = () => {
-    return <View style={{ flexDirection: 'column', gap: 15,paddingVertical:20,paddingHorizontal:10 }}>
+    return <View style={{ flexDirection: 'column', gap: 10,paddingVertical:7,paddingHorizontal:4 }}>
     {SKIN_TYPES.map((skinType, index) => {
       const y = PADDING + (index / (SKIN_TYPES.length - 1)) * (CHART_HEIGHT - 2 * PADDING);
       return (
@@ -408,7 +408,7 @@ const SkinTypeTrendChart = ({ photos }) => {
     borderColor: "rgba(0,0,0,0.1)", // light border
     borderRadius: 16, // makes pill shape
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 7,
     alignSelf: "flex-start", // shrink to text size
     opacity: 0.7, // highlight active one
   }}
@@ -434,17 +434,15 @@ const SkinTypeTrendChart = ({ photos }) => {
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
-        style={{ height: 200 }}
-        //contentContainerStyle={{ paddingRight: 16 }}
       >
         <LineChart
           data={chartData}
           width={Math.max(chartWidth, processedData.length * 40)}
           height={160}
           chartConfig={{
-            backgroundColor: '#F8F8F8',
-            backgroundGradientFrom: '#F8F8F8',
-            backgroundGradientTo: '#F8F8F8',
+            backgroundColor: '#fff',
+            backgroundGradientFrom: '#fff',
+            backgroundGradientTo: '#fff',
             decimalPlaces: 0,
             color: (opacity = 1) => `rgba(110, 70, 255, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -1797,8 +1795,6 @@ export default function MetricDetailScreen() {
           </View>
         )}
 
-<SkinTypeTrendChart photos={dummyPhotos} />
-        
         {/* Content Section: Overview or Age Guidance */}
         <View style={styles.contentSectionContainer}>
          
@@ -2196,7 +2192,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: 0,
     color: '#333',
   },
   placeholderText: {
@@ -2890,7 +2886,7 @@ const styles = StyleSheet.create({
   floatingYAxis: {
     position: 'absolute',
     top: 0,
-    left: 10,
+    left: 0,
     right: 0,
     bottom: 0,
     pointerEvents: 'none',
@@ -3088,11 +3084,9 @@ const styles = StyleSheet.create({
 
   // Skin Type Chart styles
   skinTypeChartContainer: {
-    height: 240,
-    backgroundColor: '#F8F8F8',
-    marginHorizontal: 16,
+   // backgroundColor: '#F8F8F8',
     borderRadius: 12,
-    padding: 8,
+   // padding: 8,
     position: 'relative',
   },
   skinTypeLegend: {

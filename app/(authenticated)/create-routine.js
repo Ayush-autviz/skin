@@ -37,16 +37,16 @@ import { createRoutineItem } from '../../src/services/newApiService';
 
 // Define concerns options
 const concernsOptions = [
+  'Breakouts',
   'Evenness',
   'Redness', 
   'Visible Pores',
   'Lines',
-  'Eye Area',
-  'Condition',
-  'Skin Type',
-  'Skin Tone',
-  'Perceived Age',
-  'Perceived Eye Age'
+  'Eye Area Condition',
+  'Pigmentation',
+  'Dewiness',
+  'Anti-Aging/Faces',
+  'Anti-Aging/Eyes'
 ];
 
 // Define stop reasons
@@ -357,7 +357,7 @@ export default function CreateRoutineScreen() {
 
         {/* Name Input */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle2}>What's the name?</Text>
+          <Text style={styles.sectionTitle2}>Name</Text>
           {/* <Text style={styles.sectionSubtitle}>
             Give your {itemType.toLowerCase()} a name so you can easily identify it
           </Text> */}

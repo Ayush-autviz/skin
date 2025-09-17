@@ -1182,6 +1182,7 @@ export const transformComparisonData = (comparisonData) => {
           redness: "rednessScore",
           translucency: "translucencyScore",
           uniformness: "uniformnessScore",
+          skin_type: "skinType",
         };
 
         console.log(conditions,'conditions from transformComparisonData');
@@ -1191,9 +1192,17 @@ export const transformComparisonData = (comparisonData) => {
         conditions.forEach((condition) => {
           const metricKey = conditionMapping[condition.skin_condition_name];
           if (metricKey) {
-            metrics[metricKey] = condition.skin_condition_score;
+            // For skin_type, store the skin_condition_type instead of score
+            if (metricKey === "skinType") {
+              console.log("skin type in progress");
+              metrics[metricKey] = condition.skin_condition_type;
+            } else {
+              metrics[metricKey] = condition.skin_condition_score;
+            }
           }
         });
+
+        console.log(metrics,'metrics from transformComparisonData');
 
         // Use the actual created_at field from the API response
         const createdDate = new Date(image.created_at);

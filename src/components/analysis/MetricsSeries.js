@@ -121,6 +121,7 @@ import { Expand, Flag, BookOpen, Book, FlagIcon } from 'lucide-react-native';
 import useAuthStore from '../../stores/authStore';
 import { ChevronRightIcon } from 'lucide-react-native';
 import TrendChart from './TrendChart';
+import { LineChart } from 'react-native-chart-kit';
 
 const { width } = Dimensions.get('window');
 const DATE_CARD_WIDTH = 115;  // 100 * 1.15 = 115 (15% increase)
@@ -139,7 +140,8 @@ const METRIC_KEYS = [
   'hydrationScore',
   'uniformnessScore',
   'eyeAge',
-  'perceivedAge'
+  'perceivedAge',
+  'skinType'
 ];
 
 const METRIC_LABELS = {
@@ -152,7 +154,8 @@ const METRIC_LABELS = {
   hydrationScore: 'Dewiness',
   uniformnessScore: 'Evenness',
   eyeAge: 'Perceived Eye Age',
-  perceivedAge: 'Perceived Age'
+  perceivedAge: 'Perceived Age',
+  skinType: 'Skin Type'
 };
 
 const IMAGE_QUALITY_KEYS = [
@@ -219,9 +222,14 @@ const processPhotoMetrics = (photos) => {
           })
         : 'Invalid Date';
 
+      // For skin_type, store the string value instead of numeric score
+      const value = metricKey === 'skinType' 
+        ? photo.metrics?.[metricKey] ?? null
+        : photo.metrics?.[metricKey] ?? null;
+
       return {
         photoId: photo.id,
-        score: photo.metrics?.[metricKey] ?? null,
+        score: value, // This will be the skin type string for skinType metric
         timestamp: timestamp, // Store the actual Date object
         date: formattedDate // Store the formatted string
       };
@@ -649,10 +657,314 @@ const getEyeAgeComparisonColor = (eyeAge, actualAge) => {
   }
 };
 
+// SkinTypeTrendChart component for progress screen
+const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPosition, forceScrollSyncRef }) => {
+  const scrollViewRef = useRef(null);
+
+  // Process photos to get skin type data
+  const processedData = photos.map(photo => {
+    let dateValue;
+    
+    // Prioritize created_at field from API response
+    if (photo.created_at) {
+      dateValue = new Date(photo.created_at);
+    } else {
+      // Fallback to timestamp for backward compatibility
+      const ts = photo.timestamp;
+      if (ts?.seconds && typeof ts.seconds === 'number') {
+        dateValue = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0));
+      } else if (ts instanceof Date) {
+        dateValue = ts;
+      } else {
+        dateValue = new Date(ts);
+      }
+    }
+    
+    if (!(dateValue instanceof Date && !isNaN(dateValue.getTime()))) {
+      return null;
+    }
+
+    return {
+      photoId: photo.id,
+      date: dateValue,
+      skinType: photo.metrics?.skinType || null,
+    };
+  }).filter(item => item !== null);
+
+  if (!processedData.length) {
+    return <Text style={styles.trendPlaceholderText}>No skin type data available.</Text>;
+  }
+
+  // Map skin types to numeric values for chart
+  const skinTypeMap = {
+    'Dry': 1,
+    'Normal': 2,
+    'Combination': 3,
+    'Combinational': 3, // Handle both spellings
+    'Oily': 4
+  };
+
+  const SKIN_TYPES = ['Dry', 'Normal', 'Combination', 'Oily'];
+
+  // Prepare data for chart
+  const chartData = {
+    labels: processedData.map((_, index) => `${index + 1}`),
+    datasets: [{
+      data: processedData.map(item => {
+        if (!item.skinType || item.skinType === 'Unknown') return 2; // Default to Normal if no data
+        return skinTypeMap[item.skinType] || 2;
+      }),
+      color: () => `#8b7ba8`, // Purple color
+      strokeWidth: 3
+    }]
+  };
+
+  const screenWidth = Dimensions.get('window').width;
+  const chartWidth = Math.max(screenWidth - 32, processedData.length * 40);
+
+  // Sync scroll position when it changes or when forced
+  useEffect(() => {
+    if (scrollViewRef.current && scrollPosition !== undefined && scrollPosition >= 0) {
+      const isForced = forceScrollSyncRef?.current;
+      const shouldAnimate = !isForced;
+      
+      // Calculate the scroll position for skin type chart
+      const chartWidth = Math.max(screenWidth - 32, processedData.length * 40);
+      const viewportWidth = screenWidth;
+      const maxScrollPosition = Math.max(0, chartWidth - viewportWidth + 16); // Add padding
+      const boundedScrollPosition = Math.min(scrollPosition, maxScrollPosition);
+      
+      setTimeout(() => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ 
+            x: boundedScrollPosition, 
+            animated: shouldAnimate,
+            duration: shouldAnimate ? 200 : 0
+          });
+        }
+      }, 0);
+    }
+  }, [scrollPosition, processedData.length, screenWidth]);
+
+  // Separate effect to clear force flag after initial load
+  useEffect(() => {
+    if (forceScrollSyncRef?.current) {
+      const timer = setTimeout(() => {
+        if (forceScrollSyncRef) {
+          forceScrollSyncRef.current = false;
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [forceScrollSyncRef?.current]);
+
+  // Initial scroll to end effect
+  useEffect(() => {
+    if (processedData.length > 0 && scrollViewRef.current) {
+      const timer = setTimeout(() => {
+        if (scrollViewRef.current) {
+          const chartWidth = Math.max(screenWidth - 32, processedData.length * 40);
+          const viewportWidth = screenWidth;
+          const maxScrollPosition = Math.max(0, chartWidth - viewportWidth + 16);
+          scrollViewRef.current.scrollTo({ 
+            x: maxScrollPosition, 
+            animated: false
+          });
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [processedData.length, screenWidth]);
+
+  const renderYAxisLabels = () => {
+    return <View style={{ flexDirection: 'column', gap: 10,paddingVertical:0,paddingHorizontal:4 }}>
+    {SKIN_TYPES.map((skinType, index) => {
+    //  const y = PADDING + (index / (SKIN_TYPES.length - 1)) * (CHART_HEIGHT - 2 * PADDING);
+      return (
+<View
+  style={{
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)", // light border
+    borderRadius: 16, // makes pill shape
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    alignSelf: "flex-start", // shrink to text size
+    opacity: 0.7, // highlight active one
+  }}
+>
+  <Text
+    key={skinType}
+    style={{
+      fontSize: 12,
+      color: "#333",
+      fontWeight: "500",
+    }}
+  >
+    {skinType}
+  </Text>
+</View>
+      );
+    })}
+    </View>
+  };
+
+  return (
+    <View style={styles.skinTypeChartContainer}>
+      {/* Selected Value Indicator */}
+      {selectedIndex !== null && processedData[selectedIndex] && (
+        <View style={styles.skinTypeSelectedIndicator}>
+          <Text style={styles.skinTypeSelectedValue}>
+            {processedData[selectedIndex].skinType || 'Unknown'}
+          </Text>
+        </View>
+      )}
+
+      <ScrollView 
+        ref={scrollViewRef}
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={{ height: 160 }}
+        contentContainerStyle={{ paddingRight: 16 }}
+      >
+        <LineChart
+          data={chartData}
+          width={chartWidth}
+          height={160}
+          chartConfig={{
+            backgroundColor: '#fff',
+            backgroundGradientFrom: '#fff',
+            backgroundGradientTo: '#fff',
+            decimalPlaces: 0,
+            color: (opacity = 1) => `rgba(110, 70, 255, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            style: {
+              borderRadius: 16
+            },
+            propsForDots: {
+              r: '6',
+              strokeWidth: '2',
+              stroke: '#fff',
+              fill: '#8b7ba8',
+            },
+            propsForBackgroundLines: {
+              strokeDasharray: '',
+              stroke: '#E0E0E0'
+            }
+          }}
+          style={{
+            marginVertical: 0,
+            borderRadius: 16,
+            marginLeft: 0
+          }}
+          bezier 
+          withVerticalLabels={false}
+          withHorizontalLabels={false}
+          withInnerLines={true}
+          withOuterLines={false}
+          yLabelsOffset={0}
+          withDots={true}
+          withShadow={false}
+          withVerticalLines={false}
+          withHorizontalLines={true}
+          segments={3}
+          fromZero={false}
+          yAxisMin={0.5}
+          yAxisMax={4.5}
+          yAxisInterval={1}
+          onDataPointClick={(data) => {
+            if (onDataPointClick) {
+              onDataPointClick(data.index);
+            }
+          }}
+        />
+      </ScrollView>
+
+      <View style={styles.skinTypeFloatingYAxis}>
+        {renderYAxisLabels()}
+      </View>
+    </View>
+  );
+};
+
 const MetricRow = ({ metric, selectedIndex, onDotPress, scrollPosition, forceScrollSyncRef, photos, profile }) => {
   if (!metric?.scores?.length) return null;
 
   const scrollViewRef = useRef(null);
+
+  // Special handling for skin type - render SkinTypeTrendChart instead of bar chart
+  if (metric.metricName === 'skinType') {
+    console.log('inside of skin typemetric from MetricRow');
+    return (
+      <View style={styles.card2}>
+        {/* Title Section */}
+        <View style={styles.titleRow}>
+          <TouchableOpacity
+            style={{flexDirection: 'row', alignItems: 'center'}}
+            onPress={() => {
+              // Navigate to metric detail with proper parameters
+              if (selectedIndex !== null && photos[selectedIndex]) {
+                const selectedPhoto = photos[selectedIndex];
+                console.log('Navigating to metric detail from MetricsSeries (skin type):', {
+                  metricKey: metric.metricName,
+                  metricValue: metric.scores[selectedIndex]?.score,
+                  photoId: selectedPhoto.id
+                });
+                
+                router.push({
+                  pathname: '/(authenticated)/metricDetail',
+                  params: {
+                    maskResults: selectedPhoto?.maskResults,
+                    maskImages: selectedPhoto?.maskImages,
+                    metricKey: metric.metricName,
+                    metricValue: metric.scores[selectedIndex]?.score,
+                    photoData: JSON.stringify(selectedPhoto)
+                  }
+                });
+              } else {
+                // Fallback if no photo is selected - use the first photo
+                const firstPhoto = photos[0];
+                if (firstPhoto) {
+                  console.log('Navigating to metric detail from MetricsSeries (skin type fallback):', {
+                    metricKey: metric.metricName,
+                    metricValue: metric.scores[0]?.score,
+                    photoId: firstPhoto.id
+                  });
+                  
+                  router.push({
+                    pathname: '/(authenticated)/metricDetail',
+                    params: {
+                      maskResults: firstPhoto?.maskResults,
+                      maskImages: firstPhoto?.maskImages,
+                      metricKey: metric.metricName,
+                      metricValue: metric.scores[0]?.score,
+                      photoData: JSON.stringify(firstPhoto)
+                    }
+                  });
+                }
+              }
+            }}
+          >
+            <Text style={styles.categoryText}>{METRIC_LABELS[metric.metricName] || metric.metricName}</Text>
+            <ChevronRightIcon size={16} color="#8B7355" strokeWidth={3}/>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Skin Type Chart */}
+        <View style={styles.dataSection}>
+          <SkinTypeTrendChart 
+            photos={photos}
+            selectedIndex={selectedIndex}
+            onDataPointClick={onDotPress}
+            scrollPosition={scrollPosition}
+            forceScrollSyncRef={forceScrollSyncRef}
+          />
+        </View>
+      </View>
+    );
+  }
 
   // Sync scroll position when it changes or when forced
   useEffect(() => {
@@ -930,6 +1242,8 @@ const MetricsSeries = ({ photos }) => {
   const router = useRouter(); // Use router
   const { profile } = useAuthStore(); // Get user profile for age comparison
 
+  console.log(metrics,'metrics from MetricsSeries');
+
   // Removed loading overlay timeout - loading is now handled by parent component
 
   // Debug renders
@@ -1158,8 +1472,6 @@ const MetricsSeries = ({ photos }) => {
       />
       <ScrollView style={styles.metricsContainer}>
         {/* Add the Trend Chart at the top */}
-        <TrendChart />
-        
         {metrics.map((metric, index) => (
           <MetricRow 
             key={index} 
@@ -1196,6 +1508,22 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: '#F5F5F5',
+   //height: 300,
+  },
+  card2: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginVertical: 6,
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F5F5F5',
+   height: 227,
   },
   categoryText: {
     fontSize: 15,
@@ -1600,6 +1928,68 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  // Skin Type Chart Styles
+  skinTypeChartContainer: {
+    position: 'relative',
+   // height: 200,
+   // backgroundColor: '#F8F8F8',
+    borderRadius: 16,
+   // marginVertical: 8,
+  },
+  skinTypeFloatingYAxis: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  skinTypeYAxisContainer: {
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    height: '100%',
+  },
+  skinTypeLabelContainer: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+    opacity: 0.7,
+  },
+  skinTypeLabel: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+  },
+  trendPlaceholderText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    padding: 20,
+    fontStyle: 'italic',
+  },
+  skinTypeSelectedIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 20,
+  },
+  skinTypeSelectedValue: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '600',
   },
 });
 

@@ -79,22 +79,36 @@ const TrendChart = () => {
   };
 
   const renderYAxisLabels = () => {
-    return SKIN_TYPES.map((skinType, index) => {
+    return <View style={{ flexDirection: 'column', gap: 10,paddingVertical:7,paddingHorizontal:4 }}>
+    {SKIN_TYPES.map((skinType, index) => {
       const y = PADDING + (index / (SKIN_TYPES.length - 1)) * (CHART_HEIGHT - 2 * PADDING);
       return (
-        <Text
-          key={skinType}
-          style={[
-            styles.yAxisLabel,
-            {
-              top: y - 10,
-            }
-          ]}
-        >
-          {skinType}
-        </Text>
+<View
+  style={{
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)", // light border
+    borderRadius: 16, // makes pill shape
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    alignSelf: "flex-start", // shrink to text size
+    opacity: 0.7, // highlight active one
+  }}
+>
+  <Text
+    key={skinType}
+    style={{
+      fontSize: 12,
+      color: "#333",
+      fontWeight: "500",
+    }}
+  >
+    {skinType}
+  </Text>
+</View>
       );
-    });
+    })}
+    </View>
   };
 
   return (
