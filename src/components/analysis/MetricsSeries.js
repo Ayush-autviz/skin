@@ -697,14 +697,13 @@ const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPos
 
   // Map skin types to numeric values for chart
   const skinTypeMap = {
-    'Dry': 1,
-    'Normal': 2,
-    'Combination': 3,
-    'Combinational': 3, // Handle both spellings
-    'Oily': 4
+    'Oily': 1,           // bottom
+    'Combinational': 2.6,  // above oily
+    'Normal': 3.3,         // above combination
+    'Dry': 4             // top
   };
 
-  const SKIN_TYPES = ['Dry', 'Normal', 'Combination', 'Oily'];
+  const SKIN_TYPES = ['Dry', 'Normal', 'Combinational', 'Oily'];
 
   // Prepare data for chart
   const chartData = {
@@ -720,20 +719,38 @@ const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPos
   };
 
   const screenWidth = Dimensions.get('window').width;
-  const chartWidth = Math.max(screenWidth - 32, processedData.length * 40);
+  const POINT_SPACING = 16; // Match barSlotWidth from MetricRow for consistent scrolling
+  const chartWidth = processedData.length * POINT_SPACING; // Align with MetricRow's plotAreaWidth calculation
 
-  // Sync scroll position when it changes or when forced
+  // Sync scroll position when scrollPosition or selectedIndex changes
   useEffect(() => {
     if (scrollViewRef.current && scrollPosition !== undefined && scrollPosition >= 0) {
-      const isForced = forceScrollSyncRef?.current;
-      const shouldAnimate = !isForced;
-      
-      // Calculate the scroll position for skin type chart
-      const chartWidth = Math.max(screenWidth - 32, processedData.length * 40);
+      // Calculate dimensions to match MetricRow
+      const rightPadding = 120; // Match MetricRow's contentContainerStyle paddingRight
+      const totalContentWidth = chartWidth + rightPadding;
       const viewportWidth = screenWidth;
-      const maxScrollPosition = Math.max(0, chartWidth - viewportWidth + 16); // Add padding
+      const maxScrollPosition = Math.max(0, totalContentWidth - viewportWidth);
       const boundedScrollPosition = Math.min(scrollPosition, maxScrollPosition);
       
+      // Check if this is a forced sync (initial load) or normal interaction
+      const isForced = forceScrollSyncRef?.current;
+      const shouldAnimate = !isForced; // Don't animate on forced initial sync for speed
+      
+      // Log for debugging
+      console.log(`[SkinTypeTrendChart] Scroll sync:`, {
+        requestedScrollPos: scrollPosition,
+        boundedScrollPos: boundedScrollPosition,
+        chartWidth,
+        totalContentWidth,
+        maxScrollPos: maxScrollPosition,
+        viewportWidth,
+        dataLength: processedData.length,
+        isForced,
+        shouldAnimate,
+        selectedIndex
+      });
+      
+      // Scroll to the calculated position
       setTimeout(() => {
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollTo({ 
@@ -742,73 +759,54 @@ const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPos
             duration: shouldAnimate ? 200 : 0
           });
         }
-      }, 0);
+      }, isForced ? 0 : 50); // Minimal delay for non-forced scrolls
     }
-  }, [scrollPosition, processedData.length, screenWidth]);
+  }, [scrollPosition, selectedIndex, processedData.length, chartWidth]);
 
-  // Separate effect to clear force flag after initial load
+  // Clear force scroll flag after initial load
   useEffect(() => {
     if (forceScrollSyncRef?.current) {
       const timer = setTimeout(() => {
         if (forceScrollSyncRef) {
+          console.log('[SkinTypeTrendChart] Clearing force scroll flag');
           forceScrollSyncRef.current = false;
         }
-      }, 500);
+      }, 500); // Match MetricRow timing
       
       return () => clearTimeout(timer);
     }
   }, [forceScrollSyncRef?.current]);
 
-  // Initial scroll to end effect
-  useEffect(() => {
-    if (processedData.length > 0 && scrollViewRef.current) {
-      const timer = setTimeout(() => {
-        if (scrollViewRef.current) {
-          const chartWidth = Math.max(screenWidth - 32, processedData.length * 40);
-          const viewportWidth = screenWidth;
-          const maxScrollPosition = Math.max(0, chartWidth - viewportWidth + 16);
-          scrollViewRef.current.scrollTo({ 
-            x: maxScrollPosition, 
-            animated: false
-          });
-        }
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [processedData.length, screenWidth]);
-
   const renderYAxisLabels = () => {
-    return <View style={{ flexDirection: 'column', gap: 10,paddingVertical:0,paddingHorizontal:4 }}>
-    {SKIN_TYPES.map((skinType, index) => {
-    //  const y = PADDING + (index / (SKIN_TYPES.length - 1)) * (CHART_HEIGHT - 2 * PADDING);
-      return (
-<View
-  style={{
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)", // light border
-    borderRadius: 16, // makes pill shape
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    alignSelf: "flex-start", // shrink to text size
-    opacity: 0.7, // highlight active one
-  }}
->
-  <Text
-    key={skinType}
-    style={{
-      fontSize: 12,
-      color: "#333",
-      fontWeight: "500",
-    }}
-  >
-    {skinType}
-  </Text>
-</View>
-      );
-    })}
-    </View>
+    return (
+      <View style={{ flexDirection: 'column', gap: 10, paddingVertical: 0, paddingHorizontal: 4 }}>
+        {SKIN_TYPES.map((skinType) => (
+          <View
+            key={skinType}
+            style={{
+              backgroundColor: 'white',
+              borderWidth: 1,
+              borderColor: 'rgba(0,0,0,0.1)',
+              borderRadius: 16,
+              paddingHorizontal: 10,
+              paddingVertical: 7,
+              alignSelf: 'flex-start',
+              opacity: 0.7,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                color: '#333',
+                fontWeight: '500',
+              }}
+            >
+              {skinType}
+            </Text>
+          </View>
+        ))}
+      </View>
+    );
   };
 
   return (
@@ -827,7 +825,7 @@ const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPos
         horizontal 
         showsHorizontalScrollIndicator={false}
         style={{ height: 160 }}
-        contentContainerStyle={{ paddingRight: 16 }}
+        contentContainerStyle={{ paddingRight: 120 }} // Match MetricRow padding
       >
         <LineChart
           data={chartData}
@@ -871,11 +869,10 @@ const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPos
           withHorizontalLines={true}
           segments={3}
           fromZero={false}
-          yAxisMin={0.5}
-          yAxisMax={4.5}
           yAxisInterval={1}
           onDataPointClick={(data) => {
             if (onDataPointClick) {
+              console.log(`[SkinTypeTrendChart] Dot clicked at index: ${data.index}`);
               onDataPointClick(data.index);
             }
           }}
