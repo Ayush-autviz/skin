@@ -97,7 +97,7 @@ const dummyPhotos = [
   },
 ];
 
-const SKIN_TYPES = ['Oily', 'Combination', 'Normal', 'Dry'];
+const SKIN_TYPES = ['Dry', 'Normal', 'Combinational', 'Oily'];
 
 
 const CHART_HEIGHT = 180;
@@ -339,7 +339,7 @@ const SkinTypeTrendChart = ({ photos }) => {
   // Process photos to get skin type data
 
 
-
+  console.log("🔵 photos of SkinTypeTrendChart: in metricDetail.js", photos);
 
   const processedData = photos.map(photo => {
     let dateValue;
@@ -361,7 +361,7 @@ const SkinTypeTrendChart = ({ photos }) => {
     return {
       photoId: photo.skin_result_id,
       date: dateValue,
-      skinType: photo.skin_type || photo.skinType || null,
+      skinType: photo.skin_condition_type || photo.skinType || null,
     };
   }).filter(item => item !== null);
 
@@ -371,24 +371,35 @@ const SkinTypeTrendChart = ({ photos }) => {
 
   // Map skin types to numeric values for chart
   const skinTypeMap = {
-    'Dry': 1,
-    'Normal': 2,
-    'Combination': 3,
-    'Combinational': 3, // Handle both spellings
-    'Oily': 4
+    'Oily': 1,           // bottom
+    'Combinational': 2,  // above oily
+    'Normal': 3,         // above combination
+    'Dry': 4            // top
   };
 
   // Prepare data for chart
+  const realData = processedData.map(item => {
+    if (!item.skinType || item.skinType === 'Unknown') return 2;
+    return skinTypeMap[item.skinType] || 2;
+  });
+  
   const chartData = {
     labels: processedData.map((_, index) => `${index + 1}`),
-    datasets: [{
-      data: processedData.map(item => {
-        if (!item.skinType || item.skinType === 'Unknown') return 2; // Default to Normal if no data
-        return skinTypeMap[item.skinType] || 2;
-      }),
-      color: () => `#8b7ba8`, // Purple color
-      strokeWidth: 3
-    }]
+    datasets: [
+      {
+        // 👀 Real user data
+        data: realData,
+        color: () => `#8b7ba8`,
+        strokeWidth: 3
+      },
+      {
+        // 👻 Hidden scaling dataset
+        data: [1, 4],
+        color: () => `transparent`, // hide line
+        withDots: false,            // hide dots
+        strokeWidth: 0              // hide stroke
+      }
+    ]
   };
 
   console.log("🔵 chartData of SkinTypeTrendChart: in metricDetail.js", chartData);
@@ -479,10 +490,10 @@ const SkinTypeTrendChart = ({ photos }) => {
           withVerticalLines={false}
           withHorizontalLines={true}
           segments={3}
-          fromZero={false}
-          yAxisMin={0.5}
-          yAxisMax={4.5}
-          yAxisInterval={1}
+        //  fromZero={false}
+          yAxisMin={1}
+          yAxisMax={4}
+         yAxisInterval={1}
           // formatYLabel={(value) => {
           //   const numValue = parseFloat(value);
           //   if (numValue === 1) return 'Dry';

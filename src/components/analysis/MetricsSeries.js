@@ -329,40 +329,98 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize }) =>
         </TouchableOpacity>
         
         {/* Icons below the card */}
-        <View style={styles.iconsContainer}>
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={() => handleIconPress('flag')}
-            activeOpacity={0.7}
-          >
-            <Flag 
-              size={18} 
-              color={isSelected ? '#8B7355' : '#CCCCCC'} 
-              strokeWidth={2.5}
-            />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={() => handleIconPress('book')}
-            activeOpacity={0.7}
-          >
-            <BookOpen 
-              size={18} 
-              color={isSelected ? '#8B7355' : '#CCCCCC'} 
-              strokeWidth={2.5}
-            />
-          </TouchableOpacity>
+        <View style={{ position: "relative" }}>
+  <View style={styles.iconsContainer}>
+    <TouchableOpacity 
+      style={styles.iconButton}
+      onPress={() => handleIconPress('flag')}
+      activeOpacity={0.7}
+    >
+      <Flag 
+        size={18} 
+        color={isSelected ? '#8B7355' : '#CCCCCC'} 
+        strokeWidth={2.5}
+      />
+    </TouchableOpacity>
+    
+    <TouchableOpacity 
+      style={styles.iconButton}
+      onPress={() => handleIconPress('book')}
+      activeOpacity={0.7}
+    >
+      <BookOpen 
+        size={18} 
+        color={isSelected ? '#8B7355' : '#CCCCCC'} 
+        strokeWidth={2.5}
+      />
+    </TouchableOpacity>
+  </View>
+
+  {/* Tooltip container */}
+  {
+    showTooltip && (
+      <View
+      style={{
+        position: "absolute",
+        top: "100%", // 👈 put it below the icons
+        left: "-100%",
+        marginTop: 18, // spacing between icons and tooltip
+        minWidth: 300, // 👈 adjust width (or use "100%" to match parent)
+        alignSelf: "center", // center below icons
+      }}
+    >
+      {/* Triangle */}
+      <View
+        style={{
+          position: "absolute",
+          top: -10,
+          left: "50%",
+          marginLeft: -10,
+          width: 20,
+          height: 20,
+          backgroundColor: "white",
+          transform: [{ rotate: "45deg" }],
+          zIndex: 20,
+          borderTopWidth: 1,
+          borderLeftWidth: 1,
+          borderColor: "#E8E8E8",
+        }}
+      />
+  
+      {/* Tooltip box */}
+      <View
+        style={{
+          backgroundColor: "white",
+          borderRadius: 12,
+          padding: 12,
+          shadowColor: "#000",
+          shadowOpacity: 0.1,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 3,
+          borderWidth: 1,
+          borderColor: "#E8E8E8",
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+          <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6 }} />
+          <Text style={{ color: "#333" }}>Started using SkinProPlus for Redness</Text>
         </View>
+  
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <BookOpen size={16} color="#8B7355" style={{ marginRight: 6 }} />
+          <Text style={{ color: "#333" }}>Returned from your trip to New York</Text>
+        </View>
+      </View>
+    </View>
+    )
+  }
+
+</View>
+
         
         {/* Tooltip - positioned below the image card */}
-        {showTooltip && (
-          <View style={styles.tooltip}>
-            <Text style={styles.tooltipText}>
-              {/* Empty text as requested */}
-            </Text>
-          </View>
-        )}
+
       </View>
   );
 };
@@ -441,8 +499,6 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
   }, [selectedIndex, photos]); // Depend on selectedIndex and photos
 
   return (
-    <View>
-      {/* Container for the FlatList AND the note text */}
       <View style={styles.timeSelectorContainer}>
         <FlatList
           ref={flatListRef}
@@ -465,75 +521,12 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
           centerContent={false} // Disable centerContent to allow proper centering with viewPosition
         />
         {/* Note text INSIDE the grey container, below the FlatList */}
-        <View style={{ alignItems: "center" }}>
-  {/* Tooltip wrapper */}
-  <View style={{ position: "relative" }}>
-    {/* Triangle */}
-    <View
-      style={{
-        position: "absolute",
-        top: -10,
-        left: "50%",
-        marginLeft: -60,
-        width: 20,
-        height: 20,
-        backgroundColor: "white",
-        transform: [{ rotate: "45deg" }],
-        zIndex: 20,
-        borderLeftWidth: 1,
-       // borderRightWidth: 1,
-        borderTopWidth: 1,
-       // borderBottomWidth: 1,
-        borderColor: "#E8E8E8",
-        // shadowColor: "#000",
-        // shadowOpacity: 0.1,
-        // shadowRadius: 6,
-        // shadowOffset: { width: 0, height: 2 },
-        // elevation: 5,
-      }}
-    />
 
-    {/* Tooltip box */}
-    <View
-      style={{
-        backgroundColor: "white",
-        borderRadius: 12,
-        padding: 12,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 3,
-        position: "relative",
-        zIndex: 1,
-        borderWidth: 1,
-        borderColor: "#E8E8E8",
-
-      }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-        <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6 }} />
-        <Text style={{ color: "#333" }}>Started using SkinProPlus for Redness</Text>
-      </View>
-
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <BookOpen size={16} color="#8B7355" style={{ marginRight: 6 }} />
-        <Text style={{ color: "#333" }}>Returned from your trip to New York</Text>
-      </View>
-    </View>
-  </View>
-</View>
 
         {/* <Text style={styles.noteInsideCarouselArea}>
           {noteText || ' '}
         </Text> */}
       </View>
-      
-      {/* Shadow layers remain visually below the grey container */}
-      {/* <View style={styles.shadowLayer1} />
-      <View style={styles.shadowLayer2} />
-      <View style={styles.shadowLayer3} /> */}
-    </View>
   );
 });
 
@@ -698,24 +691,48 @@ const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPos
   // Map skin types to numeric values for chart
   const skinTypeMap = {
     'Oily': 1,           // bottom
-    'Combinational': 2.6,  // above oily
-    'Normal': 3.3,         // above combination
+    'Combinational': 2,  // above oily
+    'Normal': 3,         // above combination
     'Dry': 4             // top
   };
 
   const SKIN_TYPES = ['Dry', 'Normal', 'Combinational', 'Oily'];
 
   // Prepare data for chart
+  // const chartData = {
+  //   labels: processedData.map((_, index) => `${index + 1}`),
+  //   datasets: [{
+  //     data: processedData.map(item => {
+  //       if (!item.skinType || item.skinType === 'Unknown') return 2; // Default to Normal if no data
+  //       return skinTypeMap[item.skinType] || 2;
+  //     }),
+  //     color: () => `#8b7ba8`, // Purple color
+  //     strokeWidth: 3
+  //   }]
+  // };
+
+  const realData = processedData.map(item => {
+    if (!item.skinType || item.skinType === 'Unknown') return 2;
+    return skinTypeMap[item.skinType] || 2;
+  });
+  
   const chartData = {
     labels: processedData.map((_, index) => `${index + 1}`),
-    datasets: [{
-      data: processedData.map(item => {
-        if (!item.skinType || item.skinType === 'Unknown') return 2; // Default to Normal if no data
-        return skinTypeMap[item.skinType] || 2;
-      }),
-      color: () => `#8b7ba8`, // Purple color
-      strokeWidth: 3
-    }]
+    datasets: [
+      {
+        // 👀 Real user data
+        data: realData,
+        color: () => `#8b7ba8`,
+        strokeWidth: 3
+      },
+      {
+        // 👻 Hidden scaling dataset
+        data: [1, 4],
+        color: () => `transparent`, // hide line
+        withDots: false,            // hide dots
+        strokeWidth: 0              // hide stroke
+      }
+    ]
   };
 
   const screenWidth = Dimensions.get('window').width;
@@ -811,7 +828,7 @@ const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPos
         ref={scrollViewRef}
         horizontal 
         showsHorizontalScrollIndicator={false}
-        style={{ height: 160 }}
+        style={{ height: 160,marginRight: 10 }}
       >
         <LineChart
           data={chartData}
@@ -1454,7 +1471,6 @@ const MetricsSeries = ({ photos }) => {
         onMaximize={handleMaximize}
       />
       <ScrollView style={styles.metricsContainer}>
-        {/* Add the Trend Chart at the top */}
         {metrics.map((metric, index) => (
           <MetricRow 
             key={index} 
@@ -1595,7 +1611,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
-    paddingVertical:10
+    paddingVertical:10,
+    overflow: 'visible',
+    height: 345,
+    flex: 1,
   },
   shadowLayer1: {
     position: 'absolute',
@@ -1667,10 +1686,11 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   metricsContainer: {
-    flex: 1,
+   // flex: 1,
     paddingTop: 16,
     paddingBottom: 20,
     backgroundColor: '#FAFAFA',
+    zIndex:5
   },
   noDataContainer: {
     flex: 1,
@@ -1873,6 +1893,8 @@ const styles = StyleSheet.create({
   // New styles for the design
   photoCardContainer: {
     alignItems: 'center',
+    zIndex: 100, // Ensure it’s above other elements
+    overflow: 'visible', // Allow children to overflow
   },
   iconsContainer: {
     flexDirection: 'row',
