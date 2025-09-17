@@ -825,7 +825,6 @@ const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPos
         horizontal 
         showsHorizontalScrollIndicator={false}
         style={{ height: 160 }}
-        contentContainerStyle={{ paddingRight: 120 }} // Match MetricRow padding
       >
         <LineChart
           data={chartData}
