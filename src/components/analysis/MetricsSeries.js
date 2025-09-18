@@ -243,7 +243,7 @@ const processPhotoMetrics = (photos) => {
   };
 };
 
-const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading }) => {
+const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading, isTooltipOpen, setIsTooltipOpen }) => {
   if (!photo) return null;
   
   const isSelected = index === selectedIndex;
@@ -254,8 +254,12 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
   useEffect(() => {
     if (!isSelected && showTooltip) {
       setShowTooltip(false);
+      // Don't control height here - let the global state handle it
     }
   }, [isSelected, showTooltip]);
+
+  // Don't automatically control height from individual components
+  // Let the global MetricsSeries component handle height state
 
   const handlePress = () => {
     onPress();
@@ -264,19 +268,26 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
   const handleIconPress = (type) => {
     // If this is not the selected image, first select it
     if (index !== selectedIndex) {
+      // Keep height expanded during transition
+      setIsTooltipOpen(true);
       onPress(); // This will select the image and scroll it to center
-      // After a short delay, show the tooltip
+      // Set tooltip type and show tooltip after selection
+      setTooltipType(type);
       setTimeout(() => {
-        setTooltipType(type);
         setShowTooltip(true);
-      }, 100); // Small delay to allow selection and scrolling to complete
+      }, 150); // Shorter delay since height is already expanded
     } else {
       // If this is the selected image, toggle the tooltip
       if (showTooltip) {
         setShowTooltip(false); // Close if already open
+        // Don't immediately close height - let global state handle it
       } else {
         setTooltipType(type);
-        setShowTooltip(true); // Open if closed
+        setIsTooltipOpen(true); // Trigger height change first
+        // Show tooltip after height has increased
+        setTimeout(() => {
+          setShowTooltip(true);
+        }, 300); // Delay to allow height animation to complete
       }
     }
   };
@@ -450,7 +461,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
   );
 };
 
-const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading }, ref) => {
+const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading, isTooltipOpen, setIsTooltipOpen }, ref) => {
   const flatListRef = useRef(null);
 
   // Debug photos array changes
@@ -502,6 +513,8 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
         summaryLoading={summaryLoading}
         routineFlag={routineFlag}
         routineFlagLoading={routineFlagLoading}
+        isTooltipOpen={isTooltipOpen}
+        setIsTooltipOpen={setIsTooltipOpen}
       />
     );
   };
@@ -528,8 +541,8 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
   }, [selectedIndex, photos]); // Depend on selectedIndex and photos
 
   return (
-      <View style={styles.timeSelectorContainer}>
-        <FlatList
+    <View style={[styles.timeSelectorContainer, { height: isTooltipOpen ? 345 : 'auto' }]}>
+      <FlatList
           ref={flatListRef}
           data={photos} // Use photos array directly as data
           renderItem={renderPhotoThumb}
@@ -1300,6 +1313,7 @@ const MetricsSeries = ({ photos }) => {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [routineFlag, setRoutineFlag] = useState(null);
   const [routineFlagLoading, setRoutineFlagLoading] = useState(false);
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   // Removed showContent state - loading is now handled by parent component
   const { metrics, timestamps } = processPhotoMetrics(photos);
   const timeSelectorRef = useRef(null);
@@ -1528,6 +1542,16 @@ const MetricsSeries = ({ photos }) => {
     }
   }, [selectedIndex, photos]);
 
+  // Close height when no tooltips should be open
+  useEffect(() => {
+    // Only close height if no image is selected
+    if (selectedIndex === null) {
+      setTimeout(() => {
+        setIsTooltipOpen(false);
+      }, 200); // Longer delay to allow for smooth transitions
+    }
+  }, [selectedIndex]);
+
   // Safety check - ensure we have photos before rendering
   if (!photos || photos.length === 0) {
     return (
@@ -1565,6 +1589,8 @@ const MetricsSeries = ({ photos }) => {
         summaryLoading={summaryLoading}
         routineFlag={routineFlag}
         routineFlagLoading={routineFlagLoading}
+        isTooltipOpen={isTooltipOpen}
+        setIsTooltipOpen={setIsTooltipOpen}
       />
       <ScrollView style={styles.metricsContainer}>
         {metrics.map((metric, index) => (
@@ -1709,7 +1735,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     paddingVertical:10,
     overflow: 'visible',
-    height: 345,
+    // height: 345, // Removed fixed height - now dynamic
     flex: 1,
   },
   shadowLayer1: {
