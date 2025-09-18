@@ -115,7 +115,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { useThreadContext } from '../../contexts/ThreadContext'; // Import thread context
 import { usePhotoContext } from '../../contexts/PhotoContext'; // Import photo context
 import { useRouter } from 'expo-router'; // Import router
-import { getImageChatSummary } from '../../services/chatApiService';
+import { getImageChatSummary, getRoutineFlag } from '../../services/chatApiService';
 import { colors, shadows } from '../../styles';
 import { Expand, Flag, BookOpen, Book, FlagIcon } from 'lucide-react-native';
 import useAuthStore from '../../stores/authStore';
@@ -242,7 +242,7 @@ const processPhotoMetrics = (photos) => {
   };
 };
 
-const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize }) => {
+const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading }) => {
   if (!photo) return null;
   
   const isSelected = index === selectedIndex;
@@ -387,31 +387,41 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize }) =>
         }}
       />
   
-      {/* Tooltip box */}
-      <View
-        style={{
-          backgroundColor: "white",
-          borderRadius: 12,
-          padding: 12,
-          shadowColor: "#000",
-          shadowOpacity: 0.1,
-          shadowRadius: 6,
-          shadowOffset: { width: 0, height: 2 },
-          elevation: 3,
-          borderWidth: 1,
-          borderColor: "#E8E8E8",
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-          <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6 }} />
-          <Text style={{ color: "#333" }}>Started using SkinProPlus for Redness</Text>
-        </View>
-  
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <BookOpen size={16} color="#8B7355" style={{ marginRight: 6 }} />
-          <Text style={{ color: "#333" }}>Returned from your trip to New York</Text>
-        </View>
-      </View>
+       {/* Tooltip box */}
+       <View
+         style={{
+           backgroundColor: "white",
+           borderRadius: 12,
+           padding: 12,
+           shadowColor: "#000",
+           shadowOpacity: 0.1,
+           shadowRadius: 6,
+           shadowOffset: { width: 0, height: 2 },
+           elevation: 3,
+           borderWidth: 1,
+           borderColor: "#E8E8E8",
+         }}
+       >
+         {/* Flag tooltip - show routine flag data */}
+         {tooltipType === 'flag' && (
+           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+             <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6 }} />
+             <Text style={{ color: "#333", flex: 1 }}>
+               {routineFlagLoading ? "Loading..." : (routineFlag || "No routine flag available")}
+             </Text>
+           </View>
+         )}
+   
+         {/* Book tooltip - show summary data */}
+         {tooltipType === 'book' && (
+           <View style={{ flexDirection: "row", alignItems: "center" }}>
+             <BookOpen size={16} color="#8B7355" style={{ marginRight: 6 }} />
+             <Text style={{ color: "#333", flex: 1 }}>
+               {summaryLoading ? "Loading..." : (summary || "No summary available")}
+             </Text>
+           </View>
+         )}
+       </View>
     </View>
     )
   }
@@ -425,7 +435,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize }) =>
   );
 };
 
-const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText, onMaximize }, ref) => {
+const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading }, ref) => {
   const flatListRef = useRef(null);
 
   // Debug photos array changes
@@ -473,6 +483,10 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
           onSelectDate(index);
         }}
         onMaximize={onMaximize}
+        summary={summary}
+        summaryLoading={summaryLoading}
+        routineFlag={routineFlag}
+        routineFlagLoading={routineFlagLoading}
       />
     );
   };
@@ -1232,6 +1246,8 @@ const MetricsSeries = ({ photos }) => {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [routineFlag, setRoutineFlag] = useState(null);
+  const [routineFlagLoading, setRoutineFlagLoading] = useState(false);
   // Removed showContent state - loading is now handled by parent component
   const { metrics, timestamps } = processPhotoMetrics(photos);
   const timeSelectorRef = useRef(null);
@@ -1401,7 +1417,7 @@ const MetricsSeries = ({ photos }) => {
     }
   }, [photos, timestamps]); // Removed showContent dependency since content always renders
 
-  // Fetch summary when selectedIndex changes
+  // Fetch summary and routine flag when selectedIndex changes
   useEffect(() => {
     if (selectedIndex !== null && photos[selectedIndex]) {
       const selectedPhoto = photos[selectedIndex];
@@ -1409,6 +1425,7 @@ const MetricsSeries = ({ photos }) => {
       const imageId = selectedPhoto.hautUploadData?.imageId || selectedPhoto.id;
       
       if (imageId) {
+        // Fetch summary
         setSummaryLoading(true);
         getImageChatSummary(imageId)
           .then(response => {
@@ -1426,13 +1443,36 @@ const MetricsSeries = ({ photos }) => {
           .finally(() => {
             setSummaryLoading(false);
           });
+
+        // Fetch routine flag
+        setRoutineFlagLoading(true);
+        getRoutineFlag(imageId)
+          .then(response => {
+            console.log("🔵 response of getRoutineFlag: in MetricsSeries", response);
+            if (response.success) {
+              setRoutineFlag(response.routineFlag);
+            } else {
+              setRoutineFlag(null);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching routine flag:', error);
+            setRoutineFlag(null);
+          })
+          .finally(() => {
+            setRoutineFlagLoading(false);
+          });
       } else {
         setSummary(null);
         setSummaryLoading(false);
+        setRoutineFlag(null);
+        setRoutineFlagLoading(false);
       }
     } else {
       setSummary(null);
       setSummaryLoading(false);
+      setRoutineFlag(null);
+      setRoutineFlagLoading(false);
     }
   }, [selectedIndex, photos]);
 
@@ -1469,6 +1509,10 @@ const MetricsSeries = ({ photos }) => {
         ref={timeSelectorRef}
         noteText={noteText} // Pass the summary/note text down
         onMaximize={handleMaximize}
+        summary={summary}
+        summaryLoading={summaryLoading}
+        routineFlag={routineFlag}
+        routineFlagLoading={routineFlagLoading}
       />
       <ScrollView style={styles.metricsContainer}>
         {metrics.map((metric, index) => (

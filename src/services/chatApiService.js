@@ -211,3 +211,32 @@ export const getImageChatSummary = async (image_id) => {
     throw error;
   }
 };
+
+/**
+ * Get routine flag for a specific image
+ * @param {string} image_id - Image ID
+ * @returns {Promise<Object>} Routine flag response
+ */
+export const getRoutineFlag = async (image_id) => {
+  try {
+    console.log('🔵 Fetching routine flag:', { image_id });
+    
+    const response = await apiClient.get(`/thread/check-routine-flag?image_id=${image_id}`);
+
+    console.log('🔵 Response of getRoutineFlag:', response);
+
+    if (response.data.status === 200) {
+      console.log('✅ Routine flag fetched successfully');
+      return {
+        success: true,
+        routineFlag: response.data.data?.routine_flag || null,
+        data: response.data
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch routine flag');
+    }
+  } catch (error) {
+    console.error('🔴 Error fetching routine flag:', error);
+    throw error;
+  }
+};
