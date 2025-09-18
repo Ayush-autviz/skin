@@ -122,6 +122,7 @@ import useAuthStore from '../../stores/authStore';
 import { ChevronRightIcon } from 'lucide-react-native';
 import TrendChart from './TrendChart';
 import { LineChart } from 'react-native-chart-kit';
+import { Svg, Line as SvgLine, Circle as SvgCircle } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
 const DATE_CARD_WIDTH = 115;  // 100 * 1.15 = 115 (15% increase)
@@ -679,216 +680,254 @@ const getEyeAgeComparisonColor = (eyeAge, actualAge) => {
 };
 
 // SkinTypeTrendChart component for progress screen
-const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPosition, forceScrollSyncRef }) => {
+const SkinTypeTrendChart = ({
+  photos,
+  selectedIndex,
+  onDataPointClick,
+  scrollPosition,
+  forceScrollSyncRef,
+}) => {
   const scrollViewRef = useRef(null);
+  const [dotPositions, setDotPositions] = useState({});
 
-  // Process photos to get skin type data
-  const processedData = photos.map(photo => {
-    let dateValue;
-    
-    // Prioritize created_at field from API response
-    if (photo.created_at) {
-      dateValue = new Date(photo.created_at);
-    } else {
-      // Fallback to timestamp for backward compatibility
-      const ts = photo.timestamp;
-      if (ts?.seconds && typeof ts.seconds === 'number') {
-        dateValue = new Date(ts.seconds * 1000 + (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0));
-      } else if (ts instanceof Date) {
-        dateValue = ts;
+  // Process photos
+  const processedData = photos
+    .map((photo) => {
+      let dateValue;
+      if (photo.created_at) {
+        dateValue = new Date(photo.created_at);
       } else {
-        dateValue = new Date(ts);
+        const ts = photo.timestamp;
+        if (ts?.seconds && typeof ts.seconds === "number") {
+          dateValue = new Date(
+            ts.seconds * 1000 +
+              (ts.nanoseconds ? ts.nanoseconds / 1000000 : 0)
+          );
+        } else if (ts instanceof Date) {
+          dateValue = ts;
+        } else {
+          dateValue = new Date(ts);
+        }
       }
-    }
-    
-    if (!(dateValue instanceof Date && !isNaN(dateValue.getTime()))) {
-      return null;
-    }
 
-    return {
-      photoId: photo.id,
-      date: dateValue,
-      skinType: photo.metrics?.skinType || null,
-    };
-  }).filter(item => item !== null);
+      if (!(dateValue instanceof Date && !isNaN(dateValue.getTime()))) {
+        return null;
+      }
+
+      return {
+        photoId: photo.id,
+        date: dateValue,
+        skinType: photo.metrics?.skinType || null,
+      };
+    })
+    .filter((item) => item !== null);
 
   if (!processedData.length) {
-    return <Text style={styles.trendPlaceholderText}>No skin type data available.</Text>;
+    return (
+      <Text style={{ textAlign: "center", marginTop: 20 }}>
+        No skin type data available.
+      </Text>
+    );
   }
 
-  // Map skin types to numeric values for chart
+  // Skin type mapping
   const skinTypeMap = {
-    'Oily': 1,           // bottom
-    'Combinational': 2,  // above oily
-    'Normal': 3,         // above combination
-    'Dry': 4             // top
+    Oily: 1,
+    Combinational: 2,
+    Normal: 3,
+    Dry: 4,
   };
 
-  const SKIN_TYPES = ['Dry', 'Normal', 'Combinational', 'Oily'];
+  const SKIN_TYPES = ["Dry", "Normal", "Combinational", "Oily"];
 
-  // Prepare data for chart
-  // const chartData = {
-  //   labels: processedData.map((_, index) => `${index + 1}`),
-  //   datasets: [{
-  //     data: processedData.map(item => {
-  //       if (!item.skinType || item.skinType === 'Unknown') return 2; // Default to Normal if no data
-  //       return skinTypeMap[item.skinType] || 2;
-  //     }),
-  //     color: () => `#8b7ba8`, // Purple color
-  //     strokeWidth: 3
-  //   }]
-  // };
-
-  const realData = processedData.map(item => {
-    if (!item.skinType || item.skinType === 'Unknown') return 2;
+  const realData = processedData.map((item) => {
+    if (!item.skinType || item.skinType === "Unknown") return 2;
     return skinTypeMap[item.skinType] || 2;
   });
-  
+
   const chartData = {
     labels: processedData.map((_, index) => `${index + 1}`),
     datasets: [
       {
-        // 👀 Real user data
         data: realData,
         color: () => `#8b7ba8`,
-        strokeWidth: 3
+        strokeWidth: 3,
       },
       {
-        // 👻 Hidden scaling dataset
-        data: [1, 4],
-        color: () => `transparent`, // hide line
-        withDots: false,            // hide dots
-        strokeWidth: 0              // hide stroke
-      }
-    ]
+        data: [1, 4], // scaling dataset
+        color: () => `transparent`,
+        withDots: false,
+        strokeWidth: 0,
+      },
+    ],
   };
 
-  const screenWidth = Dimensions.get('window').width;
-  const POINT_SPACING = 16; // Match barSlotWidth from MetricRow for consistent scrolling
-  const chartWidth = processedData.length * POINT_SPACING; // Align with MetricRow's plotAreaWidth calculation
+  const screenWidth = Dimensions.get("window").width;
+  const POINT_SPACING = 16;
+  const chartWidth = processedData.length * POINT_SPACING;
+  const CHART_HEIGHT = 160;
 
-  // Sync scroll position when scrollPosition or selectedIndex changes
+  // Sync scroll position
   useEffect(() => {
     if (
-      scrollViewRef.current && 
-      scrollPosition !== undefined && 
+      scrollViewRef.current &&
+      scrollPosition !== undefined &&
       scrollPosition >= 0 &&
       processedData.length > 0
     ) {
-      // Only scroll if position is meaningful (not just 0 unless really needed)
-      if (scrollPosition === 0 && selectedIndex !== 0) {
-        return; // prevent unwanted reset to start
-      }
-  
+      if (scrollPosition === 0 && selectedIndex !== 0) return;
+
       const rightPadding = 120;
       const totalContentWidth = chartWidth + rightPadding;
       const viewportWidth = screenWidth;
-      const maxScrollPosition = Math.max(0, totalContentWidth - viewportWidth);
-      const boundedScrollPosition = Math.min(scrollPosition, maxScrollPosition);
-  
+      const maxScrollPosition = Math.max(
+        0,
+        totalContentWidth - viewportWidth
+      );
+      const boundedScrollPosition = Math.min(
+        scrollPosition,
+        maxScrollPosition
+      );
+
       setTimeout(() => {
-        scrollViewRef.current.scrollTo({ 
-          x: boundedScrollPosition, 
+        scrollViewRef.current.scrollTo({
+          x: boundedScrollPosition,
           animated: !forceScrollSyncRef?.current,
         });
       }, forceScrollSyncRef?.current ? 0 : 50);
     }
   }, [scrollPosition, selectedIndex, processedData.length, chartWidth]);
 
-  // Clear force scroll flag after initial load
   useEffect(() => {
     if (forceScrollSyncRef?.current) {
       const timer = setTimeout(() => {
         if (forceScrollSyncRef) {
-          console.log('[SkinTypeTrendChart] Clearing force scroll flag');
+          console.log("[SkinTypeTrendChart] Clearing force scroll flag");
           forceScrollSyncRef.current = false;
         }
-      }, 500); // Match MetricRow timing
-      
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [forceScrollSyncRef?.current]);
 
-  const renderYAxisLabels = () => {
+  // Record dot positions
+  const renderDotContent = ({ x, y, index }) => {
+    setDotPositions((prev) => {
+      if (prev[index]) return prev;
+      return { ...prev, [index]: { x, y } };
+    });
+    return null;
+  };
+
+  // Decorator for line + enlarged dot
+  const decorator = () => {
+    if (selectedIndex == null || !(selectedIndex in dotPositions)) return null;
+
+    const { x, y } = dotPositions[selectedIndex];
+
     return (
-      <View style={{ flexDirection: 'column', gap: 10, paddingVertical: 0, paddingHorizontal: 4 }}>
-        {SKIN_TYPES.map((skinType) => (
-          <View
-            key={skinType}
-            style={{
-              backgroundColor: 'white',
-              borderWidth: 1,
-              borderColor: 'rgba(0,0,0,0.1)',
-              borderRadius: 16,
-              paddingHorizontal: 10,
-              paddingVertical: 7,
-              alignSelf: 'flex-start',
-              opacity: 0.7,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 12,
-                color: '#333',
-                fontWeight: '500',
-              }}
-            >
-              {skinType}
-            </Text>
-          </View>
-        ))}
-      </View>
+      <Svg>
+        {/* Vertical line */}
+        <SvgLine
+          x1={x}
+          y1={0}
+          x2={x}
+          y2={CHART_HEIGHT}
+          stroke="rgba(139,123,168,0.6)"
+          strokeWidth={2}
+          strokeDasharray={[4, 4]}
+        />
+        {/* Enlarged dot */}
+        <SvgCircle
+          cx={x}
+          cy={y}
+          r={8}
+          fill="#8b7ba8"
+          stroke="white"
+          strokeWidth={2}
+        />
+      </Svg>
     );
   };
 
-  return (
-    <View style={styles.skinTypeChartContainer}>
-      {/* Selected Value Indicator */}
-      {selectedIndex !== null && processedData[selectedIndex] && (
-        <View style={styles.skinTypeSelectedIndicator}>
-          <Text style={styles.skinTypeSelectedValue}>
-            {processedData[selectedIndex].skinType || 'Unknown'}
+  const renderYAxisLabels = () => (
+    <View
+      style={{
+        flexDirection: "column",
+        gap: 10,
+        paddingHorizontal: 4,
+      }}
+    >
+      {SKIN_TYPES.map((skinType) => (
+        <View
+          key={skinType}
+          style={{
+            backgroundColor: "white",
+            borderWidth: 1,
+            borderColor: "rgba(0,0,0,0.1)",
+            borderRadius: 16,
+            paddingHorizontal: 10,
+            paddingVertical: 7,
+            alignSelf: "flex-start",
+            opacity: 0.7,
+          }}
+        >
+          <Text style={{ fontSize: 12, color: "#333", fontWeight: "500" }}>
+            {skinType}
           </Text>
         </View>
-      )}
+      ))}
+    </View>
+  );
 
-      <ScrollView 
+  return (
+    <View style={{  }}>
+      {/* Selected indicator */}
+      {/* {selectedIndex !== null && processedData[selectedIndex] && (
+        <View
+          style={{
+            alignSelf: "center",
+            marginBottom: 10,
+            backgroundColor: "#f2f2f2",
+            padding: 8,
+            borderRadius: 12,
+          }}
+        >
+          <Text style={{ fontWeight: "bold", color: "#8b7ba8" }}>
+            {processedData[selectedIndex].skinType || "Unknown"}
+          </Text>
+        </View>
+      )} */}
+
+      <ScrollView
         ref={scrollViewRef}
-        horizontal 
+        horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ height: 160,marginRight: 10 }}
+        style={{ height: CHART_HEIGHT, marginRight: 10 }}
       >
         <LineChart
           data={chartData}
           width={chartWidth}
-          height={160}
+          height={CHART_HEIGHT}
           chartConfig={{
-            backgroundColor: '#fff',
-            backgroundGradientFrom: '#fff',
-            backgroundGradientTo: '#fff',
+            backgroundColor: "#fff",
+            backgroundGradientFrom: "#fff",
+            backgroundGradientTo: "#fff",
             decimalPlaces: 0,
             color: (opacity = 1) => `rgba(110, 70, 255, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            style: {
-              borderRadius: 16
-            },
             propsForDots: {
-              r: '6',
-              strokeWidth: '2',
-              stroke: '#fff',
-              fill: '#8b7ba8',
+              r: "6",
+              strokeWidth: "2",
+              stroke: "#fff",
+              fill: "#8b7ba8",
             },
             propsForBackgroundLines: {
-              strokeDasharray: '',
-              stroke: '#E0E0E0'
-            }
+              strokeDasharray: "",
+              stroke: "#E0E0E0",
+            },
           }}
-          style={{
-            marginVertical: 0,
-            borderRadius: 16,
-            marginLeft: 0
-          }}
-          bezier 
+          bezier
           withVerticalLabels={false}
           withHorizontalLabels={false}
           withInnerLines={true}
@@ -901,16 +940,15 @@ const SkinTypeTrendChart = ({ photos, selectedIndex, onDataPointClick, scrollPos
           segments={3}
           fromZero={false}
           yAxisInterval={1}
+          decorator={decorator}
+          renderDotContent={renderDotContent}
           onDataPointClick={(data) => {
-            if (onDataPointClick) {
-              console.log(`[SkinTypeTrendChart] Dot clicked at index: ${data.index}`);
-              onDataPointClick(data.index);
-            }
+            if (onDataPointClick) onDataPointClick(data.index);
           }}
         />
       </ScrollView>
 
-      <View style={styles.skinTypeFloatingYAxis}>
+      <View style={{ position: "absolute", left: 0, top: 0 }}>
         {renderYAxisLabels()}
       </View>
     </View>
