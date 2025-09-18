@@ -256,10 +256,10 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
   const handleIconPress = (type) => {
     setTooltipType(type);
     setShowTooltip(true);
-    // Hide tooltip after 2 seconds
+    // Hide tooltip after 3 seconds (increased since we're showing more content)
     setTimeout(() => {
       setShowTooltip(false);
-    }, 2000);
+    }, 3000);
   };
 
   // Date formatting - use created_at field from API response
@@ -402,25 +402,21 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
            borderColor: "#E8E8E8",
          }}
        >
-         {/* Flag tooltip - show routine flag data */}
-         {tooltipType === 'flag' && (
-           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-             <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6 }} />
-             <Text style={{ color: "#333", flex: 1 }}>
-               {routineFlagLoading ? "Loading..." : (routineFlag || "No routine flag available")}
-             </Text>
-           </View>
-         )}
+         {/* Flag data - show routine flag data */}
+         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+           <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6 }} />
+           <Text style={{ color: "#333", flex: 1 }}>
+             {routineFlagLoading ? "Loading..." : (routineFlag || "No routine flag available")}
+           </Text>
+         </View>
    
-         {/* Book tooltip - show summary data */}
-         {tooltipType === 'book' && (
-           <View style={{ flexDirection: "row", alignItems: "center" }}>
-             <BookOpen size={16} color="#8B7355" style={{ marginRight: 6 }} />
-             <Text style={{ color: "#333", flex: 1 }}>
-               {summaryLoading ? "Loading..." : (summary || "No summary available")}
-             </Text>
-           </View>
-         )}
+         {/* Book data - show summary data */}
+         <View style={{ flexDirection: "row", alignItems: "center" }}>
+           <BookOpen size={16} color="#8B7355" style={{ marginRight: 6 }} />
+           <Text style={{ color: "#333", flex: 1 }}>
+             {summaryLoading ? "Loading..." : (summary || "No summary available")}
+           </Text>
+         </View>
        </View>
     </View>
     )
