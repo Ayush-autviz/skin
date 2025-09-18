@@ -280,7 +280,10 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
       // If this is the selected image, toggle the tooltip
       if (showTooltip) {
         setShowTooltip(false); // Close if already open
-        // Don't immediately close height - let global state handle it
+        // Close height when tooltip is manually closed
+        setTimeout(() => {
+          setIsTooltipOpen(false);
+        }, 100);
       } else {
         setTooltipType(type);
         setIsTooltipOpen(true); // Trigger height change first
