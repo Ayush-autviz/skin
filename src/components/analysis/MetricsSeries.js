@@ -249,17 +249,35 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipType, setTooltipType] = useState('');
 
+  // Close tooltip when this image is no longer selected
+  useEffect(() => {
+    if (!isSelected && showTooltip) {
+      setShowTooltip(false);
+    }
+  }, [isSelected, showTooltip]);
+
   const handlePress = () => {
     onPress();
   };
 
   const handleIconPress = (type) => {
-    setTooltipType(type);
-    setShowTooltip(true);
-    // Hide tooltip after 3 seconds (increased since we're showing more content)
-    setTimeout(() => {
-      setShowTooltip(false);
-    }, 3000);
+    // If this is not the selected image, first select it
+    if (index !== selectedIndex) {
+      onPress(); // This will select the image and scroll it to center
+      // After a short delay, show the tooltip
+      setTimeout(() => {
+        setTooltipType(type);
+        setShowTooltip(true);
+      }, 100); // Small delay to allow selection and scrolling to complete
+    } else {
+      // If this is the selected image, toggle the tooltip
+      if (showTooltip) {
+        setShowTooltip(false); // Close if already open
+      } else {
+        setTooltipType(type);
+        setShowTooltip(true); // Open if closed
+      }
+    }
   };
 
   // Date formatting - use created_at field from API response
@@ -405,7 +423,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
          {/* Flag data - show routine flag data */}
          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
            <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6 }} />
-           <Text style={{ color: "#333", flex: 1 }}>
+           <Text style={{ color: "#333", flex: 1 }} numberOfLines={1}>
              {routineFlagLoading ? "Loading..." : (routineFlag || "No routine flag available")}
            </Text>
          </View>
@@ -413,7 +431,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
          {/* Book data - show summary data */}
          <View style={{ flexDirection: "row", alignItems: "center" }}>
            <BookOpen size={16} color="#8B7355" style={{ marginRight: 6 }} />
-           <Text style={{ color: "#333", flex: 1 }}>
+           <Text style={{ color: "#333", flex: 1 }} numberOfLines={1}>
              {summaryLoading ? "Loading..." : (summary || "No summary available")}
            </Text>
          </View>
