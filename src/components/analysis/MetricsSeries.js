@@ -1,4 +1,4 @@
-// MetricsSeries.js
+4// MetricsSeries.js
 // React Native component for displaying a series of metrics with animated visualization
 
 /* ------------------------------------------------------
@@ -396,10 +396,10 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
       style={{
         position: "absolute",
         top: "100%", // 👈 put it below the icons
-        left: "-100%",
+      //  left: "-90%",
         marginTop: 18, // spacing between icons and tooltip
-        minWidth: 300, // 👈 adjust width (or use "100%" to match parent)
         alignSelf: "center", // center below icons
+        zIndex: 1000, // Ensure tooltip appears above other elements
       }}
     >
       {/* Triangle */}
@@ -425,7 +425,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
          style={{
            backgroundColor: "white",
            borderRadius: 12,
-           padding: 12,
+           padding: 16,
            shadowColor: "#000",
            shadowOpacity: 0.1,
            shadowRadius: 6,
@@ -433,20 +433,22 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
            elevation: 3,
            borderWidth: 1,
            borderColor: "#E8E8E8",
+           maxWidth: 340,
+           minWidth: 300,
          }}
        >
          {/* Flag data - show routine flag data */}
-         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-           <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6 }} />
-           <Text style={{ color: "#333", flex: 1 }} numberOfLines={1}>
+         <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 8 }}>
+           <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6, marginTop: 2 }} />
+           <Text style={{ color: "#333", flex: 1, lineHeight: 18 }}>
              {routineFlagLoading ? "Loading..." : (routineFlag || "No routine flag available")}
            </Text>
          </View>
    
          {/* Book data - show summary data */}
-         <View style={{ flexDirection: "row", alignItems: "center" }}>
-           <BookOpen size={16} color="#8B7355" style={{ marginRight: 6 }} />
-           <Text style={{ color: "#333", flex: 1 }} numberOfLines={1}>
+         <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+           <BookOpen size={16} color="#8B7355" style={{ marginRight: 6, marginTop: 2 }} />
+           <Text style={{ color: "#333", flex: 1, lineHeight: 18 }}>
              {summaryLoading ? "Loading..." : (summary || "No summary available")}
            </Text>
          </View>
@@ -544,7 +546,7 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
   }, [selectedIndex, photos]); // Depend on selectedIndex and photos
 
   return (
-    <View style={[styles.timeSelectorContainer, { height: isTooltipOpen ? 345 : 'auto' }]}>
+    <View style={[styles.timeSelectorContainer, { height: isTooltipOpen ? 400 : 'auto' }]}>
       <FlatList
           ref={flatListRef}
           data={photos} // Use photos array directly as data
