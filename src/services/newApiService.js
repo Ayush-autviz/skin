@@ -989,7 +989,16 @@ export const getUserPhotos = async (page = 1, limit = 10, retryCount = 0) => {
   const MAX_RETRIES = 3;
   
   try {
-    console.log("🔵 Fetching user photos - page:", page, "limit:", limit, "retry:", retryCount);
+    // Check if user is authenticated before making API call
+    const authStore = require('../stores/authStore').default;
+    const { user, isAuthenticated } = authStore.getState();
+    
+    if (!isAuthenticated || !user?.user_id) {
+      console.log("🔴 getUserPhotos: User not authenticated, skipping API call");
+      throw new Error('User not authenticated');
+    }
+    
+    console.log("🔵 Fetching user photos - page:", page, "limit:", limit, "retry:", retryCount, "user:", user.user_id);
     const response = await apiClient.get(`/haut_process/?page=${page}&limit=${limit}`);
 
     if (response.data.status === 200) {

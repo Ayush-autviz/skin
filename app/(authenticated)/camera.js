@@ -1,110 +1,33 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Linking, Dimensions } from 'react-native';
-import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
+import { useState, useEffect, useRef } from 'react';
+import { 
+  View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Dimensions 
+} from 'react-native';
+import { useCameraPermission, useCameraDevice, Camera } from 'react-native-vision-camera';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import useAuthStore from '../../src/stores/authStore';
 import Svg, { Path, Defs, Mask, Rect } from 'react-native-svg';
-import { colors, spacing, typography } from '../../src/styles';
-
-
-/* ------------------------------------------------------
-WHAT IT DOES
-- Handles camera permissions
-- Provides camera preview
-- Allows camera flipping (front/back)
-- Captures photos
-- Integrates with expo-camera
-- Processes images through Haut.ai API (NEW FLOW)
-- Shows loading state during processing
-- Navigates to snapshot view with analysis results
-
-DATA USED
-- facing: CameraType ('front' | 'back')
-- permission: CameraPermissionResponse object
-- photo: Captured photo data
-- userId: Current user's ID from Firebase Auth
-- Haut.ai API integration for image analysis
-
-IMPORTANT IMPLEMENTATION NOTES
-1. Photo Capture Settings:
-   - quality: 0.7 (balanced size/quality)
-   - base64: true (required for API upload)
-   - exif: false (CRITICAL: prevents image rotation issues with Haut AI API)
-
-2. NEW API Flow:
-   - Capture photo with expo-camera
-   - Process through Haut.ai API using processHautImage()
-   - Navigate to snapshot view immediately
-   - Snapshot view handles polling for analysis results
-
-3. Critical Dependencies:
-   - expo-camera: Image capture
-   - Haut.ai API: Image analysis processing
-   - UserContext: Local snapshot state management
-
-TROUBLESHOOTING
-- If images fail to process: Check API connection and user registration
-- If images fail to analyze: Check EXIF and orientation settings
-- If analysis takes too long: Handled by polling timeout in snapshot view
-
-EXIF DATA & ORIENTATION ISSUES
-- EXIF (Exchangeable Image File Format) contains image metadata including orientation
-- Mobile devices capture photos in their native orientation but add EXIF data to indicate how they should be displayed
-- Problem: When a portrait mode photo is taken, the image data might still be in landscape orientation with EXIF data saying "rotate 90 degrees"
-- Solution: Setting 'exif: false' in takePictureAsync() forces the image to be saved in the DISPLAYED orientation rather than relying on EXIF
-- Image Library Uploads: Must also have 'exif: false' to ensure consistent orientation handling
-- Library vs Camera: Both sources must use identical settings to ensure consistent analysis results
-- Analysis API: Our backend analysis service expects faces in portrait orientation and may fail if it receives sideways faces
-
-------------------------------------------------------*/
-
-// Comment out Firebase-related imports as we're now using Haut.ai API
-// import { firebaseService } from '../../src/services/FirebasePhotosService';
-// import { storage } from '../../src/config/firebase';
-// import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-// import { collection, addDoc } from 'firebase/firestore';
-// import { db } from '../../src/config/firebase';
+import useAuthStore from '../../src/stores/authStore';
 
 /* ------------------------------------------------------
 FACE OVERLAY CONFIGURATION
-- All percentage values are decimal (0-1)
-- Width/Height are relative to screen width
-- Center position is relative to screen height
 ------------------------------------------------------*/
 const FACE_OVERLAY = {
-  // Width of face rectangle as percentage of screen width
   RECT_WIDTH_PCT: 0.76,
-  
-  // Height of face rectangle as percentage of screen width (to maintain aspect ratio)
   RECT_HEIGHT_PCT: 1.1,
-  
-  // Border radius of the face rectangle in pixels
   RECT_RADIUS_PCT: 0.3,
-  
-  // Vertical center position as percentage of screen height (0 = top, 1 = bottom)
   RECT_CENTERED_AT_PCT: 0.45,
-  
-  // Optional: Additional configuration
   BORDER_WIDTH: 2,
   BORDER_COLOR: 'rgba(255,255,255,.33)',
   OVERLAY_OPACITY: 0.45,
-  
 };
 
-// Debug logging for Haut.ai API integration
-console.log('🔵 CAMERA: Camera screen with Haut.ai API integration loaded');
-
-// Add this component after the FACE_OVERLAY constants
 const FaceOverlay = () => {
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-  
-  // Calculate dimensions
+
   const faceWidth = screenWidth * FACE_OVERLAY.RECT_WIDTH_PCT;
   const faceHeight = screenWidth * FACE_OVERLAY.RECT_HEIGHT_PCT;
   const borderRadius = faceWidth * FACE_OVERLAY.RECT_RADIUS_PCT;
-  
-  // Calculate position
+
   const centerY = screenHeight * FACE_OVERLAY.RECT_CENTERED_AT_PCT;
   const rectY = centerY - (faceHeight / 2);
   const rectX = (screenWidth - faceWidth) / 2;
@@ -125,15 +48,14 @@ const FaceOverlay = () => {
           />
         </Mask>
       </Defs>
-      
+
       <Rect
         width="100%"
         height="100%"
         fill="rgba(0,0,0,0.45)"
         mask="url(#mask)"
       />
-      
-      {/* Border for the face guide */}
+
       <Rect
         x={rectX}
         y={rectY}
@@ -151,152 +73,31 @@ const FaceOverlay = () => {
 
 export default function CameraScreen() {
   const { user } = useAuthStore();
+
+  const camera = useRef(null);
+  const [isActive, setIsActive] = useState(true);
+  const [facing, setFacing] = useState('front');
+
+  // Vision Camera permissions
   const { hasPermission, requestPermission } = useCameraPermission();
-  const device = useCameraDevice('front');
-  const cameraRef = useRef(null);
-  const [isCameraReady, setIsCameraReady] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const device = useCameraDevice(facing);
 
   useEffect(() => {
-    console.log('📸 Vision Camera screen loaded');
-
-    // Request permission if not granted
     if (!hasPermission) {
       requestPermission();
     }
+  }, [hasPermission]);
 
-    // Set initializing to false after a short delay to show proper loading state
-    const timer = setTimeout(() => {
-      setIsInitializing(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [hasPermission, requestPermission]);
-
-  // Monitor authentication state
-  useEffect(() => {
-    console.log('🔵 AUTH: Current user state:', {
-      isAuthenticated: !!user,
-      uid: user?.user_id,
-      email: user?.email
-    });
-  }, [user]);
-
-  // Camera ready callback
-  const onCameraReady = useCallback(() => {
-    console.log('✅ VISION CAMERA: Camera is ready');
-    setIsCameraReady(true);
-  }, []);
-
-  // Show loading state while checking permissions or initializing
-  if (isInitializing || !hasPermission) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.message}>
-          {isInitializing ? 'Initializing camera...' : 'Requesting camera permission...'}
-        </Text>
-        {!hasPermission && (
-          <TouchableOpacity
-            style={styles.button}
-            onPress={requestPermission}
-          >
-            <Text style={styles.buttonText}>Grant Camera Access</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  }
-
-  // Handle denied permission
-  if (hasPermission === false) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Text style={styles.message}>Camera access denied</Text>
-        <Text style={styles.debugText}>
-          Please grant camera permission to use this feature
-        </Text>
-        <View style={styles.permissionButtonContainer}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => Linking.openSettings()}
-          >
-            <Text style={styles.buttonText}>Open Settings</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.replace('/')}
-          >
-            <Text style={styles.buttonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
-  // Check if device is available
-  if (!device) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Text style={styles.message}>No camera device available</Text>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => router.replace('/')}
-        >
-          <Text style={styles.buttonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // Check if user is authenticated
-  if (!user?.user_id) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Text style={styles.message}>Authentication Required</Text>
-        <Text style={styles.debugText}>
-          Please sign in to use the camera
-        </Text>
-        <View style={styles.permissionButtonContainer}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.replace('/auth/sign-in')}
-          >
-            <Text style={styles.buttonText}>Sign In</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.replace('/')}
-          >
-            <Text style={styles.buttonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
-  // Handle denied permission
+  // Handle denied permissions
   if (hasPermission === false) {
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={styles.message}>No access to camera</Text>
-        <Text style={styles.debugText}>
-          Permission state: {JSON.stringify({hasPermission, isCameraActive}, null, 2)}
-        </Text>
         <View style={styles.permissionButtonContainer}>
-          <TouchableOpacity 
-            style={styles.button}
-            onPress={() => {
-              Linking.openSettings();
-            }}
-          >
+          <TouchableOpacity style={styles.button} onPress={() => Linking.openSettings()}>
             <Text style={styles.buttonText}>Grant Access</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.button}
-            onPress={() => router.replace('/')}
-          >
+          <TouchableOpacity style={styles.button} onPress={() => router.replace('/')}>
             <Text style={styles.buttonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -304,26 +105,16 @@ export default function CameraScreen() {
     );
   }
 
-  // Check if user is authenticated
+  // Check authentication
   if (!user?.user_id) {
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={styles.message}>Authentication Required</Text>
-        <Text style={styles.debugText}>
-          Please sign in to use the camera
-        </Text>
         <View style={styles.permissionButtonContainer}>
-          <TouchableOpacity 
-            style={styles.button}
-            onPress={() => router.replace('/auth/sign-in')}
-          >
+          <TouchableOpacity style={styles.button} onPress={() => router.replace('/auth/sign-in')}>
             <Text style={styles.buttonText}>Sign In</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.button}
-            onPress={() => router.replace('/')}
-          >
+          <TouchableOpacity style={styles.button} onPress={() => router.replace('/')}>
             <Text style={styles.buttonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -331,112 +122,63 @@ export default function CameraScreen() {
     );
   }
 
-  // Shared function for processing photos with Haut.ai API
-  const processPhoto = useCallback(async (photo) => {
+  // Capture photo
+  const handleCapture = async () => {
     try {
-      // Get user ID from Zustand store
-      if (!user?.user_id) {
-        console.error('🔴 PROCESS: No user ID available');
-        console.log('🔴 PROCESS: Current user:', user);
-        Alert.alert('Error', 'User not authenticated. Please sign in again.');
-        return;
-      }
+      if (camera.current == null) return;
+
+      const photo = await camera.current.takePhoto({
+        qualityPrioritization: 'balanced',
+        flash: 'off',
+      });
 
       const userId = user.user_id;
-      console.log('🔵 PROCESS: User ID found:', userId);
-
       const photoId = `${Date.now()}`;
 
-      // Navigate to snapshot screen immediately with photo data
+      setIsActive(false);
+
       router.push({
         pathname: '/(authenticated)/snapshot',
         params: {
           photoId,
-          localUri: photo.path,
-          userId: userId,
-          timestamp: new Date().toISOString()
-        }
+          localUri: `file://${photo.path}`,
+          userId,
+          timestamp: new Date().toISOString(),
+        },
       });
-
-      console.log('✅ PROCESS: Navigated to snapshot screen for Haut.ai processing');
-
-    } catch (error) {
-      console.error('🔴 PROCESS ERROR (General):', error);
-      Alert.alert('Error', `Failed to process photo: ${error.message}`);
+    } catch (e) {
+      console.error('🔴 CAMERA ERROR:', e);
+      Alert.alert('Error', 'Failed to capture photo');
+      setIsActive(true);
     }
-  }, [user]);
+  };
 
-  // Capture handler for Vision Camera
-  const handleCapture = useCallback(async () => {
-    if (!cameraRef.current || !isCameraReady) {
-      console.log('🔴 VISION CAMERA: Camera not ready for capture');
-      Alert.alert('Camera Not Ready', 'Please wait for the camera to initialize.');
-      return;
-    }
-
-    try {
-      console.log('📸 VISION CAMERA: Taking picture...');
-      const photo = await cameraRef.current.takePhoto({
-        qualityPrioritization: 'speed',
-        flash: 'off',
-        enableShutterSound: false
-      });
-
-      console.log('✅ VISION CAMERA: Photo captured successfully:', photo.path);
-      await processPhoto(photo);
-
-    } catch (error) {
-      console.error('🔴 VISION CAMERA ERROR:', error.message);
-      Alert.alert('Error', 'Failed to capture photo. Please try again.');
-    }
-  }, [isCameraReady, processPhoto]);
-
-  // Update handleUpload to use shared function
+  // Upload from gallery
   const handleUpload = async () => {
     try {
-      console.log('🔵 UPLOAD: Starting upload flow');
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      console.log('🔵 UPLOAD: Permission status:', status);
-      
       if (status !== 'granted') {
-        console.log('🔴 UPLOAD: Permission denied');
-        Alert.alert(
-          'Permission needed',
-          'Library access is required to upload photos',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() }
-          ]
-        );
+        Alert.alert('Permission needed', 'Library access is required');
         return;
       }
 
-      // Using settings directly from the Expo documentation
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'], // Use array form as per docs
-        allowsEditing: true,
-        aspect: [3, 4],
+        mediaTypes: ['images'],
         quality: 0.7,
-        exif: false,
-        
-        // iOS specific options that might help
-        presentationStyle: 'formSheet', // iOS - use a specific presentation style
-        
-        // Disable width/height settings as they might conflict with aspect ratio
-        // Let the system handle the resizing based on aspect ratio
-      });
-
-      console.log('🔵 UPLOAD: Image picker result:', {
-        cancelled: result.canceled,
-        hasAssets: result.assets?.length > 0,
-        dimensions: result.assets?.[0] ? `${result.assets[0].width}x${result.assets[0].height}` : 'none'
       });
 
       if (!result.canceled && result.assets?.[0]) {
-        // Use the shared processing function
-        await processPhoto(result.assets[0]);
-      } else {
-        console.log('🔵 UPLOAD: User cancelled selection');
+        const userId = user.user_id;
+        const photoId = `${Date.now()}`;
+        router.push({
+          pathname: '/(authenticated)/snapshot',
+          params: {
+            photoId,
+            localUri: result.assets[0].uri,
+            userId,
+            timestamp: new Date().toISOString(),
+          },
+        });
       }
     } catch (error) {
       console.error('🔴 UPLOAD ERROR:', error);
@@ -445,65 +187,55 @@ export default function CameraScreen() {
   };
 
   
+
   return (
     <View style={styles.container}>
-      <Camera
-        ref={cameraRef}
-        style={styles.camera}
-        device={device}
-        isActive={true}
-        photo={true}
-        onInitialized={onCameraReady}
-        onError={(error) => {
-          console.error('🔴 VISION CAMERA: Camera error:', error);
-          Alert.alert('Camera Error', 'Failed to initialize camera');
-        }}
-      />
-      <FaceOverlay />
-      {/* Show loading overlay while camera is initializing */}
-      {!isCameraReady && (
-        <View style={styles.cameraLoadingOverlay}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.cameraLoadingText}>Preparing camera...</Text>
-        </View>
+      {isActive ? (
+        <>
+        {/* {device && (
+          <Camera
+            ref={camera}
+            style={styles.camera}
+            device={device}
+            isActive={isActive}
+            photo={true}
+          />
+        
+        )
+        } */}
+          <FaceOverlay />
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.textButton}
+              onPress={() => {
+                setIsActive(false);
+                router.back();
+              }}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.captureButton} onPress={handleCapture}>
+              <View style={styles.captureButtonInner} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.textButton} onPress={handleUpload}>
+              <Text style={styles.buttonText}>Upload</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      ) : (
+        <View style={[styles.container, { backgroundColor: 'black' }]} />
       )}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.textButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.buttonText}>Cancel</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.captureButton, !isCameraReady && styles.captureButtonDisabled]}
-          onPress={handleCapture}
-          disabled={!isCameraReady}
-        >
-          <View style={styles.captureButtonInner} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.textButton}
-          onPress={handleUpload}
-        >
-          <Text style={styles.buttonText}>Upload</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  camera: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  camera: { flex: 1 },
   buttonContainer: {
-    flex: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0,0,0,0.8)',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -514,90 +246,18 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 80,
   },
-  textButton: {
-    padding: 10,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    textAlign: 'center',
-  },
+  textButton: { padding: 10, minWidth: 80, alignItems: 'center' },
+  buttonText: { color: 'white', fontSize: 16 },
   captureButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 60, height: 60, borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center', alignItems: 'center',
   },
   captureButtonInner: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'white',
+    width: 50, height: 50, borderRadius: 25, backgroundColor: 'white',
   },
-  message: {
-    fontSize: 16,
-    color: 'black',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  liqaContainer: {
-    position: 'absolute',
-    bottom: 36,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  liqaButton: {
-    padding: 10,
-  },
-  liqaText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  permissionButtonContainer: {
-    gap: 10,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  debugText: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 20,
-    fontFamily: 'monospace',
-  },
-  cameraLoadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cameraLoadingText: {
-    color: 'white',
-    fontSize: 16,
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  captureButtonDisabled: {
-    opacity: 0.5,
-  },
-  // Removed legacy Firebase uploading styles
-  // spinnerContainer, uploadingText, uploadingImage, uploadingOverlay
-  // These are no longer needed with the new Haut.ai API flow
-}); 
+  message: { fontSize: 16, color: 'black', textAlign: 'center', marginBottom: 20 },
+  centered: { justifyContent: 'center', alignItems: 'center', flex: 1 },
+  permissionButtonContainer: { gap: 10 },
+  button: { backgroundColor: '#007AFF', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
+});

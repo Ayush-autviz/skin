@@ -121,8 +121,14 @@ export function PhotoProvider({ children }) {
   // Main fetch photos function
   const fetchPhotos = useCallback(async (useCache = true, page = 1) => {
     try {
+      // Check if user is authenticated before fetching photos
+      if (!isAuthenticated || !user?.user_id) {
+        console.log('🔴 PHOTO_CONTEXT: User not authenticated, skipping photo fetch');
+        return;
+      }
+      
       setIsLoading(true);
-      console.log('🔵 PHOTO_CONTEXT: Fetching photos from API - page:', page);
+      console.log('🔵 PHOTO_CONTEXT: Fetching photos from API - page:', page, 'user:', user.user_id);
       
       // Load cached photos first if requested (only for first page)
       if (useCache && page === 1) {
@@ -169,7 +175,7 @@ console.log('✅ PHOTO_CONTEXT: Photos fetched and sorted successfully:', unique
     } finally {
       setIsLoading(false);
     }
-  }, [loadCachedPhotos, cachePhotos]);
+  }, [loadCachedPhotos, cachePhotos, isAuthenticated, user?.user_id]);
 
   // Fetch photos when the authenticated user changes (Zustand store)
   const { user, isAuthenticated } = useAuthStore();
@@ -220,6 +226,12 @@ console.log('✅ PHOTO_CONTEXT: Photos fetched and sorted successfully:', unique
   const loadMorePhotos = useCallback(async () => {
     if (isLoadingMore || !pagination.has_next) return;
     
+    // Check if user is authenticated before loading more photos
+    if (!isAuthenticated || !user?.user_id) {
+      console.log('🔴 PHOTO_CONTEXT: User not authenticated, skipping load more photos');
+      return;
+    }
+    
     try {
       setIsLoadingMore(true);
       console.log('🔵 PHOTO_CONTEXT: Loading more photos - page:', pagination.page + 1);
@@ -229,7 +241,7 @@ console.log('✅ PHOTO_CONTEXT: Photos fetched and sorted successfully:', unique
     } finally {
       setIsLoadingMore(false);
     }
-  }, [fetchPhotos, isLoadingMore, pagination.has_next, pagination.page]);
+  }, [fetchPhotos, isLoadingMore, pagination.has_next, pagination.page, isAuthenticated, user?.user_id]);
 
   // Clear cache function
   const clearCache = useCallback(async () => {
