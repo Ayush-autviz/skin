@@ -110,7 +110,7 @@ DATA MODEL IN USERS/PHOTOS:
 ------------------------------------------------------*/
 
 import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, FlatList, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, FlatList, Animated, ActivityIndicator } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useThreadContext } from '../../contexts/ThreadContext'; // Import thread context
 import { usePhotoContext } from '../../contexts/PhotoContext'; // Import photo context
@@ -371,7 +371,13 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
     >
       <Flag 
         size={18} 
-        color={isSelected ? '#8B7355' : '#CCCCCC'} 
+        color={
+          routineFlagLoading 
+            ? '#D3D3D3' // Disabled during loading
+            : routineFlag 
+              ? (isSelected ? '#8B7355' : '#CCCCCC')
+              : '#D3D3D3' // Disabled color when no data
+        } 
         strokeWidth={2.5}
       />
     </TouchableOpacity>
@@ -383,7 +389,13 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
     >
       <BookOpen 
         size={18} 
-        color={isSelected ? '#8B7355' : '#CCCCCC'} 
+        color={
+          summaryLoading 
+            ? '#D3D3D3' // Disabled during loading
+            : summary 
+              ? (isSelected ? '#8B7355' : '#CCCCCC')
+              : '#D3D3D3' // Disabled color when no data
+        } 
         strokeWidth={2.5}
       />
     </TouchableOpacity>
@@ -437,21 +449,42 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
            minWidth: 300,
          }}
        >
-         {/* Flag data - show routine flag data */}
-         <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 8 }}>
-           <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6, marginTop: 2 }} />
-           <Text style={{ color: "#333", flex: 1, lineHeight: 18 }}>
-             {routineFlagLoading ? "Loading..." : (routineFlag || "No routine flag available")}
-           </Text>
-         </View>
+         {/* Show loading indicator if either is loading */}
+         {(routineFlagLoading || summaryLoading) && (
+           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 8 }}>
+             <ActivityIndicator size="small" color="#8B7355" />
+             <Text style={{ color: "#666", marginLeft: 8, fontSize: 14 }}>Loading...</Text>
+           </View>
+         )}
+         
+         {/* Flag data - only show if not loading and data is present */}
+         {!routineFlagLoading && routineFlag && (
+           <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 8 }}>
+             <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6, marginTop: 2 }} />
+             <Text style={{ color: "#333", flex: 1, lineHeight: 18 }}>
+               {routineFlag}
+             </Text>
+           </View>
+         )}
    
-         {/* Book data - show summary data */}
-         <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-           <BookOpen size={16} color="#8B7355" style={{ marginRight: 6, marginTop: 2 }} />
-           <Text style={{ color: "#333", flex: 1, lineHeight: 18 }}>
-             {summaryLoading ? "Loading..." : (summary || "No summary available")}
-           </Text>
-         </View>
+         {/* Book data - only show if not loading and data is present */}
+         {!summaryLoading && summary && (
+           <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+             <BookOpen size={16} color="#8B7355" style={{ marginRight: 6, marginTop: 2 }} />
+             <Text style={{ color: "#333", flex: 1, lineHeight: 18 }}>
+               {summary}
+             </Text>
+           </View>
+         )}
+         
+         {/* Show message if no data after loading */}
+         {!routineFlagLoading && !summaryLoading && !routineFlag && !summary && (
+           <View style={{ alignItems: "center", paddingVertical: 8 }}>
+             <Text style={{ color: "#999", fontSize: 14, fontStyle: "italic" }}>
+               No data available
+             </Text>
+           </View>
+         )}
        </View>
     </View>
     )
