@@ -91,10 +91,14 @@ export default function UpdateRoutineScreen() {
         setItemType(itemData.type || 'Product');
         
         // Handle usage conversion
-        if (itemData.usage === 'AM + PM' || itemData.usage === 'Both') {
-          setItemUsage(['AM', 'PM']);
-        } else if (itemData.usage === 'As needed') {
+        if (itemData.usage === 'both' || itemData.usage === 'AM + PM' || itemData.usage === 'Both') {
+          setItemUsage(['AM & PM']);
+        } else if (itemData.usage === 'as_needed' || itemData.usage === 'As needed') {
           setItemUsage(['As needed']);
+        } else if (itemData.usage === 'am' || itemData.usage === 'AM') {
+          setItemUsage(['AM']);
+        } else if (itemData.usage === 'pm' || itemData.usage === 'PM') {
+          setItemUsage(['PM']);
         } else if (itemData.usage) {
           setItemUsage([itemData.usage]);
         } else {
