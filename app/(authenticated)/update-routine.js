@@ -38,16 +38,16 @@ import { updateRoutineItem, deleteRoutineItem } from '../../src/services/newApiS
 
 // Define concerns options
 const concernsOptions = [
+  'Breakouts',
   'Evenness',
   'Redness', 
   'Visible Pores',
   'Lines',
-  'Eye Area',
-  'Condition',
-  'Skin Type',
-  'Skin Tone',
-  'Perceived Age',
-  'Perceived Eye Age'
+  'Eye Area Condition',
+  'Pigmentation',
+  'Dewiness',
+  'Anti-Aging (Face)',
+  'Anti-Aging (Eyes)'
 ];
 
 // Define stop reasons
@@ -470,7 +470,7 @@ export default function UpdateRoutineScreen() {
             />
             <TextInput
               style={styles.textInput}
-              placeholder={`Enter ${itemType.toLowerCase()} name`}
+              placeholder={isTreatmentType() ? "Enter treatment name" : `Enter ${itemType.toLowerCase()} name`}
               value={itemName}
               onChangeText={setItemName}
               placeholderTextColor="#9CA3AF"

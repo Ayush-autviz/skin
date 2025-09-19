@@ -45,8 +45,8 @@ const concernsOptions = [
   'Eye Area Condition',
   'Pigmentation',
   'Dewiness',
-  'Anti-Aging/Faces',
-  'Anti-Aging/Eyes'
+  'Anti-Aging (Face)',
+  'Anti-Aging (Eyes)'
 ];
 
 // Define stop reasons
@@ -369,7 +369,7 @@ export default function CreateRoutineScreen() {
             />
             <TextInput
               style={styles.textInput}
-              placeholder={`Enter ${itemType.toLowerCase()} name`}
+              placeholder={isTreatmentType() ? "Enter treatment name" : `Enter ${itemType.toLowerCase()} name`}
               value={itemName}
               onChangeText={setItemName}
               placeholderTextColor="#9CA3AF"
