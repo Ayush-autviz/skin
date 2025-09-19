@@ -1732,9 +1732,15 @@ export const createRoutineItem = async (itemData) => {
     // Create form data as API expects application/x-www-form-urlencoded
     const formData = new URLSearchParams();
     formData.append("name", itemData.name);
-    formData.append("type", itemData.type.toLowerCase());
-    formData.append("usage", itemData.usage.toLowerCase());
-    formData.append("frequency", itemData.frequency.toLowerCase().replace(" ", "_"));
+    formData.append("type", itemData.type?.toLowerCase() || '');
+    
+    // Only add usage and frequency for non-treatment types
+    if (itemData.usage) {
+      formData.append("usage", itemData.usage.toLowerCase());
+    }
+    if (itemData.frequency) {
+      formData.append("frequency", itemData.frequency.toLowerCase().replace(" ", "_"));
+    }
     
     // Add new fields for updated API
     if (itemData.concern && Array.isArray(itemData.concern)) {

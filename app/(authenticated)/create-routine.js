@@ -137,7 +137,7 @@ export default function CreateRoutineScreen() {
 
   // Check if current type is a treatment type
   const isTreatmentType = () => {
-    return itemType && (
+    return itemType && typeof itemType === 'string' && (
       itemType === 'Treatment / Facial' || 
       itemType === 'Treatment / Injection' || 
       itemType === 'Treatment / Other'
@@ -146,18 +146,19 @@ export default function CreateRoutineScreen() {
 
   // Format parameters for backend
   const formatParameter = (value) => {
+    console.log('🟡 CreateRoutine: Formatting parameter:', value);
     if (!value) return value;
     // Handle frequency
     if (value === 'Daily' || value === 'Weekly' || value === 'As needed') {
-      return value === 'As needed' ? 'as_needed' : value.toLowerCase();
+      return value === 'As needed' ? 'as_needed' : value?.toLowerCase();
     }
     // Handle usage
     if (value === 'AM' || value === 'PM' || value === 'AM + PM' || value === 'As needed') {
-      return value === 'AM + PM' ? 'both' : value === 'As needed' ? 'as_needed' : value.toLowerCase();
+      return value === 'AM + PM' ? 'both' : value === 'As needed' ? 'as_needed' : value?.toLowerCase();
     }
     // Handle type
     if (value === 'Product' || value === 'Activity' || value === 'Nutrition') {
-      return value.toLowerCase();
+      return value?.toLowerCase();
     }
     if (value === 'Treatment / Facial') return 'treatment_facial';
     if (value === 'Treatment / Injection') return 'treatment_injection';
@@ -369,7 +370,7 @@ export default function CreateRoutineScreen() {
             />
             <TextInput
               style={styles.textInput}
-              placeholder={isTreatmentType() ? "Enter treatment name" : `Enter ${itemType.toLowerCase()} name`}
+              placeholder={isTreatmentType() ? "Enter treatment name" : `Enter ${itemType?.toLowerCase() || 'item'} name`}
               value={itemName}
               onChangeText={setItemName}
               placeholderTextColor="#9CA3AF"
