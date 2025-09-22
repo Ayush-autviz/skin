@@ -85,7 +85,7 @@ export default function RoutineTab() {
             style={styles.tabButton}
             onPress={() => setActiveTab('activity')}
           >
-            <Text style={[styles.tabText, activeTab === 'activity' && styles.activeTabText]}>Activity</Text>
+            <Text style={[styles.tabText, activeTab === 'activity' && styles.activeTabText]}>Journal</Text>
             {activeTab === 'activity' && <View style={styles.activeTabIndicator} />}
           </TouchableOpacity>
         </ScrollView>

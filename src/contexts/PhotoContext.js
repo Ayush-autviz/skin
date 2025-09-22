@@ -138,11 +138,11 @@ export function PhotoProvider({ children }) {
       const result = await getUserPhotos(page, 5);
       const apiPhotos = result.photos;
       
-      // Sort the photos by timestamp (Oldest to Newest) 
+      // Sort the photos by timestamp (Newest to Oldest) 
 const sortedPhotos = [...apiPhotos].sort((a, b) => {
   const dateA = new Date(a.timestamp);
   const dateB = new Date(b.timestamp);
-  return dateA.getTime() - dateB.getTime(); // Ascending sort (oldest first)
+  return dateB.getTime() - dateA.getTime(); // Descending sort (newest first)
 });
 
 // Deduplicate photos based on ID

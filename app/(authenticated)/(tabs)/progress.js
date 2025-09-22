@@ -134,9 +134,9 @@ export default function ProgressTab() {
         >
           <Feather name="trending-up" size={48} color={colors.primary} />
         </LinearGradient>
-        <Text style={styles.noDataText}>Start your progress journey</Text>
+        <Text style={styles.noDataText}>Track your skin health and the efficacy of your skin care</Text>
         <Text style={styles.noDataSubtext}>
-          Take your first photo to begin tracking your skin health progress over time
+        On your first visit, take 2 photos to activate the tracker, then as often as you want!
         </Text>
       </View>
     </View>

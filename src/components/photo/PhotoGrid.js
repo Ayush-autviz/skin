@@ -278,7 +278,29 @@ const PhotoGrid = ({ photos, onRefresh, lastUpdated, onLoadMore, isLoadingMore, 
       return res;
     };
 
-    return Object.keys(groups).map((label) => ({
+    // Sort sections by date (newest first)
+    const sortedLabels = Object.keys(groups).sort((a, b) => {
+      // Handle special cases for "Today" and "Yesterday"
+      if (a === 'Today') return -1; // Today always comes first
+      if (b === 'Today') return 1;
+      if (a === 'Yesterday') return -1; // Yesterday comes second
+      if (b === 'Yesterday') return 1;
+      
+      // For other dates, get the actual timestamp from the first photo in each group
+      const getGroupTimestamp = (label) => {
+        const groupPhotos = groups[label];
+        if (groupPhotos && groupPhotos.length > 0) {
+          return new Date(groupPhotos[0].timestamp).getTime();
+        }
+        return 0;
+      };
+      
+      const timestampA = getGroupTimestamp(a);
+      const timestampB = getGroupTimestamp(b);
+      return timestampB - timestampA; // Newest first
+    });
+
+    return sortedLabels.map((label) => ({
       title: label,
       data: chunk(groups[label], 2), // rows of 2 photos
     }));

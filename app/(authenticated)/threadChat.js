@@ -441,12 +441,20 @@ export default function ThreadChatScreen() {
           <Text style={styles.pendingItemText}>
             <Text style={styles.pendingItemLabel}>Type:</Text> {pendingItem.type}
           </Text>
-          <Text style={styles.pendingItemText}>
-            <Text style={styles.pendingItemLabel}>Usage:</Text> {pendingItem.usage}
-          </Text>
-          <Text style={styles.pendingItemText}>
-            <Text style={styles.pendingItemLabel}>Frequency:</Text> {pendingItem.frequency}
-          </Text>
+          {
+            pendingItem.usage && (
+              <Text style={styles.pendingItemText}>
+              <Text style={styles.pendingItemLabel}>Usage:</Text> {pendingItem.usage}
+              </Text>
+            )
+          }
+          {
+            pendingItem.frequency && (
+              <Text style={styles.pendingItemText}>
+              <Text style={styles.pendingItemLabel}>Frequency:</Text> {pendingItem.frequency}
+              </Text>
+            )
+          }
         </View>
         <View style={styles.pendingItemActions}>
           <TouchableOpacity

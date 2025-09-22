@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle, u
 import { View, Text, SectionList, ActivityIndicator, StyleSheet, TouchableOpacity, TextInput, Alert, Platform } from 'react-native';
 import { colors, spacing, typography, palette } from '../../styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ClipboardPlus, Pill } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Chip from '../ui/Chip';
 import ModalBottomSheet from '../layout/ModalBottomSheet';
@@ -653,13 +654,61 @@ const MyRoutine = forwardRef((props, ref) => {
 
     console.log('item', item);
     
+    // Determine icon based on item type
+    const getItemIcon = () => {
+      if (item.type === 'Product') {
+        return 'pill'; // Lucide icon
+      } else if (item.type === 'Activity') {
+        return 'yoga'; // MaterialCommunityIcons
+      } else if (item.type === 'Nutrition') {
+        return 'food-apple-outline'; // MaterialCommunityIcons
+      } else if (item.type && (
+        item.type === 'Treatment / Facial' || 
+        item.type === 'Treatment / Injection' || 
+        item.type === 'Treatment / Other'
+      )) {
+        return 'clipboard-plus'; // Lucide icon
+      }
+      return 'bottle-tonic-outline'; // Default MaterialCommunityIcons
+    };
+
+    const getItemIconColor = () => {
+      if (item.type === 'Product') {
+        return colors.primary;
+      } else if (item.type === 'Activity') {
+        return '#009688';
+      } else if (item.type === 'Nutrition') {
+        return '#FF6B35';
+      } else if (item.type && (
+        item.type === 'Treatment / Facial' || 
+        item.type === 'Treatment / Injection' || 
+        item.type === 'Treatment / Other'
+      )) {
+        return '#8B5CF6'; // Purple color for treatments
+      }
+      return colors.primary;
+    };
+
+    // Determine icon library based on item type
+    const getItemIconLibrary = () => {
+      if (item.type === 'Product' || (item.type && (
+        item.type === 'Treatment / Facial' || 
+        item.type === 'Treatment / Injection' || 
+        item.type === 'Treatment / Other'
+      ))) {
+        return 'Lucide';
+      }
+      return 'MaterialCommunityIcons';
+    };
+
     return (
         <ListItem
           title={item.name}
           subtitle={usageDuration || 'Recently added'}
           description={item.type}
-          icon={item.type === 'Product' ? 'bottle-tonic-outline' : item.type === 'Activity' ? 'yoga' : 'food-apple-outline'}
-          iconColor={item.type === 'Product' ? colors.primary : item.type === 'Activity' ? '#009688' : '#FF6B35'}
+          icon={getItemIcon()}
+          iconColor={getItemIconColor()}
+          iconLibrary={getItemIconLibrary()}
           chips={chips}
           showChevron={false}
           onPress={() => handleEditItem(item)}
@@ -724,11 +773,24 @@ const MyRoutine = forwardRef((props, ref) => {
     };
 
     activeItems.forEach(item => {
-      const freq = item.frequency || 'As needed';
-      if (grouped[freq]) {
-        grouped[freq].push(item);
-      } else {
+      // Check if this is a treatment type
+      const isTreatment = item.type && (
+        item.type === 'Treatment / Facial' || 
+        item.type === 'Treatment / Injection' || 
+        item.type === 'Treatment / Other'
+      );
+      
+      if (isTreatment) {
+        // All treatments go to "As needed" section
         grouped['As needed'].push(item);
+      } else {
+        // Non-treatments use their frequency
+        const freq = item.frequency || 'As needed';
+        if (grouped[freq]) {
+          grouped[freq].push(item);
+        } else {
+          grouped['As needed'].push(item);
+        }
       }
     });
 

@@ -25,6 +25,7 @@ DEVELOPMENT HISTORY
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { ClipboardPlus, Pill } from 'lucide-react-native';
 import { colors, spacing, typography } from '../../styles';
 import Chip from './Chip';
 
@@ -48,7 +49,18 @@ export default function ListItem({
   rightElement = null, // Custom right-side content
   dateInfo = null, // New prop for date information
 }) {
-  const IconComponent = iconLibrary === 'Feather' ? Feather : MaterialCommunityIcons;
+  const getIconComponent = () => {
+    if (iconLibrary === 'Feather') return Feather;
+    if (iconLibrary === 'Lucide') {
+      // Handle specific Lucide icons
+      if (icon === 'clipboard-plus') return ClipboardPlus;
+      if (icon === 'pill') return Pill;
+      return MaterialCommunityIcons; // fallback
+    }
+    return MaterialCommunityIcons;
+  };
+  
+  const IconComponent = getIconComponent();
   
   // Dynamic styles based on variant and priority
   const getContainerStyle = () => {

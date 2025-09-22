@@ -2,7 +2,7 @@
 // Screen to display archived (stopped) routine items
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, SectionList, ActivityIndicator, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { colors, spacing, typography, shadows } from '../../src/styles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -132,7 +132,7 @@ const ArchivedRoutines = () => {
       
       if (response.success && response.data) {
         const transformedItems = response.data.map(transformApiItem);
-        // Filter only stopped items (for non-treatment types) or all treatment items
+        // Filter only stopped items (exclude all treatments)
         const stoppedItems = transformedItems.filter(item => {
           const isTreatment = item.type && (
             item.type === 'Treatment / Facial' || 
@@ -140,9 +140,9 @@ const ArchivedRoutines = () => {
             item.type === 'Treatment / Other'
           );
           
+          // Exclude all treatments from archived routines
           if (isTreatment) {
-            // For treatments, include all items (they don't have stop dates)
-            return true;
+            return false;
           } else {
             // For non-treatments, only include stopped items
             return item.dateStopped && new Date(item.dateStopped) <= new Date();
@@ -190,52 +190,37 @@ const ArchivedRoutines = () => {
     router.back();
   };
 
-  // Group items by stop reason
-  const archivedSections = useMemo(() => {
+  // Flatten items into single array (no grouping)
+  const archivedItems = useMemo(() => {
     if (!routineItems || routineItems.length === 0) {
       return [];
     }
 
-    const grouped = {};
-    routineItems.forEach(item => {
-      const reason = item.stopReason || 'Other';
-      if (!grouped[reason]) {
-        grouped[reason] = [];
-      }
-      grouped[reason].push(item);
+    // Sort all items by date (most recent first)
+    const sortedItems = [...routineItems].sort((a, b) => {
+      // For treatment types, use treatment date; for others, use stop date
+      const isTreatmentA = a.type && (
+        a.type === 'Treatment / Facial' || 
+        a.type === 'Treatment / Injection' || 
+        a.type === 'Treatment / Other'
+      );
+      const isTreatmentB = b.type && (
+        b.type === 'Treatment / Facial' || 
+        b.type === 'Treatment / Injection' || 
+        b.type === 'Treatment / Other'
+      );
+      
+      const dateA = isTreatmentA ? 
+        (a.treatmentDate ? new Date(a.treatmentDate) : new Date(0)) :
+        (a.dateStopped ? new Date(a.dateStopped) : new Date(0));
+      const dateB = isTreatmentB ? 
+        (b.treatmentDate ? new Date(b.treatmentDate) : new Date(0)) :
+        (b.dateStopped ? new Date(b.dateStopped) : new Date(0));
+      
+      return dateB - dateA;
     });
 
-    // Sort items within each group by date (most recent first)
-    Object.keys(grouped).forEach(reason => {
-      grouped[reason].sort((a, b) => {
-        // For treatment types, use treatment date; for others, use stop date
-        const isTreatmentA = a.type && (
-          a.type === 'Treatment / Facial' || 
-          a.type === 'Treatment / Injection' || 
-          a.type === 'Treatment / Other'
-        );
-        const isTreatmentB = b.type && (
-          b.type === 'Treatment / Facial' || 
-          b.type === 'Treatment / Injection' || 
-          b.type === 'Treatment / Other'
-        );
-        
-        const dateA = isTreatmentA ? 
-          (a.treatmentDate ? new Date(a.treatmentDate) : new Date(0)) :
-          (a.dateStopped ? new Date(a.dateStopped) : new Date(0));
-        const dateB = isTreatmentB ? 
-          (b.treatmentDate ? new Date(b.treatmentDate) : new Date(0)) :
-          (b.dateStopped ? new Date(b.dateStopped) : new Date(0));
-        
-        return dateB - dateA;
-      });
-    });
-
-    // Create sections
-    return Object.keys(grouped).map(reason => ({
-      title: reason,
-      data: grouped[reason]
-    }));
+    return sortedItems;
   }, [routineItems]);
 
   // Render individual archived routine item
@@ -320,11 +305,6 @@ const ArchivedRoutines = () => {
   };
 
   // Render section header
-  const renderSectionHeader = ({ section: { title } }) => (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>{title}</Text>
-    </View>
-  );
 
   // Enhanced Loading Component
   const LoadingState = () => (
@@ -392,20 +372,18 @@ const ArchivedRoutines = () => {
           <LoadingState />
         ) : error ? (
           <ErrorState />
-        ) : archivedSections.length === 0 ? (
+        ) : archivedItems.length === 0 ? (
           <EmptyState />
         ) : (
-          <SectionList
+          <FlatList
             style={styles.sectionsList}
-            sections={archivedSections}
+            data={archivedItems}
             renderItem={renderArchivedItem}
-            renderSectionHeader={renderSectionHeader}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[
               styles.listContentContainer,
               { paddingBottom: insets.bottom + 20 }
             ]}
-            stickySectionHeadersEnabled={false}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

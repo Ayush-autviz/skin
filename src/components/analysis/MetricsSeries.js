@@ -796,6 +796,8 @@ const SkinTypeTrendChart = ({
     return skinTypeMap[item.skinType] || 2;
   });
 
+  console.log("🔵 realData of SkinTypeTrendChart: in MetricsSeries.js", realData);
+
   const chartData = {
     labels: processedData.map((_, index) => `${index + 1}`),
     datasets: [
@@ -812,10 +814,11 @@ const SkinTypeTrendChart = ({
       },
     ],
   };
+  console.log("processedData of SkinTypeTrendChart: in MetricsSeries.js", processedData.length);
 
   const screenWidth = Dimensions.get("window").width;
   const POINT_SPACING = 16;
-  const chartWidth = processedData.length * POINT_SPACING;
+  const chartWidth = Math.max(processedData.length * POINT_SPACING, screenWidth - 32);
   const CHART_HEIGHT = 160;
 
   // Sync scroll position
@@ -863,6 +866,7 @@ const SkinTypeTrendChart = ({
 
   // Record dot positions
   const renderDotContent = ({ x, y, index }) => {
+    console.log("🔵 renderDotContent of SkinTypeTrendChart: in MetricsSeries.js", x, y, index);
     setDotPositions((prev) => {
       if (prev[index]) return prev;
       return { ...prev, [index]: { x, y } };
@@ -870,11 +874,15 @@ const SkinTypeTrendChart = ({
     return null;
   };
 
+  console.log("🔵 dotPositions of SkinTypeTrendChart: in MetricsSeries.js", dotPositions);
+
   // Decorator for line + enlarged dot
   const decorator = () => {
     if (selectedIndex == null || !(selectedIndex in dotPositions)) return null;
 
     const { x, y } = dotPositions[selectedIndex];
+
+    console.log("🔵 decorator of SkinTypeTrendChart: in MetricsSeries.js", x, y);
 
     return (
       <Svg>
@@ -954,6 +962,7 @@ const SkinTypeTrendChart = ({
         ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
+       // contentContainerStyle={{ minWidth: screenWidth }}
         style={{ height: CHART_HEIGHT, marginRight: 10 }}
       >
         <LineChart
@@ -963,7 +972,7 @@ const SkinTypeTrendChart = ({
           chartConfig={{
             backgroundColor: "#fff",
             backgroundGradientFrom: "#fff",
-            backgroundGradientTo: "#fff",
+             backgroundGradientTo: "#fff",
             decimalPlaces: 0,
             color: (opacity = 1) => `rgba(110, 70, 255, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
