@@ -176,10 +176,10 @@ export default function ProgressTab() {
         )}
       </View>
 
-      <SettingsDrawer
+      {/* <SettingsDrawer
         isVisible={isSettingsVisible}
         onClose={() => setIsSettingsVisible(false)}
-      />
+      /> */}
     </View>
   );
 }
