@@ -243,10 +243,20 @@ const processPhotoMetrics = (photos) => {
   };
 };
 
-const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading, onTooltipShow, onTooltipHide }) => {
+const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading, isTooltipOpen, setIsTooltipOpen }) => {
   if (!photo) return null;
   
   const isSelected = index === selectedIndex;
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipType, setTooltipType] = useState('');
+
+  // Close tooltip when this image is no longer selected
+  useEffect(() => {
+    if (!isSelected && showTooltip) {
+      setShowTooltip(false);
+      // Don't control height here - let the global state handle it
+    }
+  }, [isSelected, showTooltip]);
 
   // Don't automatically control height from individual components
   // Let the global MetricsSeries component handle height state
@@ -258,15 +268,30 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
   const handleIconPress = (type) => {
     // If this is not the selected image, first select it
     if (index !== selectedIndex) {
+      // Keep height expanded during transition
+      setIsTooltipOpen(true);
       onPress(); // This will select the image and scroll it to center
-      // Calculate position for tooltip
-      const position = { x: width / 2, y: 100 }; // Approximate position
+      // Set tooltip type and show tooltip after selection
+      setTooltipType(type);
       setTimeout(() => {
-        onTooltipShow(type, position);
-      }, 150);
+        setShowTooltip(true);
+      }, 150); // Shorter delay since height is already expanded
     } else {
       // If this is the selected image, toggle the tooltip
-      onTooltipHide();
+      if (showTooltip) {
+        setShowTooltip(false); // Close if already open
+        // Close height when tooltip is manually closed
+        setTimeout(() => {
+          setIsTooltipOpen(false);
+        }, 100);
+      } else {
+        setTooltipType(type);
+        setIsTooltipOpen(true); // Trigger height change first
+        // Show tooltip after height has increased
+        setTimeout(() => {
+          setShowTooltip(true);
+        }, 300); // Delay to allow height animation to complete
+      }
     }
   };
 
@@ -376,6 +401,95 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
     </TouchableOpacity>
   </View>
 
+  {/* Tooltip container */}
+  {
+    showTooltip && (
+      <View
+      style={{
+        position: "absolute",
+        top: "100%", // 👈 put it below the icons
+      //  left: "-90%",
+        marginTop: 18, // spacing between icons and tooltip
+        alignSelf: "center", // center below icons
+        zIndex: 1000, // Ensure tooltip appears above other elements
+      }}
+    >
+      {/* Triangle */}
+      <View
+        style={{
+          position: "absolute",
+          top: -10,
+          left: "50%",
+          marginLeft: -10,
+          width: 20,
+          height: 20,
+          backgroundColor: "white",
+          transform: [{ rotate: "45deg" }],
+          zIndex: 20,
+          borderTopWidth: 1,
+          borderLeftWidth: 1,
+          borderColor: "#E8E8E8",
+        }}
+      />
+  
+       {/* Tooltip box */}
+       <View
+         style={{
+           backgroundColor: "white",
+           borderRadius: 12,
+           padding: 16,
+           shadowColor: "#000",
+           shadowOpacity: 0.1,
+           shadowRadius: 6,
+           shadowOffset: { width: 0, height: 2 },
+           elevation: 3,
+           borderWidth: 1,
+           borderColor: "#E8E8E8",
+           maxWidth: 340,
+           minWidth: 300,
+         }}
+       >
+         {/* Show loading indicator if either is loading */}
+         {(routineFlagLoading || summaryLoading) && (
+           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 8 }}>
+             <ActivityIndicator size="small" color="#8B7355" />
+             <Text style={{ color: "#666", marginLeft: 8, fontSize: 14 }}>Loading...</Text>
+           </View>
+         )}
+         
+         {/* Flag data - only show if not loading and data is present */}
+         {!routineFlagLoading && routineFlag && (
+           <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 8 }}>
+             <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6, marginTop: 2 }} />
+             <Text style={{ color: "#333", flex: 1, lineHeight: 18 }}>
+               {routineFlag}
+             </Text>
+           </View>
+         )}
+   
+         {/* Book data - only show if not loading and data is present */}
+         {!summaryLoading && summary && (
+           <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+             <BookOpen size={16} color="#8B7355" style={{ marginRight: 6, marginTop: 2 }} />
+             <Text style={{ color: "#333", flex: 1, lineHeight: 18 }}>
+               {summary}
+             </Text>
+           </View>
+         )}
+         
+         {/* Show message if no data after loading */}
+         {!routineFlagLoading && !summaryLoading && !routineFlag && !summary && (
+           <View style={{ alignItems: "center", paddingVertical: 8 }}>
+             <Text style={{ color: "#999", fontSize: 14, fontStyle: "italic" }}>
+               No data available
+             </Text>
+           </View>
+         )}
+       </View>
+    </View>
+    )
+  }
+
 </View>
 
         
@@ -385,7 +499,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
   );
 };
 
-const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading, onTooltipShow, onTooltipHide }, ref) => {
+const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading, isTooltipOpen, setIsTooltipOpen }, ref) => {
   const flatListRef = useRef(null);
 
   // Debug photos array changes
@@ -437,8 +551,8 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
         summaryLoading={summaryLoading}
         routineFlag={routineFlag}
         routineFlagLoading={routineFlagLoading}
-        onTooltipShow={onTooltipShow}
-        onTooltipHide={onTooltipHide}
+        isTooltipOpen={isTooltipOpen}
+        setIsTooltipOpen={setIsTooltipOpen}
       />
     );
   };
@@ -465,7 +579,7 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
   }, [selectedIndex, photos]); // Depend on selectedIndex and photos
 
   return (
-    <View style={styles.timeSelectorContainer}>
+    <View style={[styles.timeSelectorContainer, { height: isTooltipOpen ? 400 : 'auto' }]}>
       <FlatList
           ref={flatListRef}
           data={photos} // Use photos array directly as data
@@ -1246,9 +1360,7 @@ const MetricsSeries = ({ photos }) => {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [routineFlag, setRoutineFlag] = useState(null);
   const [routineFlagLoading, setRoutineFlagLoading] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [tooltipType, setTooltipType] = useState('');
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   // Removed showContent state - loading is now handled by parent component
   const { metrics, timestamps } = processPhotoMetrics(photos);
   const timeSelectorRef = useRef(null);
@@ -1374,16 +1486,6 @@ const MetricsSeries = ({ photos }) => {
     });
   };
 
-  const handleTooltipShow = (type, position) => {
-    setTooltipType(type);
-    setTooltipPosition(position);
-    setShowTooltip(true);
-  };
-
-  const handleTooltipHide = () => {
-    setShowTooltip(false);
-  };
-
   // Auto-select most recent photo on mount/data load (run only once per data load)
   useEffect(() => {
     // Only run if timestamps exist, have length, AND initial selection hasn't been done yet
@@ -1487,11 +1589,13 @@ const MetricsSeries = ({ photos }) => {
     }
   }, [selectedIndex, photos]);
 
-  // Close tooltips when no image is selected
+  // Close height when no tooltips should be open
   useEffect(() => {
-    // Only close tooltips if no image is selected
+    // Only close height if no image is selected
     if (selectedIndex === null) {
-      // No need to manage height anymore since tooltips are overlays
+      setTimeout(() => {
+        setIsTooltipOpen(false);
+      }, 200); // Longer delay to allow for smooth transitions
     }
   }, [selectedIndex]);
 
@@ -1532,93 +1636,9 @@ const MetricsSeries = ({ photos }) => {
         summaryLoading={summaryLoading}
         routineFlag={routineFlag}
         routineFlagLoading={routineFlagLoading}
-        onTooltipShow={handleTooltipShow}
-        onTooltipHide={handleTooltipHide}
+        isTooltipOpen={isTooltipOpen}
+        setIsTooltipOpen={setIsTooltipOpen}
       />
-      
-      {/* Tooltip overlay - positioned outside TimeSelector container */}
-      {showTooltip && (
-        <View
-          style={{
-            zIndex: 1000,
-            alignItems: "center",
-          }}
-        >
-          {/* Triangle - pointing up since tooltip is below */}
-          <View
-            style={{
-              position: "absolute",
-              top: -10,
-              left: "50%",
-              marginLeft: -10,
-              width: 20,
-              height: 20,
-              backgroundColor: "white",
-              transform: [{ rotate: "45deg" }],
-              zIndex: 20,
-              borderTopWidth: 1,
-              borderLeftWidth: 1,
-              borderColor: "#E8E8E8",
-            }}
-          />
-          
-          {/* Tooltip box */}
-          <View
-            style={{
-              backgroundColor: "white",
-              borderRadius: 12,
-              padding: 16,
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowRadius: 6,
-              shadowOffset: { width: 0, height: 2 },
-              elevation: 3,
-              borderWidth: 1,
-              borderColor: "#E8E8E8",
-              maxWidth: 340,
-              minWidth: 300,
-            }}
-          >
-            {/* Show loading indicator if either is loading */}
-            {(routineFlagLoading || summaryLoading) && (
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 8 }}>
-                <ActivityIndicator size="small" color="#8B7355" />
-                <Text style={{ color: "#666", marginLeft: 8, fontSize: 14 }}>Loading...</Text>
-              </View>
-            )}
-            
-            {/* Flag data - only show if not loading and data is present */}
-            {!routineFlagLoading && routineFlag && (
-              <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 8 }}>
-                <FlagIcon size={16} color="#8B7355" style={{ marginRight: 6, marginTop: 2 }} />
-                <Text style={{ color: "#333", flex: 1, lineHeight: 18 }}>
-                  {routineFlag}
-                </Text>
-              </View>
-            )}
-      
-            {/* Book data - only show if not loading and data is present */}
-            {!summaryLoading && summary && (
-              <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-                <BookOpen size={16} color="#8B7355" style={{ marginRight: 6, marginTop: 2 }} />
-                <Text style={{ color: "#333", flex: 1, lineHeight: 18 }}>
-                  {summary}
-                </Text>
-              </View>
-            )}
-            
-            {/* Show message if no data after loading */}
-            {!routineFlagLoading && !summaryLoading && !routineFlag && !summary && (
-              <View style={{ alignItems: "center", paddingVertical: 8 }}>
-                <Text style={{ color: "#999", fontSize: 14, fontStyle: "italic" }}>
-                  No data available
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-      )}
-      
       <ScrollView style={styles.metricsContainer}>
         {metrics.map((metric, index) => (
           <MetricRow 
@@ -1762,9 +1782,8 @@ const styles = StyleSheet.create({
     elevation: 2,
     paddingVertical:10,
     overflow: 'visible',
-      // Removed fixed height - now dynamic
+    // height: 345, // Removed fixed height - now dynamic
     flex: 1,
- 
   },
   shadowLayer1: {
     position: 'absolute',
@@ -1797,7 +1816,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16, // Keep vertical padding for FlatList items
     paddingRight: 200, // Add extra right padding to allow last items to center
-    paddingLeft: 200, // Add extra left padding to allow first items to center
   },
   dateCard: {
     width: DATE_CARD_WIDTH,
