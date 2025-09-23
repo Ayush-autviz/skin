@@ -598,6 +598,7 @@ const MyRoutine = forwardRef((props, ref) => {
 
   // Render individual routine item
   const renderRoutineItem = ({ item }) => {
+    console.log("🔵 renderRoutineItem - item:", item);
     const isNotUsing = item.dateStopped && new Date(item.dateStopped) <= new Date();
     const usageDuration = calculateUsageDuration(item.dateStarted);
     

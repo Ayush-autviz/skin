@@ -322,7 +322,7 @@
       "displayName": "Acne",
       "associatedMetric": "Acne score <90",
       "overview": "Breakouts occur when pores get clogged by oil and dead skin cells, allowing bacteria to thrive and cause inflammation. This complex issue is influenced by hormones, genetics, diet, and stress, requiring a multi‑faceted approach to manage effectively.",
-      "maskVerbiage": ["The highlighted regions indicate detected acne regions"],
+      "maskVerbiage": ["The highlighted regions, if any, indicate detected acne regions"],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -446,7 +446,7 @@
       "displayName": "Pigmentation",
       "associatedMetric": "Pigmentation quality <90",
       "overview": "Pigmented spots, or hyperpigmentation, result from excess melanin production, often triggered by sun exposure, hormonal shifts, or skin inflammation. These can manifest as sun spots, age spots, or melasma, affecting the skin's evenness.",
-      "maskVerbiage": ["The highlighted zones highlight detected pigmentation spots."],
+      "maskVerbiage": ["The highlighted zones, if any, highlight detected pigmentation spots."],
       "scoreLevels": {
         "excellent": {
           "max": 100,
@@ -665,7 +665,7 @@
       "displayName": "Redness",
       "associatedMetric": "Redness score <80",
       "overview": "Skin redness often signals a compromised barrier, leading to sensitivity and irritation from external factors; it can also indicate conditions like rosacea. Maintaining a healthy skin microbiome and using calming ingredients are key to managing redness.",
-      "maskVerbiage": ["The highlighted zones highlight regions with high redness."],
+      "maskVerbiage": ["The highlighted zones, if any, highlight regions with high redness."],
       "scoreLevels": {
         "excellent": {
           "max": 100,

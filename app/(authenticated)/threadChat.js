@@ -431,6 +431,8 @@ export default function ThreadChatScreen() {
   const PendingItemCard = () => {
     if (!pendingItem) return null;
 
+    console.log("🔵 PendingItemCard - pendingItem:", pendingItem);
+
     return (
       <View style={styles.pendingItemCard}>
         <Text style={styles.pendingItemTitle}>Confirm Item</Text>
@@ -452,6 +454,13 @@ export default function ThreadChatScreen() {
             pendingItem.frequency && (
               <Text style={styles.pendingItemText}>
               <Text style={styles.pendingItemLabel}>Frequency:</Text> {pendingItem.frequency}
+              </Text>
+            )
+          }
+          {
+            pendingItem.concern && pendingItem.concern.length > 0 && (
+              <Text style={styles.pendingItemText}>
+              <Text style={styles.pendingItemLabel}>Concerns:</Text> {pendingItem.concern.join(', ')}
               </Text>
             )
           }
