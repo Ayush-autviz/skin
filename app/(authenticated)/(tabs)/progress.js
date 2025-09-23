@@ -160,6 +160,7 @@ export default function ProgressTab() {
         ) : analyzedPhotos.length > 0 ? (
           <ScrollView
             style={styles.scrollContainer}
+            contentContainerStyle={{ flexGrow: 1 }}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
