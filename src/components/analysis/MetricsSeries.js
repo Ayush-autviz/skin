@@ -618,6 +618,10 @@ const TimeSelector = forwardRef(
           placement="bottom"
           onRequestClose={() => setIsTooltipOpen(false)}
           popoverStyle={{ backgroundColor: "transparent" }}
+          overlayStyle={{
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            opacity: 0.7
+          }}
         >
           <TooltipContent
             selectedPhoto={selectedPhoto}
@@ -1570,14 +1574,14 @@ const MetricsSeries = ({ photos }) => {
   }, [selectedIndex, photos]);
 
   // Close height when no tooltips should be open
-  useEffect(() => {
-    // Only close height if no image is selected
-    if (selectedIndex === null) {
-      setTimeout(() => {
-        setIsTooltipOpen(false);
-      }, 200); // Longer delay to allow for smooth transitions
-    }
-  }, [selectedIndex]);
+  // useEffect(() => {
+  //   // Only close height if no image is selected
+  //   if (selectedIndex === null) {
+  //     setTimeout(() => {
+  //       setIsTooltipOpen(false);
+  //     }, 200); // Longer delay to allow for smooth transitions
+  //   }
+  // }, [selectedIndex]);
 
   // Safety check - ensure we have photos before rendering
   if (!photos || photos.length === 0) {
