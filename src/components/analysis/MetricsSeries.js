@@ -345,7 +345,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
               color={
                 routineFlagLoading
                   ? '#D3D3D3' // Disabled during loading
-                  : photo.routine_flag
+                  : photo.apiData.image.routine_flag
                     ? (isSelected ? '#8B7355' : '#CCCCCC')
                     : '#D3D3D3' // Disabled color when no data
               }
@@ -364,7 +364,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
               color={
                 summaryLoading
                   ? '#D3D3D3' // Disabled during loading
-                  : photo.summary
+                  : photo.apiData.image.summary
                     ? (isSelected ? '#8B7355' : '#CCCCCC')
                     : '#D3D3D3' // Disabled color when no data
               }
@@ -1534,8 +1534,8 @@ const MetricsSeries = ({ photos }) => {
 
       // Summary and routine flag are already available in the photo data
       // No loading states needed since data is already loaded
-      setSummary(selectedPhoto.summary || null);
-      setRoutineFlag(selectedPhoto.routine_flag || null);
+      setSummary(selectedPhoto.apiData.image.summary || null);
+      setRoutineFlag(selectedPhoto.apiData.image.routine_flag || null);
       setSummaryLoading(false);
       setRoutineFlagLoading(false);
     } else {
