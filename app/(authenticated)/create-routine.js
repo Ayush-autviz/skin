@@ -18,13 +18,11 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BlurView } from 'expo-blur';
-import { 
-  FlaskConical, 
-  Dumbbell, 
-  Apple, 
-  Sun, 
-  Moon, 
-  Calendar, 
+import {
+  FlaskConical,
+  Sun,
+  Moon,
+  Calendar,
   CalendarX,
   CheckCircle,
   CalendarDays,
@@ -318,7 +316,7 @@ export default function CreateRoutineScreen() {
         >
         {/* Category Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle2}>Indicate if Product or Service</Text>
+          <Text style={styles.sectionTitle2}>Indicate if Product</Text>
           {/* <Text style={styles.sectionSubtitle}>Choose the type of item you want to add to your routine</Text> */}
           <View style={styles.chipSelectorContainer}>
             {[

@@ -1720,8 +1720,8 @@ export const getRoutineItems = async (retryCount = 0) => {
  * @param {Object} itemData - Routine item data
  * @param {string} itemData.name - Item name
  * @param {string} itemData.type - Item type (product, activity, nutrition)
- * @param {string} itemData.usage - Usage time (am, pm, both)
- * @param {string} itemData.frequency - Frequency (daily, weekly, as_needed)
+ * @param {string} [itemData.usage] - Usage time (am, pm, both) - optional for treatment types
+ * @param {string} [itemData.frequency] - Frequency (daily, weekly, as_needed) - optional for treatment types
  * @param {Object} [itemData.extra] - Additional data (optional)
  * @returns {Promise<Object>} Created item response
  */
@@ -1800,8 +1800,8 @@ export const createRoutineItem = async (itemData) => {
  * @param {Object} itemData - Updated item data
  * @param {string} itemData.name - Item name
  * @param {string} itemData.type - Item type (product, activity, nutrition)
- * @param {string} itemData.usage - Usage time (am, pm, both)
- * @param {string} itemData.frequency - Frequency (daily, weekly, as_needed)
+ * @param {string} [itemData.usage] - Usage time (am, pm, both) - optional for treatment types
+ * @param {string} [itemData.frequency] - Frequency (daily, weekly, as_needed) - optional for treatment types
  * @param {Object} [itemData.extra] - Additional data (optional)
  * @returns {Promise<Object>} Updated item response
  */
@@ -1812,9 +1812,15 @@ export const updateRoutineItem = async (itemId, itemData) => {
     // Create form data as API expects application/x-www-form-urlencoded
     const formData = new URLSearchParams();
     formData.append("name", itemData.name);
-    formData.append("type", itemData.type.toLowerCase());
-    formData.append("usage", itemData.usage.toLowerCase());
-    formData.append("frequency", itemData.frequency.toLowerCase().replace(" ", "_"));
+    formData.append("type", itemData.type?.toLowerCase() || '');
+
+    // Only add usage and frequency if they exist (for non-treatment types)
+    if (itemData.usage) {
+      formData.append("usage", itemData.usage.toLowerCase());
+    }
+    if (itemData.frequency) {
+      formData.append("frequency", itemData.frequency.toLowerCase().replace(" ", "_"));
+    }
     
     // Add new fields for updated API
     if (itemData.concern && Array.isArray(itemData.concern)) {

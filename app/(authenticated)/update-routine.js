@@ -18,13 +18,11 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BlurView } from 'expo-blur';
-import { 
-  FlaskConical, 
-  Dumbbell, 
-  Apple, 
-  Sun, 
-  Moon, 
-  Calendar, 
+import {
+  FlaskConical,
+  Sun,
+  Moon,
+  Calendar,
   CalendarX,
   CheckCircle,
   CalendarDays,
@@ -212,7 +210,7 @@ export default function UpdateRoutineScreen() {
       return value === 'AM + PM' ? 'both' : value === 'As needed' ? 'as_needed' : value.toLowerCase();
     }
     // Handle type
-    if (value === 'Product' || value === 'Activity' || value === 'Nutrition') {
+    if (value === 'Product') {
       return value.toLowerCase();
     }
     if (value === 'Treatment / Facial') return 'treatment_facial';
@@ -422,13 +420,11 @@ export default function UpdateRoutineScreen() {
         >
         {/* Category Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle2}>Indicate if Product or Service</Text>
+          <Text style={styles.sectionTitle2}>Indicate if Product</Text>
           {/* <Text style={styles.sectionSubtitle}>Choose the type of item you want to add to your routine</Text> */}
           <View style={styles.chipSelectorContainer}>
             {[
               { name: 'Product', icon: FlaskConical, color: '#8B7355' },
-              { name: 'Activity', icon: Dumbbell, color: '#009688' },
-              { name: 'Nutrition', icon: Apple, color: '#FF6B35' },
               { name: 'Treatment / Facial', icon: FlaskConical, color: '#8B7355' },
               { name: 'Treatment / Injection', icon: FlaskConical, color: '#8B7355' },
               { name: 'Treatment / Other', icon: FlaskConical, color: '#8B7355' }

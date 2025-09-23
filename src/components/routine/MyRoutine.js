@@ -530,7 +530,7 @@ const MyRoutine = forwardRef((props, ref) => {
         return value === 'AM + PM' ? 'both' : value === 'As needed' ? 'as_needed' : value.toLowerCase();
       }
       // Handle type
-      if (value === 'Product' || value === 'Activity' || value === 'Nutrition') {
+      if (value === 'Product') {
         return value.toLowerCase();
       }
       if (value === 'Treatment / Facial') return 'treatment_facial';
