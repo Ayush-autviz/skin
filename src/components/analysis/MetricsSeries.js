@@ -494,13 +494,18 @@ const TimeSelector = forwardRef(
           style={{
             width: 0,
             height: 0,
-            borderLeftWidth: 10,
-            borderRightWidth: 10,
-            borderTopWidth: 10,
+            borderLeftWidth: 12,
+            borderRightWidth: 12,
+            borderBottomWidth: 12,
             borderLeftColor: "transparent",
             borderRightColor: "transparent",
-            borderTopColor: "white",
+            borderBottomColor: "white",
             marginBottom: -1,
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowRadius: 2,
+            shadowOffset: { width: 0, height: 1 },
+            elevation: 8,
           }}
         />
         <View
