@@ -116,7 +116,6 @@ import { Image as ExpoImage } from 'expo-image';
 import { useThreadContext } from '../../contexts/ThreadContext'; // Import thread context
 import { usePhotoContext } from '../../contexts/PhotoContext'; // Import photo context
 import { useRouter } from 'expo-router'; // Import router
-import { getImageChatSummary, getRoutineFlag } from '../../services/chatApiService';
 import { colors, shadows } from '../../styles';
 import { Expand, Flag, BookOpen, Book, FlagIcon } from 'lucide-react-native';
 import useAuthStore from '../../stores/authStore';
@@ -244,7 +243,7 @@ const processPhotoMetrics = (photos) => {
   };
 };
 
-const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading, isTooltipOpen, setIsTooltipOpen, flagIconRef, bookIconRef }) => {
+const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summaryLoading, routineFlagLoading, isTooltipOpen, setIsTooltipOpen, flagIconRef, bookIconRef }) => {
   if (!photo) return null;
 
   const isSelected = index === selectedIndex;
@@ -346,7 +345,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
               color={
                 routineFlagLoading
                   ? '#D3D3D3' // Disabled during loading
-                  : routineFlag
+                  : photo.routine_flag
                     ? (isSelected ? '#8B7355' : '#CCCCCC')
                     : '#D3D3D3' // Disabled color when no data
               }
@@ -365,7 +364,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
               color={
                 summaryLoading
                   ? '#D3D3D3' // Disabled during loading
-                  : summary
+                  : photo.summary
                     ? (isSelected ? '#8B7355' : '#CCCCCC')
                     : '#D3D3D3' // Disabled color when no data
               }
@@ -381,7 +380,7 @@ const PhotoThumbCard = ({ photo, index, selectedIndex, onPress, onMaximize, summ
   );
 };
 
-const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText, onMaximize, summary, summaryLoading, routineFlag, routineFlagLoading, isTooltipOpen, setIsTooltipOpen }, ref) => {
+const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText, onMaximize, summaryLoading, routineFlagLoading, isTooltipOpen, setIsTooltipOpen }, ref) => {
   const flatListRef = useRef(null);
   const flagIconRef = useRef(null);
   const bookIconRef = useRef(null);
@@ -431,9 +430,7 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
           onSelectDate(index);
         }}
         onMaximize={onMaximize}
-        summary={summary}
         summaryLoading={summaryLoading}
-        routineFlag={routineFlag}
         routineFlagLoading={routineFlagLoading}
         isTooltipOpen={isTooltipOpen}
         setIsTooltipOpen={setIsTooltipOpen}
@@ -464,8 +461,17 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
     }
   }, [selectedIndex, photos]); // Depend on selectedIndex and photos
 
+  // Find the currently selected photo data for tooltip
+  const selectedPhoto = selectedIndex !== null ? photos[selectedIndex] : null;
+
   // Tooltip content component with custom arrow
-  const TooltipContent = ({ routineFlag, summary, routineFlagLoading, summaryLoading }) => (
+  const TooltipContent = ({ selectedPhoto, routineFlagLoading, summaryLoading }) => {
+    console.log('🔵 TooltipContent - selectedPhoto:', selectedPhoto);
+    // Get data directly from selectedPhoto
+    const summary = selectedPhoto?.apiData?.image?.summary || null;
+    const routineFlag = selectedPhoto?.apiData?.image?.routine_flag || null;
+
+    return (
     <View style={{ alignItems: 'center' }}>
       {/* Custom arrow/triangle */}
       <View
@@ -543,7 +549,8 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
         )}
       </View>
     </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.timeSelectorContainer}>
@@ -564,8 +571,7 @@ const TimeSelector = forwardRef(({ selectedIndex, onSelectDate, photos, noteText
                   arrowShift={{ x: 0, y: -3 }}
                 >
                   <TooltipContent
-                    routineFlag={routineFlag}
-                    summary={summary}
+                    selectedPhoto={selectedPhoto}
                     routineFlagLoading={routineFlagLoading}
                     summaryLoading={summaryLoading}
                   />
@@ -1519,61 +1525,23 @@ const MetricsSeries = ({ photos }) => {
     }
   }, [photos, timestamps]); // Removed showContent dependency since content always renders
 
-  // Fetch summary and routine flag when selectedIndex changes
+  // Update summary and routine flag when selectedIndex changes
+  // Data now comes directly from the API response, no separate API calls needed
   useEffect(() => {
     if (selectedIndex !== null && photos[selectedIndex]) {
       const selectedPhoto = photos[selectedIndex];
       console.log("🔵 selectedPhoto: in MetricsSeries", selectedPhoto);
-      const imageId = selectedPhoto.hautUploadData?.imageId || selectedPhoto.id;
-      
-      if (imageId) {
-        // Fetch summary
-        setSummaryLoading(true);
-        getImageChatSummary(imageId)
-          .then(response => {
-            console.log("🔵 response of getImageChatSummary: in MetricsSeries", response);
-            if (response.success) {
-              setSummary(response.summary);
-            } else {
-              setSummary(null);
-            }
-          })
-          .catch(error => {
-            console.error('Error fetching summary:', error);
-            setSummary(null);
-          })
-          .finally(() => {
-            setSummaryLoading(false);
-          });
 
-        // Fetch routine flag
-        setRoutineFlagLoading(true);
-        getRoutineFlag(imageId)
-          .then(response => {
-            console.log("🔵 response of getRoutineFlag: in MetricsSeries", response);
-            if (response.success) {
-              setRoutineFlag(response.routineFlag);
-            } else {
-              setRoutineFlag(null);
-            }
-          })
-          .catch(error => {
-            console.error('Error fetching routine flag:', error);
-            setRoutineFlag(null);
-          })
-          .finally(() => {
-            setRoutineFlagLoading(false);
-          });
-      } else {
-        setSummary(null);
-        setSummaryLoading(false);
-        setRoutineFlag(null);
-        setRoutineFlagLoading(false);
-      }
+      // Summary and routine flag are already available in the photo data
+      // No loading states needed since data is already loaded
+      setSummary(selectedPhoto.summary || null);
+      setRoutineFlag(selectedPhoto.routine_flag || null);
+      setSummaryLoading(false);
+      setRoutineFlagLoading(false);
     } else {
       setSummary(null);
-      setSummaryLoading(false);
       setRoutineFlag(null);
+      setSummaryLoading(false);
       setRoutineFlagLoading(false);
     }
   }, [selectedIndex, photos]);
@@ -1609,7 +1577,7 @@ const MetricsSeries = ({ photos }) => {
   }
 
   // Determine the note text based on the current thread summary
-  const noteText = summary || (summaryLoading ? "Loading summary..." : "");
+  const noteText = selectedIndex !== null && photos[selectedIndex] ? photos[selectedIndex].summary || "" : "";
 
   return (
     <View style={styles.container}>
@@ -1621,9 +1589,7 @@ const MetricsSeries = ({ photos }) => {
         ref={timeSelectorRef}
         noteText={noteText} // Pass the summary/note text down
         onMaximize={handleMaximize}
-        summary={summary}
         summaryLoading={summaryLoading}
-        routineFlag={routineFlag}
         routineFlagLoading={routineFlagLoading}
         isTooltipOpen={isTooltipOpen}
         setIsTooltipOpen={setIsTooltipOpen}

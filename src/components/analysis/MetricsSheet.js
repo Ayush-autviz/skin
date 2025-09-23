@@ -618,7 +618,7 @@ const MetricsSheet = forwardRef(({
               router.push({
                 pathname: '/(authenticated)/threadChat',
                 params: {
-                  chatType: 'snapshot_feedback',
+                  chatType: 'general_chat',
                   imageId: photoData?.imageId,
                   initialMessage: summary
                 }
