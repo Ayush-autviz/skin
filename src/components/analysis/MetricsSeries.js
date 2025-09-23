@@ -352,9 +352,7 @@ const PhotoThumbCard = ({
                 routineFlagLoading
                   ? '#D3D3D3' // Disabled during loading
                   : photo.apiData.image.routine_flag
-                  ? isSelected
-                    ? '#8B7355' // Selected color
-                    : '#CCCCCC' // Default color
+                  ? '#8B7355' // Active color when data is available
                   : '#D3D3D3' // No data color
               }
               strokeWidth={2.5}
@@ -372,9 +370,7 @@ const PhotoThumbCard = ({
                 summaryLoading
                   ? '#D3D3D3' // Disabled during loading
                   : photo.apiData.image.summary
-                  ? isSelected
-                    ? '#8B7355' // Selected color
-                    : '#CCCCCC' // Default color
+                  ? '#8B7355' // Active color when data is available
                   : '#D3D3D3' // No data color
               }
               strokeWidth={2.5}
