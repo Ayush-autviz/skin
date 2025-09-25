@@ -159,15 +159,23 @@ const ActivityList = () => {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={activities}
-        renderItem={renderActivityItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmptyState}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
+      {/* Coming Soon Watermark */}
+      <View style={styles.comingSoonOverlay} pointerEvents="none">
+        <Text style={styles.comingSoonText}>Coming Soon!</Text>
+      </View>
+
+      {/* Faded Background Content */}
+      <View style={styles.fadedContent}>
+        <FlatList
+          data={activities}
+          renderItem={renderActivityItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={renderEmptyState}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+        />
+      </View>
     </View>
   );
 };
@@ -264,6 +272,35 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  // Coming Soon Watermark Styles
+  comingSoonOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  comingSoonText: {
+    ...typography.h1,
+    color: colors.primary,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 3,
+    fontSize: 28,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  // Faded Content Styles
+  fadedContent: {
+    flex: 1,
+    opacity: 0.2, // Faded appearance
+    backgroundColor: colors.background,
   },
 });
 
