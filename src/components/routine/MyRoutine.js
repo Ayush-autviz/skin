@@ -658,14 +658,14 @@ const MyRoutine = forwardRef((props, ref) => {
     // Determine icon based on item type
     const getItemIcon = () => {
       if (item.type === 'Product') {
-        return 'pill'; // Lucide icon
+        return 'bottle-tonic-outline'; // MaterialCommunityIcons
       } else if (item.type === 'Activity') {
         return 'yoga'; // MaterialCommunityIcons
       } else if (item.type === 'Nutrition') {
         return 'food-apple-outline'; // MaterialCommunityIcons
       } else if (item.type && (
-        item.type === 'Treatment / Facial' || 
-        item.type === 'Treatment / Injection' || 
+        item.type === 'Treatment / Facial' ||
+        item.type === 'Treatment / Injection' ||
         item.type === 'Treatment / Other'
       )) {
         return 'clipboard-plus'; // Lucide icon
@@ -692,11 +692,11 @@ const MyRoutine = forwardRef((props, ref) => {
 
     // Determine icon library based on item type
     const getItemIconLibrary = () => {
-      if (item.type === 'Product' || (item.type && (
-        item.type === 'Treatment / Facial' || 
-        item.type === 'Treatment / Injection' || 
+      if (item.type && (
+        item.type === 'Treatment / Facial' ||
+        item.type === 'Treatment / Injection' ||
         item.type === 'Treatment / Other'
-      ))) {
+      )) {
         return 'Lucide';
       }
       return 'MaterialCommunityIcons';
