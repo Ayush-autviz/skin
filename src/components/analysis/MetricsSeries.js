@@ -1442,10 +1442,10 @@ const MetricsSeries = ({ photos }) => {
     const now = Date.now();
     if (now - lastTapTimeRef.current < 50) return; //  debounce
     lastTapTimeRef.current = now;
-    
+
     // console.log(`[MetricsSeries] Dot press detected for index ${index}`);
-    // Allow deselecting by pressing the same dot again
-    setSelectedIndex(prevIndex => prevIndex === index ? null : index);
+    // Always keep one image selected - don't allow deselecting
+    setSelectedIndex(prevIndex => prevIndex === index ? prevIndex : index);
   };
 
   const handleMaximize = (photo, index) => {
