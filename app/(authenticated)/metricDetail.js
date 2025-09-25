@@ -104,7 +104,7 @@ const CHART_HEIGHT = 180;
 const PADDING = 25;
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -181,7 +181,8 @@ const getLightColor = (hexColor) => {
 
 const PerceivedAgeChart = ({ photos }) => {
   const { profile } = useAuthStore();
-  
+  const scrollViewRef = useRef(null);
+
   // Process photos to get perceived age data
   const processedData = photos.map(photo => {
     let dateValue;
@@ -207,6 +208,15 @@ const PerceivedAgeChart = ({ photos }) => {
     };
   }).filter(item => item !== null);
 
+  // Scroll to the end (latest point) when component mounts or data changes
+  useEffect(() => {
+    if (processedData.length > 0 && scrollViewRef.current) {
+      setTimeout(() => {
+        scrollViewRef.current.scrollToEnd({ });
+      }, 100);
+    }
+  }, [processedData.length]);
+
   if (!processedData.length) {
     return <Text style={styles.trendPlaceholderText}>No perceived age data available.</Text>;
   }
@@ -220,11 +230,12 @@ const PerceivedAgeChart = ({ photos }) => {
 
   return (
     <View style={{ height: chartHeight + 40 }}>
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
         showsHorizontalScrollIndicator={false}
         style={{ height: chartHeight }}
-        contentContainerStyle={{ 
+        contentContainerStyle={{
           paddingTop: 28,
           paddingRight: 16
         }}
@@ -336,6 +347,8 @@ const PerceivedAgeChart = ({ photos }) => {
 };
 
 const SkinTypeTrendChart = ({ photos }) => {
+  const scrollViewRef = useRef(null);
+
   // Process photos to get skin type data
 
 
@@ -364,6 +377,15 @@ const SkinTypeTrendChart = ({ photos }) => {
       skinType: photo.skin_condition_type || photo.skinType || null,
     };
   }).filter(item => item !== null);
+
+  // Scroll to the end (latest point) when component mounts or data changes
+  useEffect(() => {
+    if (processedData.length > 0 && scrollViewRef.current) {
+     
+        scrollViewRef.current.scrollToEnd({  });
+   
+    }
+  }, [processedData.length]);
 
   if (!processedData.length) {
     return <Text style={styles.trendPlaceholderText}>No skin type data available.</Text>;
@@ -442,8 +464,9 @@ const SkinTypeTrendChart = ({ photos }) => {
 
   return (
     <View style={styles.skinTypeChartContainer}>
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
         showsHorizontalScrollIndicator={false}
       >
         <LineChart
