@@ -1967,7 +1967,7 @@ export default function MetricDetailScreen() {
                       router.push({
                         pathname: '/(authenticated)/threadChat',
                         params: {
-                          chatType: 'general_chat',
+                          chatType: 'snapshot_feedback',
                           initialMessage: initialMessage
                         }
                       });
@@ -2009,7 +2009,7 @@ export default function MetricDetailScreen() {
                         router.push({
                           pathname: '/(authenticated)/threadChat',
                           params: {
-                            chatType: 'general_chat',
+                            chatType: 'snapshot_feedback',
                             initialMessage: message
                           }
                         });
@@ -2063,7 +2063,7 @@ export default function MetricDetailScreen() {
                   //   router.push({
                   //     pathname: '/(authenticated)/threadChat',
                   //     params: {
-                  //       chatType: 'general_chat',
+                  //       chatType: 'snapshot_feedback',
                   //       initialMessage: initialMessage
                   //     }
                   //   });

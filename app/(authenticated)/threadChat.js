@@ -68,7 +68,7 @@ export default function ThreadChatScreen() {
   const { user, profile } = useAuthStore();
 
   // Extract parameters
-  const chatType = params.chatType || 'general_chat';
+  const chatType = params.chatType || 'snapshot_feedback';
   const initialMessage = params.initialMessage;
   const imageId = params.imageId;
 

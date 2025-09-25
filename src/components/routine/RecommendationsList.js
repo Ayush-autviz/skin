@@ -131,7 +131,7 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
     router.push({
       pathname: '/(authenticated)/threadChat',
       params: {
-        chatType: 'general_chat',
+        chatType: 'snapshot_feedback',
         initialMessage: message
       }
     });

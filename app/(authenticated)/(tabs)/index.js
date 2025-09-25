@@ -84,7 +84,7 @@ export default function Home() {
             </View>
             <Text style={styles.emptyTitle}>No snapshots yet</Text>
             <Text style={styles.emptySubtitle}>Tap the + to capture or upload your first face snapshot. Center your face for best results</Text>
-            <Text style={{marginTop: 10, color: colors.textSecondary, fontWeight: '500'}}>Take 2 quick photos to unlock your tracker.</Text>
+            <Text style={{marginTop: 10, color: colors.textSecondary, fontWeight: '500'}}>On your first visit, take 2 photos to unlock your tracker.</Text>
           </View>
         ) : (
           <PhotoGrid 
