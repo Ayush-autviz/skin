@@ -143,7 +143,7 @@ export default function ListItem({
         <View style={styles.textContainer}>
           {/* Title with optional NEW badge */}
           <View style={styles.titleRow}>
-            <Text style={getTitleStyle()} numberOfLines={2}>
+            <Text style={getTitleStyle()} >
               {title}
             </Text>
             {isNew && (
@@ -162,7 +162,7 @@ export default function ListItem({
           {description && (
             <Text 
               style={styles.subtitle} 
-              numberOfLines={variant === 'compact' ? 2 : 3}
+          //    numberOfLines={variant === 'compact' ? 2 : 3}
             >
               {description}
             </Text>
