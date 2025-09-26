@@ -617,7 +617,7 @@ export const refreshAccessToken = async (refreshToken) => {
       }
     );
 
-    if (response.data.status === 200) {
+    if (response.data.status === 201) {
       console.log("✅ Token refreshed successfully");
       return {
         access_token: response.data.data.access_token,
