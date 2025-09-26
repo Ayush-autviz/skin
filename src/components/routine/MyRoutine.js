@@ -201,6 +201,7 @@ const MyRoutine = forwardRef((props, ref) => {
       concerns: apiItem.concern || [],
       dateStarted: apiItem.extra?.dateStarted ? new Date(apiItem.extra.dateStarted) : null,
       dateStopped: apiItem.extra?.dateStopped ? new Date(apiItem.extra.dateStopped) : null,
+      treatmentDate: apiItem.extra?.treatmentDate ? new Date(apiItem.extra.treatmentDate) : null,
       stopReason: apiItem.extra?.stopReason || '',
       dateCreated: apiItem.extra?.dateCreated ? new Date(apiItem.extra.dateCreated) : new Date(),
       extra: apiItem.extra || {}
@@ -620,7 +621,25 @@ const MyRoutine = forwardRef((props, ref) => {
 
     // Format date info
     let dateInfo = null;
-    if (item.dateStarted) {
+    
+    // Check if this is a treatment type
+    const isTreatment = item.type && (
+      item.type === 'Treatment / Facial' || 
+      item.type === 'Treatment / Injection' || 
+      item.type === 'Treatment / Other'
+    );
+    
+    if (isTreatment && item.treatmentDate) {
+      // For treatment types, show treatment date
+      const treatmentDate = new Date(item.treatmentDate);
+      const formattedDate = treatmentDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      dateInfo = `Treatment date: ${formattedDate}`;
+    } else if (item.dateStarted) {
+      // For non-treatment types, show start date
       const startDate = new Date(item.dateStarted);
       const formattedDate = startDate.toLocaleDateString('en-US', {
         month: 'short',
@@ -633,6 +652,7 @@ const MyRoutine = forwardRef((props, ref) => {
         dateInfo = `You started this activity on ${formattedDate}`;
       } 
     }
+    
     if (item.dateStopped) {
       const stopDate = new Date(item.dateStopped);
       const startDate = new Date(item.dateStarted);
