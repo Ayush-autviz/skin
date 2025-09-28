@@ -27,12 +27,13 @@ DEVELOPMENT HISTORY
 ------------------------------------------------------*/
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import ListItem from '../ui/ListItem';
 import { colors, spacing, typography } from '../../styles';
 import useAuthStore from '../../stores/authStore';
 import { useThreadContext } from '../../contexts/ThreadContext';
+import { getComparison, transformComparisonData } from '../../services/newApiService';
 
 // Import the concerns data
 import concernsData from '../../../data/concerns.json';
@@ -63,7 +64,8 @@ const CONCERN_KEY_TO_DISPLAY_NAME = {
   'uniformnessScore': 'Evenness',
   'eyeBagsScore': 'Eye Area Condition',
   'saggingScore': 'Sagging',
-  'translucencyScore': 'Translucency'
+  'translucencyScore': 'Translucency',
+  'eyeAreaCondition': 'Eye Area Condition'
 };
 
 const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
@@ -76,13 +78,128 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
   
   // State to track automatically selected concerns based on user profile
   const [selectedConcerns, setSelectedConcerns] = useState(new Set());
+  
+  // State for comparison data and loading
+  const [comparisonData, setComparisonData] = useState(null);
+  const [isLoadingComparison, setIsLoadingComparison] = useState(true);
+  const [lowestScoringConcerns, setLowestScoringConcerns] = useState([]);
+  const [latestScores, setLatestScores] = useState({});
 
   // Get all concerns from the JSON data
   const allConcerns = Object.values(concernsData.skinConcerns);
   
-  // Automatically determine which concerns to show based on user profile
+  // Function to get scores from the latest image (most recent photo)
+  const getLatestImageScores = (photos) => {
+    if (!photos || photos.length === 0) return {};
+    
+    // Sort photos by date to get the most recent one
+    const sortedPhotos = [...photos].sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at) : (a.timestamp ? new Date(a.timestamp) : new Date(0));
+      const dateB = b.created_at ? new Date(b.created_at) : (b.timestamp ? new Date(b.timestamp) : new Date(0));
+      return dateB - dateA; // Most recent first
+    });
+    
+    const latestPhoto = sortedPhotos[0];
+    if (!latestPhoto || !latestPhoto.metrics) return {};
+    
+    // Define concern keys (excluding age, eye age, and translucency)
+    const concernKeys = [
+      'acneScore', 'poresScore', 'rednessScore', 'pigmentationScore', 
+      'linesScore', 'hydrationScore', 'uniformnessScore', 'eyeAreaCondition', 
+      'saggingScore'
+    ];
+    
+    // Get scores from the latest photo
+    const latestScores = {};
+    concernKeys.forEach(key => {
+      const score = latestPhoto.metrics[key];
+      if (score !== null && score !== undefined && !isNaN(score) && score > 0) {
+        latestScores[key] = score;
+      } else {
+        latestScores[key] = 0; // No data available
+      }
+    });
+    
+    console.log('🔵 Latest photo scores:', latestScores);
+    console.log('🔵 Latest photo date:', latestPhoto.created_at || latestPhoto.timestamp);
+    
+    return latestScores;
+  };
+  
+  // Function to identify the 3 lowest scoring concerns from latest image
+  const getLowestScoringConcerns = (latestScores) => {
+    const concernEntries = Object.entries(latestScores)
+      .filter(([key, score]) => score > 0) // Only include concerns with data
+      .sort(([, a], [, b]) => a - b) // Sort by score (ascending - lowest first)
+      .slice(0, 3); // Take only the first 3 (lowest scores)
+    
+    console.log('🔵 Lowest scoring concerns from latest image:', concernEntries);
+    return concernEntries.map(([key]) => key);
+  };
+  
+  // Fetch comparison data and identify lowest scoring concerns
   useEffect(() => {
-    if (profile?.concerns) {
+    const fetchComparisonData = async () => {
+      try {
+        setIsLoadingComparison(true);
+        console.log('🔵 Fetching comparison data for ingredients recommendations');
+        
+        const response = await getComparison('older_than_6_month');
+        
+        if (response.success && response.data) {
+          const transformedPhotos = transformComparisonData(response.data);
+          console.log(`✅ Loaded ${transformedPhotos.length} photos for concern analysis`);
+          
+          setComparisonData(transformedPhotos);
+          
+          // Get scores from the latest image
+          const latestScoresData = getLatestImageScores(transformedPhotos);
+          console.log('🔵 Latest image scores:', latestScoresData);
+          
+          // Store latest scores for UI display
+          setLatestScores(latestScoresData);
+          
+          // Identify the 3 lowest scoring concerns from latest image
+          const lowestConcerns = getLowestScoringConcerns(latestScoresData);
+          console.log('🔵 Lowest scoring concerns from latest image:', lowestConcerns);
+          
+          setLowestScoringConcerns(lowestConcerns);
+        } else {
+          console.log('⚠️ No comparison data available, falling back to profile concerns');
+          // Fallback to profile-based selection
+          if (profile?.concerns) {
+            const userConcernKeys = new Set();
+            Object.entries(profile.concerns).forEach(([profileConcernName, isSelected]) => {
+              if (isSelected && PROFILE_TO_CONCERN_MAPPING[profileConcernName]) {
+                userConcernKeys.add(PROFILE_TO_CONCERN_MAPPING[profileConcernName]);
+              }
+            });
+            setSelectedConcerns(userConcernKeys);
+          }
+        }
+      } catch (error) {
+        console.error('🔴 Error fetching comparison data:', error);
+        // Fallback to profile-based selection
+        if (profile?.concerns) {
+          const userConcernKeys = new Set();
+          Object.entries(profile.concerns).forEach(([profileConcernName, isSelected]) => {
+            if (isSelected && PROFILE_TO_CONCERN_MAPPING[profileConcernName]) {
+              userConcernKeys.add(PROFILE_TO_CONCERN_MAPPING[profileConcernName]);
+            }
+          });
+          setSelectedConcerns(userConcernKeys);
+        }
+      } finally {
+        setIsLoadingComparison(false);
+      }
+    };
+    
+    fetchComparisonData();
+  }, [profile?.concerns]);
+  
+  // Automatically determine which concerns to show based on user profile (fallback)
+  useEffect(() => {
+    if (profile?.concerns && lowestScoringConcerns.length === 0) {
       const userConcernKeys = new Set();
       
       // Convert profile concerns (boolean flags) to concern keys
@@ -93,17 +210,35 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
       });
       
       setSelectedConcerns(userConcernKeys);
-      // console.log('🎯 [RecommendationsList] Auto-selected user concerns:', {
-      //   profileConcerns: profile.concerns,
-      //   mappedKeys: Array.from(userConcernKeys)
-      // });
     }
-  }, [profile?.concerns]);
+  }, [profile?.concerns, lowestScoringConcerns.length]);
 
-  // Filter concerns based on automatically selected concerns
-  const filteredConcerns = selectedConcerns.size === 0 
-    ? allConcerns.filter(concern => concern.advice) // Only show concerns with advice object
-    : allConcerns.filter(concern => selectedConcerns.has(concern.keyForLookup) && concern.advice); // Selected concerns + must have advice
+  // Filter concerns based on lowest scoring concerns from comparison data or fallback to selected concerns
+  const filteredConcerns = (() => {
+    // If we have lowest scoring concerns from comparison data, use those in the same order
+    if (lowestScoringConcerns.length > 0) {
+      // Create a map for quick lookup
+      const concernMap = {};
+      allConcerns.forEach(concern => {
+        concernMap[concern.keyForLookup] = concern;
+      });
+      
+      // Return concerns in the same order as lowestScoringConcerns
+      return lowestScoringConcerns
+        .map(concernKey => concernMap[concernKey])
+        .filter(concern => concern && concern.advice);
+    }
+    
+    // Fallback to selected concerns from profile
+    if (selectedConcerns.size > 0) {
+      return allConcerns.filter(concern => 
+        selectedConcerns.has(concern.keyForLookup) && concern.advice
+      );
+    }
+    
+    // Final fallback - show all concerns with advice
+    return allConcerns.filter(concern => concern.advice);
+  })();
 
   const toggleExpanded = (concernKey) => {
     const newExpanded = new Set(expandedConcerns);
@@ -182,6 +317,57 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
     );
   };
 
+  // Render stats for lowest scoring concerns
+  const renderLowestScoringStats = () => {
+    if (lowestScoringConcerns.length === 0 || Object.keys(latestScores).length === 0) {
+      return null;
+    }
+
+    return (
+      <View style={styles.statsContainer}>
+        <Text style={styles.statsTitle}>Areas Requiring Attention</Text>
+        <View style={styles.statsGrid}>
+          {lowestScoringConcerns.map((concernKey, index) => {
+            const score = latestScores[concernKey] || 0;
+            const displayName = CONCERN_KEY_TO_DISPLAY_NAME[concernKey];
+            
+            return (
+              <View key={concernKey} style={styles.statItem}>
+                <View style={styles.statHeader}>
+                  <Text style={styles.statRank}>#{index + 1}</Text>
+                  <Text style={styles.statScore}>{Math.round(score)}/100</Text>
+                </View>
+                <Text style={styles.statName}>{displayName}</Text>
+                <View style={styles.statBar}>
+                  <View 
+                    style={[
+                      styles.statBarFill, 
+                      { 
+                        width: `${(score / 100) * 100}%`,
+                        backgroundColor: score <= 30 ? '#FF3B30' : score <= 70 ? '#FFB340' : '#34C759'
+                      }
+                    ]} 
+                  />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
+  // Show loading state while fetching comparison data
+  if (isLoadingComparison) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Analyzing your skin concerns...</Text>
+        <Text style={styles.loadingSubtext}>Finding ingredients for your areas of concern</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       {/* TEMPORARILY COMMENTED OUT - Concerns filters confusing users */}
@@ -193,9 +379,15 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
       
       <View style={styles.microcopyContainer}>
         <Text style={styles.microcopyText}>
-          Based on your current skin analysis
+          {lowestScoringConcerns.length > 0 
+            ? 'Based on your latest skin analysis'
+            : 'Based on your current skin analysis'
+          }
         </Text>
       </View>
+
+      {/* Stats for lowest scoring concerns */}
+      {renderLowestScoringStats()}
 
       {filteredConcerns.map((concern, concernIndex) => {
         // Only show concerns that have advice object
@@ -280,5 +472,86 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '500',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    marginTop: spacing.lg,
+    textAlign: 'center',
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+  statsContainer: {
+    backgroundColor: '#F8F9FA',
+    marginHorizontal: 16,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  statsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  statsGrid: {
+    gap: 12,
+  },
+  statItem: {
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  statHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  statRank: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  statScore: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  statName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  statBar: {
+    height: 6,
+    backgroundColor: '#E9ECEF',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  statBarFill: {
+    height: '100%',
+    borderRadius: 3,
   },
 }); 

@@ -98,56 +98,56 @@ console.log('🔵 CAMERA: Camera screen with Haut.ai API integration loaded');
 
 // Add this component after the FACE_OVERLAY constants
 const FaceOverlay = () => {
-  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-  
+    const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+    
   // Calculate dimensions
   const faceWidth = screenWidth * FACE_OVERLAY.RECT_WIDTH_PCT;
   const faceHeight = screenWidth * FACE_OVERLAY.RECT_HEIGHT_PCT;
   const borderRadius = faceWidth * FACE_OVERLAY.RECT_RADIUS_PCT;
   
   // Calculate position
-  const centerY = screenHeight * FACE_OVERLAY.RECT_CENTERED_AT_PCT;
+    const centerY = screenHeight * FACE_OVERLAY.RECT_CENTERED_AT_PCT;
   const rectY = centerY - (faceHeight / 2);
   const rectX = (screenWidth - faceWidth) / 2;
 
-  return (
-    <Svg height={screenHeight} width={screenWidth} style={StyleSheet.absoluteFill}>
-      <Defs>
-        <Mask id="mask" x="0" y="0" height="100%" width="100%">
-          <Rect width="100%" height="100%" fill="white" />
-          <Rect
-            x={rectX}
-            y={rectY}
-            width={faceWidth}
-            height={faceHeight}
-            rx={borderRadius}
-            ry={borderRadius}
-            fill="black"
-          />
-        </Mask>
-      </Defs>
-      
-      <Rect
-        width="100%"
-        height="100%"
-        fill="rgba(0,0,0,0.45)"
-        mask="url(#mask)"
-      />
-      
+    return (
+      <Svg height={screenHeight} width={screenWidth} style={StyleSheet.absoluteFill}>
+        <Defs>
+          <Mask id="mask" x="0" y="0" height="100%" width="100%">
+            <Rect width="100%" height="100%" fill="white" />
+            <Rect
+              x={rectX}
+              y={rectY}
+              width={faceWidth}
+              height={faceHeight}
+              rx={borderRadius}
+              ry={borderRadius}
+              fill="black"
+            />
+          </Mask>
+        </Defs>
+        
+        <Rect
+          width="100%"
+          height="100%"
+          fill="rgba(0,0,0,0.45)"
+          mask="url(#mask)"
+        />
+        
       {/* Border for the face guide */}
-      <Rect
-        x={rectX}
-        y={rectY}
-        width={faceWidth}
-        height={faceHeight}
-        rx={borderRadius}
-        ry={borderRadius}
-        stroke="rgba(255,255,255,0.33)"
-        strokeWidth={2}
-        fill="none"
-      />
-    </Svg>
-  );
+        <Rect
+          x={rectX}
+          y={rectY}
+          width={faceWidth}
+          height={faceHeight}
+          rx={borderRadius}
+          ry={borderRadius}
+          stroke="rgba(255,255,255,0.33)"
+          strokeWidth={2}
+          fill="none"
+        />
+      </Svg>
+    );
 };
 
 export default function CameraScreen() {
@@ -162,7 +162,7 @@ export default function CameraScreen() {
     console.log('📸 Camera screen loaded');
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+        setHasPermission(status === 'granted');
     })();
   }, []);
 
@@ -187,14 +187,14 @@ export default function CameraScreen() {
       
               // Try to create user subject (this will fail if user already exists, which is fine)
         // const { subjectId } = await createUserSubject(userId, userEmail);
-        console.log('✅ TEST: User registration check skipped (already registered)');
+      console.log('✅ TEST: User registration check skipped (already registered)');
       
     } catch (error) {
       if (error.message.includes('already exists') || error.message.includes('duplicate')) {
         console.log('✅ TEST: User already exists in external API (this is expected)');
       } else {
-        console.error('🔴 TEST: User registration test failed:', error);
-        Alert.alert(
+      console.error('🔴 TEST: User registration test failed:', error);
+            Alert.alert(
           'API Connection Issue', 
           'Unable to connect to analysis service. Please check your internet connection and try again.',
           [
@@ -281,7 +281,7 @@ export default function CameraScreen() {
   }
 
   const shutdownCamera = async () => {
-    setIsCameraActive(false);
+        setIsCameraActive(false);
     if (camera) {
       try {
         await camera.pausePreview();
@@ -322,7 +322,7 @@ export default function CameraScreen() {
           timestamp: new Date().toISOString()
         } 
       });
-
+      
       console.log('✅ PROCESS: Navigated to snapshot screen for Haut.ai processing');
       
     } catch (error) {
@@ -340,8 +340,8 @@ export default function CameraScreen() {
     try {
       const photo = await camera.takePictureAsync({
         quality: 0.7,
-        base64: true,
-        exif: false
+          base64: true,
+          exif: false
       });
 
       // Use the shared processing function
@@ -379,10 +379,10 @@ export default function CameraScreen() {
       // Using settings directly from the Expo documentation
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'], // Use array form as per docs
-        allowsEditing: true,
-        aspect: [3, 4],
+          allowsEditing: true,
+          aspect: [3, 4],
         quality: 0.7,
-        exif: false,
+          exif: false,
         
         // iOS specific options that might help
         presentationStyle: 'formSheet', // iOS - use a specific presentation style
@@ -414,15 +414,15 @@ export default function CameraScreen() {
     <View style={styles.container}>
       {isCameraActive ? (
         <>
-          <CameraView 
+      <CameraView 
             ref={ref => setCamera(ref)}
-            style={styles.camera}
-            facing={facing}
+        style={styles.camera}
+        facing={facing}
             active={isCameraActive}
-          />
-          <FaceOverlay />
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
+      />
+      <FaceOverlay />
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity 
               style={styles.textButton}
               onPress={async () => {
                 await shutdownCamera();
@@ -430,22 +430,22 @@ export default function CameraScreen() {
               }}
             >
               <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
+        </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={styles.captureButton}
-              onPress={handleCapture}
-            >
-              <View style={styles.captureButtonInner} />
-            </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.captureButton}
+          onPress={handleCapture}
+        >
+          <View style={styles.captureButtonInner} />
+        </TouchableOpacity>
 
-            <TouchableOpacity
+        <TouchableOpacity
               style={styles.textButton}
-              onPress={handleUpload}
-            >
+          onPress={handleUpload}
+        >
               <Text style={styles.buttonText}>Upload</Text>
-            </TouchableOpacity>
-          </View>
+        </TouchableOpacity>
+      </View>
         </>
       ) : (
         <View style={[styles.container, { backgroundColor: 'black' }]} />
@@ -541,4 +541,4 @@ const styles = StyleSheet.create({
   // Removed legacy Firebase uploading styles
   // spinnerContainer, uploadingText, uploadingImage, uploadingOverlay
   // These are no longer needed with the new Haut.ai API flow
-}); 
+});
