@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Button, ActivityIndicator, Alert, Linking, Image, Dimensions, AppState } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Button, ActivityIndicator, Alert, Linking, Image, Dimensions } from 'react-native';
 import { Camera, CameraType, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { CameraView } from 'expo-camera';
@@ -8,19 +8,64 @@ import useAuthStore from '../../src/stores/authStore';
 import Svg, { Path, Defs, Mask, Rect } from 'react-native-svg';
 import { colors, spacing, typography } from '../../src/styles';
 
+
 /* ------------------------------------------------------
-IMPROVEMENTS MADE FOR CRASH RESISTANCE:
-1. Added proper error boundaries and try-catch blocks
-2. Implemented debouncing for button interactions
-3. Added app state handling for camera lifecycle
-4. Enhanced memory management with proper cleanup
-5. Added loading states and user feedback
-6. Improved permission handling with retries
-7. Added network connectivity checks
-8. Enhanced camera state management
-9. Added proper timeout handling
-10. Improved error logging and user notifications
+WHAT IT DOES
+- Handles camera permissions
+- Provides camera preview
+- Allows camera flipping (front/back)
+- Captures photos
+- Integrates with expo-camera
+- Processes images through Haut.ai API (NEW FLOW)
+- Shows loading state during processing
+- Navigates to snapshot view with analysis results
+
+DATA USED
+- facing: CameraType ('front' | 'back')
+- permission: CameraPermissionResponse object
+- photo: Captured photo data
+- userId: Current user's ID from Firebase Auth
+- Haut.ai API integration for image analysis
+
+IMPORTANT IMPLEMENTATION NOTES
+1. Photo Capture Settings:
+   - quality: 0.7 (balanced size/quality)
+   - base64: true (required for API upload)
+   - exif: false (CRITICAL: prevents image rotation issues with Haut AI API)
+
+2. NEW API Flow:
+   - Capture photo with expo-camera
+   - Process through Haut.ai API using processHautImage()
+   - Navigate to snapshot view immediately
+   - Snapshot view handles polling for analysis results
+
+3. Critical Dependencies:
+   - expo-camera: Image capture
+   - Haut.ai API: Image analysis processing
+   - UserContext: Local snapshot state management
+
+TROUBLESHOOTING
+- If images fail to process: Check API connection and user registration
+- If images fail to analyze: Check EXIF and orientation settings
+- If analysis takes too long: Handled by polling timeout in snapshot view
+
+EXIF DATA & ORIENTATION ISSUES
+- EXIF (Exchangeable Image File Format) contains image metadata including orientation
+- Mobile devices capture photos in their native orientation but add EXIF data to indicate how they should be displayed
+- Problem: When a portrait mode photo is taken, the image data might still be in landscape orientation with EXIF data saying "rotate 90 degrees"
+- Solution: Setting 'exif: false' in takePictureAsync() forces the image to be saved in the DISPLAYED orientation rather than relying on EXIF
+- Image Library Uploads: Must also have 'exif: false' to ensure consistent orientation handling
+- Library vs Camera: Both sources must use identical settings to ensure consistent analysis results
+- Analysis API: Our backend analysis service expects faces in portrait orientation and may fail if it receives sideways faces
+
 ------------------------------------------------------*/
+
+// Comment out Firebase-related imports as we're now using Haut.ai API
+// import { firebaseService } from '../../src/services/FirebasePhotosService';
+// import { storage } from '../../src/config/firebase';
+// import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+// import { collection, addDoc } from 'firebase/firestore';
+// import { db } from '../../src/config/firebase';
 
 /* ------------------------------------------------------
 FACE OVERLAY CONFIGURATION
@@ -29,181 +74,99 @@ FACE OVERLAY CONFIGURATION
 - Center position is relative to screen height
 ------------------------------------------------------*/
 const FACE_OVERLAY = {
+  // Width of face rectangle as percentage of screen width
   RECT_WIDTH_PCT: 0.76,
+  
+  // Height of face rectangle as percentage of screen width (to maintain aspect ratio)
   RECT_HEIGHT_PCT: 1.1,
+  
+  // Border radius of the face rectangle in pixels
   RECT_RADIUS_PCT: 0.3,
+  
+  // Vertical center position as percentage of screen height (0 = top, 1 = bottom)
   RECT_CENTERED_AT_PCT: 0.45,
+  
+  // Optional: Additional configuration
   BORDER_WIDTH: 2,
   BORDER_COLOR: 'rgba(255,255,255,.33)',
   OVERLAY_OPACITY: 0.45,
+  
 };
 
-// Constants for improved stability
-const CONSTANTS = {
-  CAMERA_SHUTDOWN_DELAY: 300,
-  DEBOUNCE_DELAY: 1000,
-  PERMISSION_RETRY_DELAY: 2000,
-  MAX_RETRY_ATTEMPTS: 3,
-  CAMERA_QUALITY: 0.7,
-  NETWORK_TIMEOUT: 10000,
-};
+// Debug logging for Haut.ai API integration
+console.log('🔵 CAMERA: Camera screen with Haut.ai API integration loaded');
 
-console.log('🔵 CAMERA: Enhanced camera screen with crash resistance loaded');
-
-// Enhanced FaceOverlay component with error handling
+// Add this component after the FACE_OVERLAY constants
 const FaceOverlay = () => {
-  try {
-    const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-    
-    // Validate dimensions
-    if (!screenWidth || !screenHeight || screenWidth <= 0 || screenHeight <= 0) {
-      console.warn('⚠️ OVERLAY: Invalid screen dimensions, skipping overlay');
-      return null;
-    }
-    
-    // Calculate dimensions with safety checks
-    const faceWidth = Math.max(0, screenWidth * FACE_OVERLAY.RECT_WIDTH_PCT);
-    const faceHeight = Math.max(0, screenWidth * FACE_OVERLAY.RECT_HEIGHT_PCT);
-    const borderRadius = Math.max(0, faceWidth * FACE_OVERLAY.RECT_RADIUS_PCT);
-    
-    // Calculate position with bounds checking
-    const centerY = screenHeight * FACE_OVERLAY.RECT_CENTERED_AT_PCT;
-    const rectY = Math.max(0, centerY - (faceHeight / 2));
-    const rectX = Math.max(0, (screenWidth - faceWidth) / 2);
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+  
+  // Calculate dimensions
+  const faceWidth = screenWidth * FACE_OVERLAY.RECT_WIDTH_PCT;
+  const faceHeight = screenWidth * FACE_OVERLAY.RECT_HEIGHT_PCT;
+  const borderRadius = faceWidth * FACE_OVERLAY.RECT_RADIUS_PCT;
+  
+  // Calculate position
+  const centerY = screenHeight * FACE_OVERLAY.RECT_CENTERED_AT_PCT;
+  const rectY = centerY - (faceHeight / 2);
+  const rectX = (screenWidth - faceWidth) / 2;
 
-    return (
-      <Svg height={screenHeight} width={screenWidth} style={StyleSheet.absoluteFill}>
-        <Defs>
-          <Mask id="mask" x="0" y="0" height="100%" width="100%">
-            <Rect width="100%" height="100%" fill="white" />
-            <Rect
-              x={rectX}
-              y={rectY}
-              width={faceWidth}
-              height={faceHeight}
-              rx={borderRadius}
-              ry={borderRadius}
-              fill="black"
-            />
-          </Mask>
-        </Defs>
-        
-        <Rect
-          width="100%"
-          height="100%"
-          fill="rgba(0,0,0,0.45)"
-          mask="url(#mask)"
-        />
-        
-        <Rect
-          x={rectX}
-          y={rectY}
-          width={faceWidth}
-          height={faceHeight}
-          rx={borderRadius}
-          ry={borderRadius}
-          stroke="rgba(255,255,255,0.33)"
-          strokeWidth={2}
-          fill="none"
-        />
-      </Svg>
-    );
-  } catch (error) {
-    console.error('🔴 OVERLAY ERROR:', error);
-    return null; // Graceful fallback
-  }
+  return (
+    <Svg height={screenHeight} width={screenWidth} style={StyleSheet.absoluteFill}>
+      <Defs>
+        <Mask id="mask" x="0" y="0" height="100%" width="100%">
+          <Rect width="100%" height="100%" fill="white" />
+          <Rect
+            x={rectX}
+            y={rectY}
+            width={faceWidth}
+            height={faceHeight}
+            rx={borderRadius}
+            ry={borderRadius}
+            fill="black"
+          />
+        </Mask>
+      </Defs>
+      
+      <Rect
+        width="100%"
+        height="100%"
+        fill="rgba(0,0,0,0.45)"
+        mask="url(#mask)"
+      />
+      
+      {/* Border for the face guide */}
+      <Rect
+        x={rectX}
+        y={rectY}
+        width={faceWidth}
+        height={faceHeight}
+        rx={borderRadius}
+        ry={borderRadius}
+        stroke="rgba(255,255,255,0.33)"
+        strokeWidth={2}
+        fill="none"
+      />
+    </Svg>
+  );
 };
 
 export default function CameraScreen() {
-  // Enhanced state management
+  // Only the hooks we actually use
   const { user } = useAuthStore();
   const [hasPermission, setHasPermission] = useState(null);
   const [camera, setCamera] = useState(null);
   const [isCameraActive, setIsCameraActive] = useState(true);
   const [facing, setFacing] = useState('front');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [appState, setAppState] = useState(AppState.currentState);
-  const [retryCount, setRetryCount] = useState(0);
-  
-  // Refs for cleanup and debouncing
-  const mountedRef = useRef(true);
-  const lastActionRef = useRef(0);
-  const cameraRef = useRef(null);
 
-  // Enhanced permission request with retry logic
-  const requestCameraPermission = useCallback(async () => {
-    try {
-      console.log('📸 Requesting camera permission, attempt:', retryCount + 1);
+  useEffect(() => {
+    console.log('📸 Camera screen loaded');
+    (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
-      
-      if (mountedRef.current) {
-        setHasPermission(status === 'granted');
-        if (status === 'granted') {
-          setRetryCount(0);
-        }
-      }
-      
-      return status === 'granted';
-    } catch (error) {
-      console.error('🔴 PERMISSION ERROR:', error);
-      if (mountedRef.current) {
-        setHasPermission(false);
-      }
-      return false;
-    }
-  }, [retryCount]);
+      setHasPermission(status === 'granted');
+    })();
+  }, []);
 
-  // Initial setup with enhanced error handling
-  useEffect(() => {
-    console.log('📸 Camera screen initialization started');
-    let timeoutId;
-    
-    const initializeCamera = async () => {
-      try {
-        await requestCameraPermission();
-      } catch (error) {
-        console.error('🔴 INIT ERROR:', error);
-        if (mountedRef.current && retryCount < CONSTANTS.MAX_RETRY_ATTEMPTS) {
-          timeoutId = setTimeout(() => {
-            setRetryCount(prev => prev + 1);
-          }, CONSTANTS.PERMISSION_RETRY_DELAY);
-        }
-      }
-    };
-
-    initializeCamera();
-    
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [requestCameraPermission, retryCount]);
-
-  // App state handling for proper camera lifecycle
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState) => {
-      console.log('🔵 APP STATE:', `${appState} -> ${nextAppState}`);
-      
-      if (appState.match(/inactive|background/) && nextAppState === 'active') {
-        // App came to foreground - reactivate camera if needed
-        if (hasPermission && !isCameraActive) {
-          setIsCameraActive(true);
-        }
-      } else if (nextAppState.match(/inactive|background/)) {
-        // App going to background - pause camera to save resources
-        setIsCameraActive(false);
-      }
-      
-      if (mountedRef.current) {
-        setAppState(nextAppState);
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription?.remove();
-  }, [appState, hasPermission, isCameraActive]);
-
-  // Enhanced authentication monitoring
+  // Monitor authentication state
   useEffect(() => {
     console.log('🔵 AUTH: Current user state:', {
       isAuthenticated: !!user,
@@ -211,342 +174,76 @@ export default function CameraScreen() {
       email: user?.email
     });
     
-    if (user?.user_id && mountedRef.current) {
-      testUserRegistration(user.user_id, user.email).catch(error => {
-        console.error('🔴 USER REG TEST ERROR:', error);
-      });
+    // Test API connection if user is authenticated
+    if (user?.user_id) {
+      testUserRegistration(user.user_id, user.email);
     }
   }, [user]);
 
-  // Enhanced user registration test
+  // Test if user is properly registered in external API
   const testUserRegistration = async (userId, userEmail) => {
     try {
       console.log('🔵 TEST: Testing user registration in external API');
-      console.log('✅ TEST: User registration check skipped (already registered)');
-    } catch (error) {
-      console.error('🔴 TEST: User registration test failed:', error);
       
-      if (!error.message.includes('already exists') && !error.message.includes('duplicate')) {
-        // Only show alert for actual connection issues
-        setTimeout(() => {
-          if (mountedRef.current) {
-            Alert.alert(
-              'Connection Issue', 
-              'Unable to connect to analysis service. Please check your internet connection.',
-              [{ text: 'OK' }]
-            );
-          }
-        }, 100);
+              // Try to create user subject (this will fail if user already exists, which is fine)
+        // const { subjectId } = await createUserSubject(userId, userEmail);
+        console.log('✅ TEST: User registration check skipped (already registered)');
+      
+    } catch (error) {
+      if (error.message.includes('already exists') || error.message.includes('duplicate')) {
+        console.log('✅ TEST: User already exists in external API (this is expected)');
+      } else {
+        console.error('🔴 TEST: User registration test failed:', error);
+        Alert.alert(
+          'API Connection Issue', 
+          'Unable to connect to analysis service. Please check your internet connection and try again.',
+          [
+            { text: 'OK', onPress: () => console.log('User acknowledged API issue') }
+          ]
+        );
       }
     }
   };
 
-  // Enhanced cleanup with proper error handling
+  // Add cleanup effect
   useEffect(() => {
     return () => {
-      mountedRef.current = false;
-      shutdownCamera().catch(error => {
-        console.error('🔴 CLEANUP ERROR:', error);
-      });
+      // Ensure shutdown is called on unmount
+      (async () => {
+         await shutdownCamera();
+      })();
     };
   }, []);
 
-  // Enhanced camera shutdown
-  const shutdownCamera = useCallback(async () => {
-    try {
-      console.log('🔵 CAMERA: Shutting down camera');
-      setIsCameraActive(false);
-      
-      if (camera) {
-        try {
-          await camera.pausePreview?.();
-        } catch (error) {
-          console.warn('⚠️ CAMERA: Error during pausePreview:', error);
-          // Continue with shutdown even if pause fails
-        }
-        
-        if (mountedRef.current) {
-          setCamera(null);
-        }
-      }
-      
-      // Clear camera ref
-      cameraRef.current = null;
-      
-    } catch (error) {
-      console.error('🔴 CAMERA SHUTDOWN ERROR:', error);
-      // Force state reset even if shutdown fails
-      if (mountedRef.current) {
-        setIsCameraActive(false);
-        setCamera(null);
-      }
-    }
-  }, [camera]);
+  // Add debug logs
+  //console.log('🔵 CAMERA: hasPermission:', hasPermission);
+  //console.log('🔵 CAMERA: isCameraActive:', isCameraActive);
 
-  // Debounced action handler to prevent double-taps
-  const debounceAction = useCallback((action, delay = CONSTANTS.DEBOUNCE_DELAY) => {
-    const now = Date.now();
-    if (now - lastActionRef.current < delay) {
-      console.log('🔵 DEBOUNCE: Action blocked - too soon');
-      return false;
-    }
-    lastActionRef.current = now;
-    return true;
-  }, []);
+  // Wait for permission check
+  if (hasPermission === null) {
+    return null;
+  }
 
-  // Enhanced photo processing with better error handling
-  const processPhoto = async (photo) => {
-    if (!mountedRef.current) return;
-    
-    try {
-      console.log('🔵 PROCESS: Starting photo processing');
-      setIsProcessing(true);
-
-      // Validate user authentication
-      if (!user?.user_id) {
-        throw new Error('User not authenticated. Please sign in again.');
-      }
-
-      // Validate photo data
-      if (!photo?.uri) {
-        throw new Error('Invalid photo data received.');
-      }
-
-      const userId = user.user_id;
-      const photoId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      console.log('🔵 PROCESS: User ID:', userId, 'Photo ID:', photoId);
-      
-      // Enhanced camera shutdown with timeout
-      await Promise.race([
-        shutdownCamera(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Camera shutdown timeout')), 5000)
-        )
-      ]);
-      
-      // Small delay to ensure camera is properly shut down
-      await new Promise(resolve => setTimeout(resolve, CONSTANTS.CAMERA_SHUTDOWN_DELAY));
-      
-      if (!mountedRef.current) return;
-      
-      // Navigate with enhanced error handling
-      const navigationParams = { 
-        pathname: '/(authenticated)/snapshot', 
-        params: { 
-          photoId, 
-          localUri: photo.uri,
-          userId: userId,
-          timestamp: new Date().toISOString()
-        } 
-      };
-      
-      console.log('🔵 PROCESS: Navigating with params:', navigationParams);
-      router.push(navigationParams);
-      
-      console.log('✅ PROCESS: Successfully navigated to snapshot screen');
-      
-    } catch (error) {
-      console.error('🔴 PROCESS ERROR:', error);
-      
-      // Re-activate camera if processing failed
-      if (mountedRef.current) {
-        setIsCameraActive(true);
-        // Remove setIsProcessing(false) to avoid loading states
-        
-        // Show user-friendly error message
-        const errorMessage = error.message.includes('not authenticated') 
-          ? 'Please sign in again to continue.'
-          : `Processing failed: ${error.message}. Please try again.`;
-          
-        Alert.alert('Processing Error', errorMessage, [
-          { text: 'OK', onPress: () => console.log('User acknowledged process error') }
-        ]);
-      }
-    } finally {
-      // Remove setIsProcessing(false) to avoid loading states
-    }
-  };
-
-  // Enhanced capture handler with comprehensive error handling
-  const handleCapture = async () => {
-    if (!debounceAction() || isCapturing || isProcessing || !mountedRef.current) {
-      console.log('🔵 CAPTURE: Action blocked - busy or debounced');
-      return;
-    }
-
-    if (!camera) {
-      console.warn('⚠️ CAPTURE: No camera reference available');
-      Alert.alert('Camera Error', 'Camera not ready. Please try again.');
-      return;
-    }
-
-    try {
-      console.log('📸 CAPTURE: Starting photo capture');
-      setIsCapturing(true);
-
-      const photo = await Promise.race([
-        camera.takePictureAsync({
-          quality: CONSTANTS.CAMERA_QUALITY,
-          base64: true,
-          exif: false
-        }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Camera capture timeout')), 10000)
-        )
-      ]);
-
-      console.log('📸 CAPTURE: Photo captured successfully');
-      
-      if (!mountedRef.current) return;
-
-      // Validate captured photo
-      if (!photo?.uri) {
-        throw new Error('Invalid photo captured');
-      }
-
-      await processPhoto(photo);
-
-    } catch (error) {
-      console.error('🔴 CAPTURE ERROR:', error);
-      
-      if (mountedRef.current) {
-        setIsCapturing(false);
-        
-        const errorMessage = error.message.includes('timeout') 
-          ? 'Camera capture timed out. Please try again.'
-          : 'Failed to capture photo. Please try again.';
-          
-        Alert.alert('Capture Error', errorMessage);
-      }
-    } finally {
-      if (mountedRef.current) {
-        setIsCapturing(false);
-      }
-    }
-  };
-
-  // Enhanced upload handler with improved error handling
-  const handleUpload = async () => {
-    if (!debounceAction() || !mountedRef.current) {
-      console.log('🔵 UPLOAD: Action blocked - busy or debounced');
-      return;
-    }
-
-    try {
-      console.log('🔵 UPLOAD: Starting upload flow');
-      // Remove setIsProcessing(true) to avoid loading states
-      
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      console.log('🔵 UPLOAD: Permission status:', status);
-      
-      if (status !== 'granted') {
-        console.log('🔴 UPLOAD: Permission denied');
-        Alert.alert(
-          'Permission Required',
-          'Library access is required to upload photos. Please grant permission in settings.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() }
-          ]
-        );
-        return;
-      }
-
-      if (!mountedRef.current) return;
-
-      const result = await Promise.race([
-        ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          aspect: [3, 4],
-          quality: CONSTANTS.CAMERA_QUALITY,
-          exif: false,
-          presentationStyle: 'formSheet',
-        }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Image picker timeout')), 30000)
-        )
-      ]);
-
-      console.log('🔵 UPLOAD: Image picker result:', {
-        cancelled: result.canceled,
-        hasAssets: result.assets?.length > 0,
-        dimensions: result.assets?.[0] ? `${result.assets[0].width}x${result.assets[0].height}` : 'none'
-      });
-
-      if (!mountedRef.current) return;
-
-      if (!result.canceled && result.assets?.[0]) {
-        await processPhoto(result.assets[0]);
-      } else {
-        console.log('🔵 UPLOAD: User cancelled selection');
-        // Remove setIsProcessing(false) to avoid loading states
-      }
-      
-    } catch (error) {
-      console.error('🔴 UPLOAD ERROR:', error);
-      
-      if (mountedRef.current) {
-        // Remove setIsProcessing(false) to avoid loading states
-        
-        const errorMessage = error.message.includes('timeout')
-          ? 'Photo selection timed out. Please try again.'
-          : 'Failed to access photo library. Please try again.';
-          
-        Alert.alert('Upload Error', errorMessage);
-      }
-    }
-  };
-
-  // Enhanced back navigation
-  const handleGoBack = async () => {
-    if (!debounceAction(500) || !mountedRef.current) {
-      return;
-    }
-
-    try {
-      await shutdownCamera();
-      await new Promise(resolve => setTimeout(resolve, 200));
-      if (mountedRef.current) {
-        router.back();
-      }
-    } catch (error) {
-      console.error('🔴 NAVIGATION ERROR:', error);
-      // Force navigation even if shutdown fails
-      if (mountedRef.current) {
-        router.back();
-      }
-    }
-  };
-
-  // Always show camera interface - no loading screens
-
-  // Permission denied state with retry option
+  // Handle denied permission
   if (hasPermission === false) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Text style={styles.message}>Camera access required</Text>
+        <Text style={styles.message}>No access to camera</Text>
         <Text style={styles.debugText}>
-          This app needs camera access to take photos for analysis.
+          Permission state: {JSON.stringify({hasPermission, isCameraActive}, null, 2)}
         </Text>
         <View style={styles.permissionButtonContainer}>
           <TouchableOpacity 
             style={styles.button}
-            onPress={() => Linking.openSettings()}
+            onPress={() => {
+              Linking.openSettings();
+            }}
           >
-            <Text style={styles.buttonText}>Open Settings</Text>
+            <Text style={styles.buttonText}>Grant Access</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={styles.button}
-            onPress={requestCameraPermission}
-          >
-            <Text style={styles.buttonText}>Retry</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.button, { backgroundColor: '#666' }]}
             onPress={() => router.replace('/')}
           >
             <Text style={styles.buttonText}>Go Back</Text>
@@ -556,13 +253,13 @@ export default function CameraScreen() {
     );
   }
 
-  // Authentication required state
+  // Check if user is authenticated
   if (!user?.user_id) {
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={styles.message}>Authentication Required</Text>
         <Text style={styles.debugText}>
-          Please sign in to use the camera feature.
+          Please sign in to use the camera
         </Text>
         <View style={styles.permissionButtonContainer}>
           <TouchableOpacity 
@@ -573,7 +270,7 @@ export default function CameraScreen() {
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.button, { backgroundColor: '#666' }]}
+            style={styles.button}
             onPress={() => router.replace('/')}
           >
             <Text style={styles.buttonText}>Go Back</Text>
@@ -583,62 +280,175 @@ export default function CameraScreen() {
     );
   }
 
-  // Always show camera interface with face overlay
+  const shutdownCamera = async () => {
+    setIsCameraActive(false);
+    if (camera) {
+      try {
+        await camera.pausePreview();
+      } catch (e) {
+        console.error('🔴 CAMERA: Error during pausePreview():', e);
+      }
+      setCamera(null);
+    }
+  };
+
+  // Shared function for processing photos with Haut.ai API
+  const processPhoto = async (photo) => {
+    try {
+      // Get user ID from Zustand store
+      if (!user?.user_id) {
+        console.error('🔴 PROCESS: No user ID available');
+        console.log('🔴 PROCESS: Current user:', user);
+        Alert.alert('Error', 'User not authenticated. Please sign in again.');
+        return;
+      }
+
+      const userId = user.user_id;
+      console.log('🔵 PROCESS: User ID found:', userId);
+      
+      const photoId = `${Date.now()}`;
+      
+      await shutdownCamera();
+      await new Promise(resolve => setTimeout(resolve, 200)); 
+      
+      // Navigate to snapshot screen immediately with photo data
+      // The snapshot screen will handle Haut.ai API processing and polling for results
+      router.push({ 
+        pathname: '/(authenticated)/snapshot', 
+        params: { 
+          photoId, 
+          localUri: photo.uri,
+          userId: userId,
+          timestamp: new Date().toISOString()
+        } 
+      });
+
+      console.log('✅ PROCESS: Navigated to snapshot screen for Haut.ai processing');
+      
+    } catch (error) {
+      console.error('🔴 PROCESS ERROR (General):', error);
+      Alert.alert('Error', `Failed to process photo: ${error.message}`);
+    }
+  };
+
+  // Update capture handler to use shared function
+  const handleCapture = async () => {
+    if (!camera) {
+      return;
+    }
+
+    try {
+      const photo = await camera.takePictureAsync({
+        quality: 0.7,
+        base64: true,
+        exif: false
+      });
+
+      // Use the shared processing function
+      await processPhoto(photo);
+
+    } catch (error) {
+      console.error('🔴 CAMERA ERROR:', error.message);
+      console.error('🔴 CAMERA ERROR Stack:', error.stack);
+      Alert.alert('Error', 'Failed to capture photo. Please try again.');
+      // Ensure camera is reactivated if processPhoto failed early
+      setIsCameraActive(true); 
+    }
+  };
+
+  // Update handleUpload to use shared function
+  const handleUpload = async () => {
+    try {
+      console.log('🔵 UPLOAD: Starting upload flow');
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('🔵 UPLOAD: Permission status:', status);
+      
+      if (status !== 'granted') {
+        console.log('🔴 UPLOAD: Permission denied');
+        Alert.alert(
+          'Permission needed',
+          'Library access is required to upload photos',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() }
+          ]
+        );
+        return;
+      }
+
+      // Using settings directly from the Expo documentation
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'], // Use array form as per docs
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.7,
+        exif: false,
+        
+        // iOS specific options that might help
+        presentationStyle: 'formSheet', // iOS - use a specific presentation style
+        
+        // Disable width/height settings as they might conflict with aspect ratio
+        // Let the system handle the resizing based on aspect ratio
+      });
+
+      console.log('🔵 UPLOAD: Image picker result:', {
+        cancelled: result.canceled,
+        hasAssets: result.assets?.length > 0,
+        dimensions: result.assets?.[0] ? `${result.assets[0].width}x${result.assets[0].height}` : 'none'
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        // Use the shared processing function
+        await processPhoto(result.assets[0]);
+      } else {
+        console.log('🔵 UPLOAD: User cancelled selection');
+      }
+    } catch (error) {
+      console.error('🔴 UPLOAD ERROR:', error);
+      Alert.alert('Error', 'Failed to access photo library');
+    }
+  };
+
+  
   return (
     <View style={styles.container}>
-      <CameraView 
-        ref={(ref) => {
-          setCamera(ref);
-          cameraRef.current = ref;
-        }}
-        style={styles.camera}
-        facing={facing}
-        active={isCameraActive && hasPermission}
-        onCameraReady={() => console.log('📸 Camera ready')}
-        onMountError={(error) => {
-          console.error('🔴 CAMERA MOUNT ERROR:', error);
-          // Don't show alert, just log the error - user still sees interface
-        }}
-      />
-      <FaceOverlay />
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={[styles.textButton, (isCapturing || isProcessing) && styles.disabledButton]}
-          onPress={handleGoBack}
-          disabled={isCapturing || isProcessing}
-        >
-          <Text style={[styles.buttonText, (isCapturing || isProcessing) && styles.disabledText]}>
-            Cancel
-          </Text>
-        </TouchableOpacity>
+      {isCameraActive ? (
+        <>
+          <CameraView 
+            ref={ref => setCamera(ref)}
+            style={styles.camera}
+            facing={facing}
+            active={isCameraActive}
+          />
+          <FaceOverlay />
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={styles.textButton}
+              onPress={async () => {
+                await shutdownCamera();
+                router.back();
+              }}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.captureButton}
-          onPress={handleCapture}
-          disabled={isCapturing || isProcessing || !hasPermission || !user?.user_id}
-        >
-          <View style={styles.captureButtonInner} />
-        </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.captureButton}
+              onPress={handleCapture}
+            >
+              <View style={styles.captureButtonInner} />
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.textButton, (isCapturing || isProcessing) && styles.disabledButton]}
-          onPress={handleUpload}
-          disabled={isCapturing || isProcessing || !user?.user_id}
-        >
-          <Text style={[styles.buttonText, (isCapturing || isProcessing) && styles.disabledText]}>
-            Upload
-          </Text>
-        </TouchableOpacity>
-      </View>
-      
-      {/* Status overlay for permission/auth issues - subtle and non-blocking */}
-      {(!hasPermission || !user?.user_id) && (
-        <View style={styles.statusOverlay}>
-          <Text style={styles.statusText}>
-            {!hasPermission ? 'Camera permission required - tap Cancel to grant access' : 
-             !user?.user_id ? 'Authentication required - tap Cancel to sign in' : ''}
-          </Text>
-        </View>
+            <TouchableOpacity
+              style={styles.textButton}
+              onPress={handleUpload}
+            >
+              <Text style={styles.buttonText}>Upload</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      ) : (
+        <View style={[styles.container, { backgroundColor: 'black' }]} />
       )}
     </View>
   );
@@ -688,20 +498,25 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     backgroundColor: 'white',
   },
-  capturingButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  disabledText: {
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
   message: {
     fontSize: 16,
     color: 'black',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  liqaContainer: {
+    position: 'absolute',
+    bottom: 36,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  liqaButton: {
+    padding: 10,
+  },
+  liqaText: {
+    color: 'white',
+    fontSize: 14,
   },
   centered: {
     justifyContent: 'center',
@@ -723,18 +538,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontFamily: 'monospace',
   },
-  statusOverlay: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 8,
-    padding: 12,
-  },
-  statusText: {
-    color: 'white',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-});
+  // Removed legacy Firebase uploading styles
+  // spinnerContainer, uploadingText, uploadingImage, uploadingOverlay
+  // These are no longer needed with the new Haut.ai API flow
+}); 
