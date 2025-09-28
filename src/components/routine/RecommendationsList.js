@@ -37,6 +37,7 @@ import { getComparison, transformComparisonData } from '../../services/newApiSer
 
 // Import the concerns data
 import concernsData from '../../../data/concerns.json';
+import { Camera } from 'lucide-react-native';
 
 // Mapping from profile concern names to concern keys (same as MyConcerns)
 const PROFILE_TO_CONCERN_MAPPING = {
@@ -325,7 +326,7 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
 
     return (
       <View style={styles.statsContainer}>
-        <Text style={styles.statsTitle}>Areas Requiring Attention</Text>
+        <Text style={styles.statsTitle}>Areas that may require attention</Text>
         <View style={styles.statsGrid}>
           {lowestScoringConcerns.map((concernKey, index) => {
             const score = latestScores[concernKey] || 0;
@@ -364,6 +365,23 @@ const RecommendationsList = ({ recommendations, onRecommendationPress }) => {
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Analyzing your skin concerns...</Text>
         <Text style={styles.loadingSubtext}>Finding ingredients for your areas of concern</Text>
+      </View>
+    );
+  }
+
+  // Show no images state when no comparison data is available
+  if (!isLoadingComparison && (!comparisonData || comparisonData.length === 0)) {
+    return (
+      <View style={styles.noDataContainer}>
+        <View style={styles.noDataContent}>
+          <View style={styles.noDataIconContainer}>
+          <Camera size={40} color={colors.primary} />
+          </View>
+          <Text style={styles.noDataText}>Upload your first photo to start receiving ingredient suggestions</Text>
+          {/* <Text style={styles.noDataSubtext}>
+            Take a selfie to get personalized ingredient recommendations based on your skin analysis
+          </Text> */}
+        </View>
       </View>
     );
   }
@@ -553,5 +571,41 @@ const styles = StyleSheet.create({
   statBarFill: {
     height: '100%',
     borderRadius: 3,
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  noDataContent: {
+    alignItems: 'center',
+    maxWidth: 320,
+  },
+  noDataIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  noDataIcon: {
+    fontSize: 48,
+  },
+  noDataText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+    lineHeight: 25,
+  },
+  noDataSubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 }); 
