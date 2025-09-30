@@ -488,11 +488,44 @@ const MyRoutine = forwardRef((props, ref) => {
         Alert.alert('Error', 'Please select the treatment date.');
         return;
       }
+      
+      // Validate treatment date is not in the future
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selectedTreatmentDate = new Date(newItemTreatmentDate);
+      selectedTreatmentDate.setHours(0, 0, 0, 0);
+      
+      if (selectedTreatmentDate > today) {
+        Alert.alert('Invalid Date', 'Cannot select future date for treatment date.');
+        return;
+      }
     } else {
       // For non-treatment types, validate start date
       if (!newItemDateStarted) {
         Alert.alert('Error', 'Please select a start date.');
         return;
+      }
+
+      // Validate start date is not in the future
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selectedStartDate = new Date(newItemDateStarted);
+      selectedStartDate.setHours(0, 0, 0, 0);
+      
+      if (selectedStartDate > today) {
+        Alert.alert('Invalid Date', 'Cannot select future date for start date.');
+        return;
+      }
+
+      // Validate stop date is not in the future (if present)
+      if (newItemDateStopped) {
+        const selectedStopDate = new Date(newItemDateStopped);
+        selectedStopDate.setHours(0, 0, 0, 0);
+        
+        if (selectedStopDate > today) {
+          Alert.alert('Invalid Date', 'Cannot select future date for stop date.');
+          return;
+        }
       }
 
       // Validate dates if both are present

@@ -243,6 +243,17 @@ export default function UpdateRoutineScreen() {
         Alert.alert('Missing Information', 'Please select the treatment date.');
         return;
       }
+      
+      // Validate treatment date is not in the future
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selectedTreatmentDate = new Date(treatmentDate);
+      selectedTreatmentDate.setHours(0, 0, 0, 0);
+      
+      if (selectedTreatmentDate > today) {
+        Alert.alert('Invalid Date', 'Cannot select future date for treatment date.');
+        return;
+      }
     } else {
       // For non-treatment types, validate usage and frequency
       if (itemUsage.length === 0) {
@@ -259,6 +270,28 @@ export default function UpdateRoutineScreen() {
       if (!startDate) {
         Alert.alert('Missing Information', 'Please select when you started using this item.');
         return;
+      }
+
+      // Validate start date is not in the future
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selectedStartDate = new Date(startDate);
+      selectedStartDate.setHours(0, 0, 0, 0);
+      
+      if (selectedStartDate > today) {
+        Alert.alert('Invalid Date', 'Cannot select future date for start date.');
+        return;
+      }
+
+      // Validate end date is not in the future (if present)
+      if (endDate) {
+        const selectedEndDate = new Date(endDate);
+        selectedEndDate.setHours(0, 0, 0, 0);
+        
+        if (selectedEndDate > today) {
+          Alert.alert('Invalid Date', 'Cannot select future date for end date.');
+          return;
+        }
       }
 
       // Validate dates if both are present
@@ -616,7 +649,6 @@ export default function UpdateRoutineScreen() {
                 mode="date"
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 onChange={handleTreatmentDateChange}
-                maximumDate={new Date()}
                 minimumDate={new Date(new Date().getFullYear() - 10, 0, 1)}
                 textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
                 style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
@@ -652,7 +684,6 @@ export default function UpdateRoutineScreen() {
                 mode="date"
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 onChange={handleStartDateChange}
-                maximumDate={new Date()}
                 minimumDate={new Date(new Date().getFullYear() - 10, 0, 1)}
                 textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
                 style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}
@@ -703,7 +734,6 @@ export default function UpdateRoutineScreen() {
                 mode="date"
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 onChange={handleEndDateChange}
-                maximumDate={new Date()}
                 minimumDate={startDate || new Date(new Date().getFullYear() - 10, 0, 1)}
                 textColor={Platform.OS === 'ios' ? colors.textPrimary : colors.white}
                 style={Platform.OS === 'ios' ? { backgroundColor: colors.white } : undefined}

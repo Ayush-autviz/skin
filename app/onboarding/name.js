@@ -71,6 +71,17 @@ export default function NameScreen() {
       return;
     }
 
+    // Validate birth date is not in the future
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+    const selectedDate = new Date(birthDate);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate > today) {
+      setError('Cannot select future date for birth date');
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
@@ -194,7 +205,6 @@ export default function NameScreen() {
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={handleDateChange}
-                  maximumDate={new Date()}
                   minimumDate={new Date(new Date().getFullYear() - 110, 0, 1)}
                   textColor={Platform.OS === 'ios' ? '#1F2937' : '#FFFFFF'}
                   style={Platform.OS === 'ios' ? { backgroundColor: '#FFFFFF' } : undefined}
