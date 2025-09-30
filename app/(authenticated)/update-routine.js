@@ -175,7 +175,7 @@ export default function UpdateRoutineScreen() {
   };
 
   const handleEndDateChange = (event, selectedDate) => {
-    setShowEndDatePicker(false);
+   // setShowEndDatePicker(false);
     if (event.type === 'dismissed') return;
     if (selectedDate) {
       setEndDate(selectedDate);
