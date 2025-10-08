@@ -309,6 +309,13 @@ const MyRoutine = forwardRef((props, ref) => {
     };
   }, []);
 
+  // Set stop date to today when user checks "Stopped Using It"
+  useEffect(() => {
+    if (isStopped && !newItemDateStopped) {
+      setNewItemDateStopped(new Date());
+    }
+  }, [isStopped]);
+
   // Refetch data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {

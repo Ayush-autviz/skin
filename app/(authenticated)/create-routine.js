@@ -85,6 +85,13 @@ export default function CreateRoutineScreen() {
     }
   }, [params.frequency]);
 
+  // Set end date to today when user checks "Stopped Using It"
+  useEffect(() => {
+    if (isStopped && !endDate) {
+      setEndDate(new Date());
+    }
+  }, [isStopped]);
+
   // Toggle logic for AM/PM usage - only allow one selection
   const handleUsageToggle = (tappedUsage) => {
     setItemUsage(currentUsage => {
