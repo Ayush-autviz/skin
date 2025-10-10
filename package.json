@@ -21,6 +21,8 @@
     "@microsoft/react-native-clarity": "^4.3.1",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "^8.3.0",
+    "@react-native-firebase/app": "^23.4.0",
+    "@react-native-firebase/messaging": "^23.4.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
     "@xmldom/xmldom": "^0.8.10",
